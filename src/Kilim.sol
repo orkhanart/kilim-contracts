@@ -381,7 +381,7 @@ contract Kilim is ERC721, ReentrancyGuard {
         ArtworkStore storage art = _artworks[tokenId];
         uint256 n = uint256(art.columns) * art.rows;
         uint16[] memory motifs = new uint16[](n);
-        uint256 word;
+        uint256 word = 0; // loaded at i = 0, then every eighth cell
         for (uint256 i; i < n; ++i) {
             if (i % 8 == 0) word = art.packedCells[i / 8];
             motifs[i] = uint16(uint256(_seed(uint32(word >> ((i % 8) * 32)))) % motifCount);
@@ -491,7 +491,7 @@ contract Kilim is ERC721, ReentrancyGuard {
 
     function _unpackCells(ArtworkStore storage art) private view returns (uint256[] memory cells) {
         cells = new uint256[](uint256(art.columns) * art.rows);
-        uint256 word;
+        uint256 word = 0; // loaded at i = 0, then every eighth cell
         for (uint256 i; i < cells.length; ++i) {
             if (i % 8 == 0) word = art.packedCells[i / 8];
             cells[i] = uint32(word >> ((i % 8) * 32));

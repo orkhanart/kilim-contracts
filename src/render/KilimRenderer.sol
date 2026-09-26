@@ -639,15 +639,23 @@ contract KilimRenderer is IKilimRenderer {
         returns (uint256)
     {
         uint256 x0 = (size - 1720 * cols) / 2 + 258;
-        uint256 y0 = (size - 1720 * rows) / 2 + 258;
+        uint256 x = x0;
+        uint256 y = (size - 1720 * rows) / 2 + 258;
+        uint256 col = 0;
         for (uint256 k; k < motifs.length; ++k) {
             o = W.w(o, '<use xlink:href="#m', 19);
             o = W.u(o, motifs[k]);
             o = W.w(o, '" x="', 5);
-            o = W.u(o, x0 + 1720 * (k % cols));
+            o = W.u(o, x);
             o = W.w(o, '" y="', 5);
-            o = W.u(o, y0 + 1720 * (k / cols));
+            o = W.u(o, y);
             o = W.w(o, '" width="1204" height="1204"/>', 30);
+            if (++col == cols) {
+                (col, x) = (0, x0);
+                y += 1720;
+            } else {
+                x += 1720;
+            }
         }
         return o;
     }

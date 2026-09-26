@@ -156,7 +156,7 @@ library KilimWriter {
 
     /// @notice Length of the padded base64 encoding of `n` bytes.
     function b64len(uint256 n) internal pure returns (uint256) {
-        return 4 * ((n + 2) / 3);
+        return ((n + 2) / 3) << 2; // 4 characters per started 3-byte group
     }
 
     /// @notice Standard padded base64 (RFC 4648) of [src, src + len), written at `o`. Returns the end,
@@ -165,7 +165,7 @@ library KilimWriter {
     function b64(uint256 src, uint256 len, uint256 o, uint256 bt) internal pure returns (uint256 end) {
         uint256 last;
         assembly ("memory-safe") {
-            end := add(o, mul(4, div(add(len, 2), 3)))
+            end := add(o, shl(2, div(add(len, 2), 3)))
             let dEnd := add(src, len)
             let saved := mload(dEnd)
             mstore(dEnd, 0) // the last group reads past the input: those bits must be zero
