@@ -29,10 +29,11 @@ async function rpc(url, method, params = []) {
 }
 
 /**
- * Start a local anvil on 127.0.0.1. Resolves once it answers eth_chainId.
+ * Start a local anvil on 127.0.0.1. Resolves once it answers eth_chainId. `gasLimit` sets the block
+ * gas limit (anvil's default is 30M).
  * @returns {Promise<{rpcUrl: string, port: number, chainId: number, stop: () => Promise<void>}>}
  */
-export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, quiet = true } = {}) {
+export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, gasLimit, quiet = true } = {}) {
   const chosen = await freePort(port ?? 0);
   const args = [
     '--host', '127.0.0.1', '--port', String(chosen), '--chain-id', String(chainId),
@@ -40,6 +41,8 @@ export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, qu
   ];
   if (forkUrl) args.push('--fork-url', forkUrl);
   if (forkUrl && forkBlock) args.push('--fork-block-number', String(forkBlock));
+  // A higher block gas limit also raises anvil's eth_call cap (the heaviest tokenURI needs ~30.4M).
+  if (gasLimit) args.push('--gas-limit', String(gasLimit));
   const child = spawn(foundryBinary('anvil'), args, { stdio: ['ignore', quiet ? 'ignore' : 'inherit', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', (chunk) => { stderr += chunk; });

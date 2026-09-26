@@ -35,9 +35,10 @@ The renderer adds (Python 3.9+ and Node 22+, no extra packages):
 ```sh
 pnpm pack:check              # onchain/build matches the geometry and page it was packed from
 pnpm test:pack               # packer invariants, scale band, determinism
-pnpm test:page               # the 1/1 page at 700, 812 and 900 motifs
+pnpm test:page               # the 1/1 page at 700, 812 and 900 motifs, then test:render-site
 pnpm test:render-geometries  # the renderer suite on a 700- and a 912-motif store
 pnpm test:render-ffi         # differential fuzzing against onchain/render_ref.py
+pnpm test:render-site        # the contract's images against the site's drawing code, in headless Chrome
 pnpm gas:render              # writes audit/gas-render.txt
 pnpm deploy:dry              # simulates the store phase of the deployment
 ```

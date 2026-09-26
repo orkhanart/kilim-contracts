@@ -64,7 +64,7 @@ Every transaction stays under 8M gas (the per-transaction cap is 16,777,216). Me
 | auction, which creates Kilim | about 5.47M |
 
 1. **Freeze** the geometry and the page. Run `pnpm pack`, read the budget it prints, and review `onchain/build/manifest.json`.
-2. **Test**: `pnpm test`, `pnpm test:render-geometries` (the whole renderer suite on a 700- and a 912-motif store), `pnpm test:render-ffi` (differential fuzzing against `onchain/render_ref.py`), `pnpm test:page`, `pnpm test:pack`, `pnpm gas:render`.
+2. **Test**: `pnpm test`, `pnpm test:render-geometries` (the whole renderer suite on a 700- and a 912-motif store), `pnpm test:render-ffi` (differential fuzzing against `onchain/render_ref.py`), `pnpm test:page` (the 1/1 page, then `test:render-site`), `pnpm test:render-site` (below), `pnpm test:pack`, `pnpm gas:render`.
 3. **Store phase** (`runStore`): the script deploys every chunk that is not already on-chain, then the renderer, both through the CREATE2 deployer. Any funded key can do this, and it is idempotent: chunks or a renderer already at their addresses are verified and skipped.
 
    ```sh
@@ -137,6 +137,10 @@ After deploy nothing can change: the motif count and hashes are immutable, and e
 Artwork appearance is `bytes32` left-aligned ASCII (what `ethers.encodeBytes32String` produces): `flat/ink`, `flat/indigo` or `flat/vermilion`. `weave` and `expand` reject anything else with `InvalidAppearance`.
 
 The names, descriptions, palette and trait labels are constants at the top of `KilimRenderer.sol` and `onchain/render_ref.py`. Change both, run `pnpm pack`, and the golden tests confirm they agree.
+
+### Fidelity to the site
+
+The golden and differential tests prove the Solidity equals `onchain/render_ref.py`, but both could drift from what the site draws. `pnpm test:render-site` (`onchain/test/render-site.test.mjs`) closes that gap in headless Chrome: it deploys the store and the renderer on a local anvil, asks the contract for every golden artwork case and every motif's symbol, and compares each rasterised SVG with the site's own code drawing the same thing on a canvas: `KILIM_RENDER.draw` from `site/merge-render.js` for artworks, `KILIM.drawSymbol` (pad 0.80) from `site/lib.js` for symbol silhouettes, with the geometry `site/build.py` embeds (`onchain/symbols.b64`). Each SVG is also checked against `golden.json`, and a first test (no Chrome needed) checks that `onchain/symbols.b64`, which the site embeds, inflates to the geometry whose keccak256 is `geometryHash`. Measured today: no artwork pixel differs by more than 64 in any channel (mean difference under 0.004 of 255), and symbol silhouettes differ by at most 0.1% of their ink with the centroid within 0.06 px at 500 px. The thresholds are tight enough that an ink or plate colour a few levels off, a pad 1.5% smaller, a half-pixel shift or two swapped cells fail, and a test proves it. Changing an artwork colour, a pad or the plate therefore means changing `site/merge-render.js` in the same step. The test needs Chrome (`CHROME_PATH` if it is not in a usual place); without one it is skipped, unless `CI` is set.
 
 ## Local dev chain
 
