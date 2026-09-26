@@ -70,7 +70,7 @@ Then open:
   ${base}/auction.dev.html?as=1&batch=1   Alice, batched (one confirmation)
   ${base}/auction.dev.html?as=2&batch=0   Bob, sequential transactions
   ${base}/auction.dev.html?as=9           the treasury (cannot bid)
-  ${base}/merge.dev.html?as=1             the weaving studio
+  ${base}/weave.dev.html?as=1             the weaving page
   ${base}/index.dev.html                  the landing page
 Accounts 1-8 hold 100,000 test USDC and 10,000 ETH. Ctrl-C stops anvil.`);
 } catch (e) {

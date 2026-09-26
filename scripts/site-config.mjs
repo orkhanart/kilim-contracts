@@ -69,4 +69,4 @@ cfg.auction = A.checksum(a);
 cfg.collection = A.checksum(collection);
 cfg.deployBlock = block;
 writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
-console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html, auction.html and merge.html.`);
+console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html, auction.html and weave.html.`);
