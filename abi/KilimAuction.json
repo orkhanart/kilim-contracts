@@ -18,6 +18,11 @@
             "internalType": "address"
           },
           {
+            "name": "collectionOwner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "startsAt",
             "type": "uint64",
             "internalType": "uint64"
@@ -29,11 +34,6 @@
           },
           {
             "name": "extensionWindow",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "maxExtension",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -151,6 +151,19 @@
   },
   {
     "type": "function",
+    "name": "duration",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "endsAt",
     "inputs": [],
     "outputs": [
@@ -165,19 +178,6 @@
   {
     "type": "function",
     "name": "extensionWindow",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "hardEndsAt",
     "inputs": [],
     "outputs": [
       {
@@ -564,6 +564,25 @@
   },
   {
     "type": "event",
+    "name": "AuctionStarted",
+    "inputs": [
+      {
+        "name": "firstBidder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "endsAt",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "BidPlaced",
     "inputs": [
       {
@@ -732,6 +751,11 @@
   {
     "type": "error",
     "name": "InvalidRecipient",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoBids",
     "inputs": []
   },
   {
