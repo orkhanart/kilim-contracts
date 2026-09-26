@@ -30,7 +30,19 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
+      "description": "KilimWriter.b64(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#166-205) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#169-201)\n"
+    },
+    {
+      "check": "assembly",
+      "impact": "Informational",
+      "confidence": "High",
       "description": "KilimWriter.w(uint256,bytes32,uint256) (src/render/KilimWriter.sol#92-98) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#93-96)\n"
+    },
+    {
+      "check": "assembly",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "KilimWriter.path.asm_0.rv() (src/render/KilimWriter.sol#222-231) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#222-231)\n"
     },
     {
       "check": "assembly",
@@ -42,19 +54,13 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.path.asm_0.rv() (src/render/KilimWriter.sol#219-228) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#219-228)\n"
+      "description": "KilimWriter.path.asm_0.num() (src/render/KilimWriter.sol#233-263) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#233-263)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
       "description": "KilimRenderer._artworkBound(uint16[],uint256,uint256,bytes32,uint256) (src/render/KilimRenderer.sol#551-580) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#570-572)\n\t- INLINE ASM (src/render/KilimRenderer.sol#574-576)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.path.asm_0.num() (src/render/KilimWriter.sol#230-260) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#230-260)\n"
     },
     {
       "check": "assembly",
@@ -84,6 +90,12 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
+      "description": "KilimWriter.path(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#217-300) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#220-297)\n"
+    },
+    {
+      "check": "assembly",
+      "impact": "Informational",
+      "confidence": "High",
       "description": "KilimWriter.i(uint256,int256) (src/render/KilimWriter.sol#127-135) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#129-131)\n"
     },
     {
@@ -108,19 +120,13 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
+      "description": "KilimWriter.tables() (src/render/KilimWriter.sol#305-340) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#308-339)\n"
+    },
+    {
+      "check": "assembly",
+      "impact": "Informational",
+      "confidence": "High",
       "description": "KilimWriter.u(uint256,uint256) (src/render/KilimWriter.sol#110-124) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#111-122)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.b64(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#165-202) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#167-199)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "Kilim.tokenURI(uint256) (src/Kilim.sol#356-376) uses assembly\n\t- INLINE ASM (src/Kilim.sol#369-375)\n"
     },
     {
       "check": "assembly",
@@ -144,13 +150,7 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.tables() (src/render/KilimWriter.sol#302-337) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#305-336)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.path(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#214-297) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#217-294)\n"
+      "description": "Kilim.tokenURI(uint256) (src/Kilim.sol#358-378) uses assembly\n\t- INLINE ASM (src/Kilim.sol#371-377)\n"
     },
     {
       "check": "assembly",
@@ -186,7 +186,7 @@
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().t_path_asm_0_num (src/render/KilimWriter.sol#230) is not in mixedCase\n"
+      "description": "Parameter KilimWriter.path.asm_0.num().t_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
@@ -216,13 +216,13 @@
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().q_path_asm_0_num (src/render/KilimWriter.sol#230) is not in mixedCase\n"
+      "description": "Parameter KilimWriter.path.asm_0.num().q_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.rv().q_path_asm_0_rv (src/render/KilimWriter.sol#219) is not in mixedCase\n"
+      "description": "Parameter KilimWriter.path.asm_0.rv().q_path_asm_0_rv (src/render/KilimWriter.sol#222) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
@@ -240,7 +240,7 @@
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().pp_path_asm_0_num (src/render/KilimWriter.sol#230) is not in mixedCase\n"
+      "description": "Parameter KilimWriter.path.asm_0.num().pp_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",

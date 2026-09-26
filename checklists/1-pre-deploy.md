@@ -79,7 +79,7 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
 - [x] Publish a **hash recipe**: [docs/RENDERER.md](../docs/RENDERER.md). `geometryHash` is keccak256 of the stored uncompressed geometry, not of `symbols.bin`; `rendererHash` is the renderer's EXTCODEHASH, predictable because it is deployed by CREATE2.
 - [x] Store the geometry and the 1/1 page on-chain in data contracts deployed before the auction (`script/DeployKilim.s.sol`, store phase). This changes the deployment order and the nonce plan: see docs/RENDERER.md.
 - [x] Publish the `appearance` encoding: `bytes32` `flat/ink`, `flat/indigo`, `flat/vermilion`; anything else reverts. Symbol materials render as documented in docs/RENDERER.md.
-- [x] After the renderer is built, check sizes (`test/render/RenderGasLimits.t.sol`). The `Kilim` runtime must stay ≤ 24,576 bytes (now 15,274). The `KilimAuction` initcode must stay ≤ 49,152 bytes (now 27,626). The renderer runtime is 17,018 bytes.
+- [x] After the renderer is built, check sizes (`test/render/RenderGasLimits.t.sol`). The `Kilim` runtime must stay ≤ 24,576 bytes (now 15,314). The `KilimAuction` initcode must stay ≤ 49,152 bytes (now 27,666). The renderer runtime is 17,007 bytes.
 
 ## Code freeze and verification
 

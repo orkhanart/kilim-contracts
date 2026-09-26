@@ -60,7 +60,7 @@ Every transaction stays under 8M gas (the per-transaction cap is 16,777,216). Me
 | Transaction | Gas |
 | --- | --- |
 | each full chunk | about 5.40M at most (all 7: 33.5M) |
-| renderer, including `TABLES` | about 6.87M |
+| renderer, including `TABLES` | about 6.86M |
 | auction, which creates Kilim | about 5.47M |
 
 1. **Freeze** the geometry and the page. Run `pnpm pack`, read the budget it prints, and review `onchain/build/manifest.json`.
