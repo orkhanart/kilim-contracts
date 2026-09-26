@@ -1,0 +1,4 @@
+allowBuilds:
+  '@foundry-rs/forge': false
+overrides:
+  'solc>tmp': '0.2.7'

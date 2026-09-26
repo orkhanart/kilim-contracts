@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/thirdweb-dev/contracts",
+  "commit": "46e69070978c23b9533edb381e838a5dddf7ed9d",
+  "sourcePath": "contracts/prebuilts/marketplace/english-auctions/EnglishAuctionsLogic.sol",
+  "sourceUrl": "https://raw.githubusercontent.com/thirdweb-dev/contracts/46e69070978c23b9533edb381e838a5dddf7ed9d/contracts/prebuilts/marketplace/english-auctions/EnglishAuctionsLogic.sol",
+  "sourceSha256": "5c3e0e3d331c38b1f9487230002f0f68b8972d10232ad435338229549995f52e",
+  "license": "Apache-2.0",
+  "licenseUrl": "https://raw.githubusercontent.com/thirdweb-dev/contracts/46e69070978c23b9533edb381e838a5dddf7ed9d/LICENSE.md",
+  "licenseSha256": "5168faffb767f4c28bf8c78ed189011870e452f58fb04a34a1f546f575d7608e",
+  "auditUrl": "https://0xmacro.com/library/audits/thirdweb-15",
+  "snapshot": "EnglishAuctionsLogic.sol.txt",
+  "adaptation": "src/auction/ERC20EnglishAuction.sol",
+  "unchangedFunctions": [
+    "_isNewWinningBid"
+  ],
+  "notes": "Audit reference snapshot, not a patched production deployment. The report focuses on changes since the previous MarketplaceV3 audit. See REUSE.md for modifications and exclusions."
+}

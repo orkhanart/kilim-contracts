@@ -1,0 +1,250 @@
+Compiling 10 files with Solc 0.8.37
+Solc 0.8.37 finished in 1.32s
+Compiler run successful!
+
+Ran 1 test for test/Lifecycle.t.sol:LifecycleTest
+[PASS] testRefundedSymbolsComposeExpandAndTransferThenAllClaimsSettle() (gas: 10936387)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 7.05ms (3.37ms CPU time)
+
+Ran 8 tests for test/ReuseRegression.t.sol:ReuseRegressionTest
+[PASS] testAccidentalNativeValueRevertsWithoutTakingBid() (gas: 29287)
+[PASS] testBlockedOutbidRecipientCannotStopNextBid() (gas: 353760)
+[PASS] testDirectNativePaymentRejected() (gas: 15300)
+[PASS] testFuzzLargeOverbidIsCollectedInFull(uint128) (runs: 4096, μ: 338691, ~: 338696)
+[PASS] testFuzzWholeUnitQuoteIsSmallestUpstreamAcceptedBid(uint128,uint16,uint8) (runs: 4096, μ: 1687123, ~: 1687219)
+[PASS] testLargestWholeBidRemainsSolventAndCanSettle() (gas: 227717)
+[PASS] testOversizedBidRejectedBeforeUpstreamMultiplication() (gas: 206182)
+[PASS] testSlippageRevertRestoresRefundsDeadlineAndLeader() (gas: 268657)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 465.58ms (918.55ms CPU time)
+
+Ran 3 tests for test/GasLimits.t.sol:GasLimitsTest
+[PASS] testGas256CellWeave() (gas: 9541628)
+Logs:
+  256-cell weave execution gas (before refunds): 10719409
+
+[PASS] testGas64SymbolClaim() (gas: 6085818)
+Logs:
+  64-symbol mint execution gas (before refunds): 6077841
+
+[PASS] testGasExpandToMaximumCanvas() (gas: 9556427)
+Logs:
+  4-to-256-cell expansion execution gas (before refunds): 10408062
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 471.99ms (4.46ms CPU time)
+
+Ran 4 tests for test/AuctionInvariants.t.sol:AuctionInvariants
+[PASS] invariantClosingAndPrizeAreBounded() (runs: 256, calls: 32768, reverts: 0)
+
+╭----------------+----------+-------+---------+----------╮
+| Contract       | Selector | Calls | Reverts | Discards |
++========================================================+
+| AuctionHandler | claim    | 4022  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | donate   | 4037  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | finish   | 4135  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | passTime | 4094  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | placeBid | 4018  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | prize    | 4161  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | proceeds | 4141  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | refund   | 4160  | 0       | 0        |
+╰----------------+----------+-------+---------+----------╯
+
+[PASS] invariantCreditsCannotBeCreatedTwiceOrOverCap() (runs: 256, calls: 32768, reverts: 0)
+
+╭----------------+----------+-------+---------+----------╮
+| Contract       | Selector | Calls | Reverts | Discards |
++========================================================+
+| AuctionHandler | claim    | 4022  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | donate   | 4037  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | finish   | 4135  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | passTime | 4094  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | placeBid | 4018  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | prize    | 4161  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | proceeds | 4141  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | refund   | 4160  | 0       | 0        |
+╰----------------+----------+-------+---------+----------╯
+
+[PASS] invariantEscrowAlwaysCoversExactLiabilities() (runs: 256, calls: 32768, reverts: 0)
+
+╭----------------+----------+-------+---------+----------╮
+| Contract       | Selector | Calls | Reverts | Discards |
++========================================================+
+| AuctionHandler | claim    | 4022  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | donate   | 4037  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | finish   | 4135  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | passTime | 4094  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | placeBid | 4018  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | prize    | 4161  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | proceeds | 4141  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | refund   | 4160  | 0       | 0        |
+╰----------------+----------+-------+---------+----------╯
+
+[PASS] invariantReservedIdsMatchCreditsAndAreUnminted() (runs: 256, calls: 32768, reverts: 0)
+
+╭----------------+----------+-------+---------+----------╮
+| Contract       | Selector | Calls | Reverts | Discards |
++========================================================+
+| AuctionHandler | claim    | 4022  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | donate   | 4037  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | finish   | 4135  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | passTime | 4094  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | placeBid | 4018  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | prize    | 4161  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | proceeds | 4141  | 0       | 0        |
+|----------------+----------+-------+---------+----------|
+| AuctionHandler | refund   | 4160  | 0       | 0        |
+╰----------------+----------+-------+---------+----------╯
+
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 49.74s (58.74s CPU time)
+
+Ran 28 tests for test/Kilim.t.sol:KilimTest
+[PASS] testApprovedOperatorCannotBurnOrMutate() (gas: 449284)
+[PASS] testArtworkCallbackSeesFinalStateAndCannotReenter() (gas: 1589484)
+[PASS] testBadMintRecipientsAndSeedOwnerRejected() (gas: 55657)
+[PASS] testCannotBurnAnotherHoldersSymbol() (gas: 149426)
+[PASS] testCannotExpandOrFreezeASymbol() (gas: 28101)
+[PASS] testCannotReuseSourcesFromAnotherArtwork() (gas: 645885)
+[PASS] testDuplicateInputsRevertEveryBurn() (gas: 149315)
+[PASS] testExpandPreservesTokenAndEveryExistingSource() (gas: 640450)
+[PASS] testExpansionCannotOmitExistingSourceEvenWithEnoughNewOnes() (gas: 393725)
+[PASS] testExpansionRejectsDuplicateOldAndNewSources() (gas: 389354)
+[PASS] testFuzzDuplicatePositionAlwaysReverts(uint8) (runs: 4096, μ: 127884, ~: 126145)
+[PASS] testFuzzInvalidCollectionConfiguration(uint8) (runs: 4096, μ: 107575, ~: 107615)
+[PASS] testFuzzTraitsAreFixedBeforeClaimAndIgnoreBidder(address,uint8,uint16) (runs: 4096, μ: 2212111, ~: 1555710)
+[PASS] testInvalidDimensionsAndMissingTokensRejected() (gas: 98365)
+[PASS] testMasterpieceCannotBeBurnedAndOnlyMintsOnce() (gas: 130150)
+[PASS] testMaximumCanvasGasAndLimit() (gas: 29660550)
+[PASS] testMetadataParsesAndMatchesOnchainState() (gas: 1376609)
+[PASS] testOnlyMinterCanCreateSymbolsOrMasterpiece() (gas: 10989)
+[PASS] testPermanentFreezeSurvivesTransfer() (gas: 365624)
+[PASS] testRejectingArtworkReceiverRollsBackAllBurns() (gas: 1326508)
+[PASS] testStaleRevisionAndSameSizeExpansionRejected() (gas: 346418)
+[PASS] testSupplyAndBatchCapsCannotBeBypassedByBurning() (gas: 3208207)
+[PASS] testSymbolRangeBoundariesAndArtworkIds() (gas: 566270)
+[PASS] testTokenKindsAndInterfaces() (gas: 29904)
+[PASS] testTraitsAndMetadataStayUnchangedOnTransfer() (gas: 196783)
+[PASS] testTransferredArtworkCanUseSecondaryMarketSymbols() (gas: 421280)
+[PASS] testUnsafeTransfersToProtocolContractsAreRejected() (gas: 11337)
+[PASS] testWeaveBurnsExactlyOnceAndPreservesTraits() (gas: 379708)
+Suite result: ok. 28 passed; 0 failed; 0 skipped; finished in 49.74s (1.12s CPU time)
+
+Ran 48 tests for test/KilimAuction.t.sol:KilimAuctionTest
+[PASS] testBidEscrowsFundsAndAllocatesCredits() (gas: 210357)
+[PASS] testBidEventReportsReservedIds() (gas: 336286)
+[PASS] testCannotStealAnotherBiddersRefund() (gas: 336039)
+[PASS] testClaimAboveBatchCapAcrossRangesRejected() (gas: 6631139)
+[PASS] testClaimCallbackCannotReenterBid() (gas: 1337423)
+[PASS] testClaimsSpanBidRangesOldestFirst() (gas: 5652808)
+[PASS] testConstructorRejectsInvalidConfiguration() (gas: 1143801)
+[PASS] testCreditRangesAreFinalBeforeReceiverCallbacks() (gas: 3946973)
+[PASS] testDonationsDoNotAlterLiabilitiesOrRewards() (gas: 254625)
+[PASS] testExhaustedRewardsReserveNoIds() (gas: 5315883)
+[PASS] testExpectedFirstSymbolIdRejectsExhaustedRewards() (gas: 4689487)
+[PASS] testExpectedFirstSymbolIdRejectsMovedRange() (gas: 551156)
+[PASS] testFalseReturnTokenRejected() (gas: 189022)
+[PASS] testFeeOnWithdrawalRevertsWithoutLosingRefund() (gas: 336514)
+[PASS] testFuzzBidAccounting(uint96,uint8) (runs: 4096, μ: 311562, ~: 311562)
+[PASS] testFuzzDecimalsAndWholeUnitRounding(uint8) (runs: 4096, μ: 5385578, ~: 5385642)
+[PASS] testFuzzInvalidAuctionConfiguration(uint8) (runs: 4096, μ: 80361, ~: 73684)
+[PASS] testGas64SymbolClaimAcrossBids() (gas: 6629699)
+Logs:
+  64-symbol claim across 3 bids, execution gas (before refunds): 6168420
+
+[PASS] testInvalidClaimQuantities() (gas: 206753)
+[PASS] testInvalidRecipientsDoNotDestroyClaims() (gas: 363965)
+[PASS] testLateBidExtendsButNeverBeyondHardEnd() (gas: 669589)
+[PASS] testMinimumBidRoundsUpToWholeDollar() (gas: 340374)
+[PASS] testMultiRangeClaimEvents() (gas: 3340607)
+[PASS] testNftCallbackCannotDoubleClaim() (gas: 1521461)
+[PASS] testNftReceiverCannotDoubleClaimPrize() (gas: 1155043)
+[PASS] testNoBidPrizeGoesToTreasury() (gas: 155240)
+[PASS] testNoExtensionAndExactLastSecondBid() (gas: 4573188)
+[PASS] testOnlyTreasuryCanWithdrawOnlyAfterSettlement() (gas: 205747)
+[PASS] testOutbidRefundAndCreditsRemain() (gas: 323201)
+[PASS] testPerBidRewardCap() (gas: 196976)
+[PASS] testRefundCyclingAccumulatesRewardsForFreeLosingBids() (gas: 443276)
+[PASS] testRejectedDepositRollsBackStandingBidAndRewards() (gas: 328983)
+[PASS] testRejectedRefundPreservesEntitlement() (gas: 307208)
+[PASS] testRejectingReceiverDoesNotConsumeSymbolCredits() (gas: 1060018)
+[PASS] testRejectingWinnerCannotBlockSettlementOrProceeds() (gas: 1167275)
+[PASS] testRejectsFeeOnTransferDeposit() (gas: 233354)
+[PASS] testRejectsFractionalDollarBid() (gas: 20994)
+[PASS] testRepeatedProceedsWithdrawalAndFailedPayment() (gas: 226336)
+[PASS] testRewardCapDoesNotBlockCompetitiveBids() (gas: 4795531)
+[PASS] testSelfOutbidFullyFundedAndLiabilitiesConserved() (gas: 285226)
+[PASS] testSettlementAndProceedsLeaveRefundsSolvent() (gas: 336321)
+[PASS] testSettlementTimingAndIdempotence() (gas: 57260)
+[PASS] testSymbolClaimsBoundedAndNeverForfeitWithRefund() (gas: 9873905)
+[PASS] testSymbolIdsAndTraitsAreFixedAtBidTime() (gas: 5723103)
+[PASS] testTimeBoundaries() (gas: 239093)
+[PASS] testTokenCallbackCannotReenterBidOrRefund() (gas: 409094)
+[PASS] testTreasuryCannotBid() (gas: 270273)
+[PASS] testWinnerClaimsExactlyOnePrizeToChosenRecipient() (gas: 348150)
+Suite result: ok. 48 passed; 0 failed; 0 skipped; finished in 49.74s (1.39s CPU time)
+
+Ran 2 tests for test/CompositionInvariants.t.sol:CompositionInvariants
+[PASS] invariantAllSourcesAreConservedAndLayoutsAreValid() (runs: 256, calls: 32768, reverts: 0)
+
+╭--------------------+-----------------+-------+---------+----------╮
+| Contract           | Selector        | Calls | Reverts | Discards |
++===================================================================+
+| CompositionHandler | expand          | 5451  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | freeze          | 5478  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | mint            | 5472  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferArtwork | 5475  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferSymbol  | 5396  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | weave           | 5496  | 0       | 0        |
+╰--------------------+-----------------+-------+---------+----------╯
+
+[PASS] invariantEveryBurnedSymbolOccursExactlyOnceInItsArtwork() (runs: 256, calls: 32768, reverts: 0)
+
+╭--------------------+-----------------+-------+---------+----------╮
+| Contract           | Selector        | Calls | Reverts | Discards |
++===================================================================+
+| CompositionHandler | expand          | 5451  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | freeze          | 5478  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | mint            | 5472  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferArtwork | 5475  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferSymbol  | 5396  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | weave           | 5496  | 0       | 0        |
+╰--------------------+-----------------+-------+---------+----------╯
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 71.58s (100.53s CPU time)
+
+Ran 7 test suites in 71.58s (221.74s CPU time): 94 tests passed, 0 failed, 0 skipped (94 total tests)

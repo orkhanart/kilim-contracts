@@ -1,0 +1,25 @@
+thirdweb EnglishAuctionsLogic
+Original author: thirdweb
+Licensed under the Apache License, Version 2.0; see LICENSE in this directory.
+
+Source repository: https://github.com/thirdweb-dev/contracts
+Reference commit: 46e69070978c23b9533edb381e838a5dddf7ed9d
+Original path: contracts/prebuilts/marketplace/english-auctions/EnglishAuctionsLogic.sol
+Reference report: https://0xmacro.com/library/audits/thirdweb-15
+
+Modifications for Kilim, September 2026:
+- Extract the ascending-bid predicate and adapt the bid state-transition flow.
+- Replace marketplace storage and roles with one immutable auction.
+- Replace immediate refunds with independently withdrawable ERC-20 credits.
+- Use OpenZeppelin SafeERC20, exact balance checks, and ReentrancyGuard.
+- Add whole-unit bids, uint128 bounds, and an absolute auction deadline.
+- Separate settlement, prize delivery, rewards and proceeds withdrawal.
+- Omit buyouts, native currency, wrappers, fees, royalties, forwarding and upgrades.
+
+Only the _isNewWinningBid function is unchanged except whitespace. The surrounding
+implementation is extensively modified. Neither the upstream audit nor this
+attribution certifies the Kilim adaptation or its reward/composition extensions.
+
+EnglishAuctionsLogic.sol.txt is the complete, unmodified audit-reference snapshot.
+It is evidence only and is excluded from compilation. It is not a recommended
+deployment: see REUSE.md for historical issues and the audit's limited scope.

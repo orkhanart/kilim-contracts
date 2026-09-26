@@ -1,0 +1,1 @@
+PASS: current compiled inputs accepted; stale Solidity input and unexpected optimizer settings rejected. Temporary copies only; no production inputs changed.

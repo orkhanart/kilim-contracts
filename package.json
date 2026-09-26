@@ -1,0 +1,24 @@
+{
+  "name": "kilim-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kilim NFT composition and stablecoin auction contracts",
+  "scripts": {
+    "build": "node scripts/verify-upstream.mjs && node scripts/forge.mjs build --sizes",
+    "test": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv",
+    "test:ci": "node scripts/verify-upstream.mjs && FOUNDRY_PROFILE=ci node scripts/forge.mjs test -vv",
+    "coverage": "node scripts/forge.mjs coverage --report lcov --report summary",
+    "fmt": "node scripts/forge.mjs fmt --check",
+    "audit:static": "node scripts/slither.mjs",
+    "artifacts": "node scripts/artifacts.mjs",
+    "verify:upstream": "node scripts/verify-upstream.mjs"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.6.1"
+  },
+  "devDependencies": {
+    "@foundry-rs/forge": "1.7.1",
+    "solc": "0.8.37"
+  },
+  "packageManager": "pnpm@11.19.0"
+}
