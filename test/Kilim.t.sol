@@ -434,7 +434,7 @@ contract KilimTest is TestBase {
         uint256 choice = uint256(selector) % 10;
         if (choice == 0) minter = address(0);
         else if (choice == 1) cap = 0;
-        else if (choice == 2) cap = uint256(type(uint64).max) + 1;
+        else if (choice == 2) cap = uint256(type(uint32).max) - 1; // IDs must fit 32-bit cells
         else if (choice == 3) motifs = 0;
         else if (choice == 4) cells = 3;
         else if (choice == 5) cells = 257;

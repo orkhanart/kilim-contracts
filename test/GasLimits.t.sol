@@ -24,7 +24,7 @@ contract GasLimitsTest is TestBase {
         nft.weave(cells, 16, 16, bytes32(0));
         uint256 used = start - gasleft();
         emit log_named_uint("256-cell weave execution gas (before refunds)", used);
-        assertTrue(used < 15_000_000);
+        assertTrue(used < 11_000_000); // well under the 16,777,216 per-transaction cap
     }
 
     function testGasExpandToMaximumCanvas() public {
@@ -36,7 +36,7 @@ contract GasLimitsTest is TestBase {
         nft.expand(art, 1, cells, 16, 16, bytes32(0));
         uint256 used = start - gasleft();
         emit log_named_uint("4-to-256-cell expansion execution gas (before refunds)", used);
-        assertTrue(used < 15_000_000);
+        assertTrue(used < 11_000_000);
     }
 
     function testGas64SymbolClaim() public {
@@ -45,6 +45,6 @@ contract GasLimitsTest is TestBase {
         nft.mintSymbols(BOB, BOB, first, 64);
         uint256 used = start - gasleft();
         emit log_named_uint("64-symbol mint execution gas (before refunds)", used);
-        assertTrue(used < 10_000_000);
+        assertTrue(used < 2_500_000); // traits are computed, not stored
     }
 }

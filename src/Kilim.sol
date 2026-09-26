@@ -28,6 +28,22 @@ contract Kilim is ERC721, ReentrancyGuard {
         uint8 material;
     }
 
+    /// @dev Storage form of an artwork: cell IDs packed eight per word (32 bits each), which cuts
+    ///      a 256-cell layout from 256 storage slots to 32. The cell count is columns * rows.
+    struct ArtworkStore {
+        uint256[] packedCells;
+        bytes32 appearance;
+        uint64 revision;
+        uint16 columns;
+        uint16 rows;
+        bool frozen;
+    }
+
+    struct SymbolState {
+        uint128 consumedBy;
+        uint64 lastRevision;
+    }
+
     struct ArtworkData {
         uint256[] cells;
         bytes32 appearance;
@@ -61,9 +77,10 @@ contract Kilim is ERC721, ReentrancyGuard {
     string public collectionDescription;
     string public collectionExternalUrl;
 
-    mapping(uint256 => Kind) public kindOf;
-    mapping(uint256 => SymbolData) private _symbols;
-    mapping(uint256 => ArtworkData) private _artworks;
+    /// @dev Only burn provenance is stored per symbol. Traits are recomputed from the ID, and a
+    ///      token's kind follows from its ID range, so minting a symbol writes no extra state.
+    mapping(uint256 => SymbolState) private _symbolState;
+    mapping(uint256 => ArtworkStore) private _artworks;
 
     error Unauthorized();
     error InvalidConfiguration();
@@ -101,7 +118,7 @@ contract Kilim is ERC721, ReentrancyGuard {
     ) ERC721("Kilim", "KILIM") {
         if (
             minter_ == address(0) || owner_ == address(0) || royaltyReceiver_ == address(0) || symbolCap_ == 0
-                || symbolCap_ > type(uint64).max || motifCount_ == 0 || maxCells_ < 4
+                || symbolCap_ > type(uint32).max - FIRST_SYMBOL_ID || motifCount_ == 0 || maxCells_ < 4
                 || maxCells_ > HARD_MAX_CELLS || geometryHash_ == bytes32(0) || rendererHash_ == bytes32(0)
         ) revert InvalidConfiguration();
         owner = owner_;
@@ -114,7 +131,7 @@ contract Kilim is ERC721, ReentrancyGuard {
         maxCells = maxCells_;
         geometryHash = geometryHash_;
         rendererHash = rendererHash_;
-        // symbolCap_ <= uint64 max, so every artwork ID fits the uint128 counter.
+        // symbolCap_ fits 32 bits, so symbol IDs pack into 32-bit cells and artwork IDs fit uint128.
         _nextArtworkId = uint128(FIRST_SYMBOL_ID + symbolCap_);
     }
 
@@ -203,11 +220,8 @@ contract Kilim is ERC721, ReentrancyGuard {
         symbolsMinted += quantity;
         for (uint256 i; i < quantity; ++i) {
             uint256 id = firstId + i;
-            // Burned symbols keep their kind, so this also rejects re-minting a consumed source.
-            if (kindOf[id] != Kind.None) revert AlreadyMinted();
-            (bytes32 seed, uint16 motif, uint8 material) = symbolTraits(id);
-            _symbols[id] = SymbolData(seed, 0, 0, motif, material);
-            kindOf[id] = Kind.Symbol;
+            // A burned symbol has no owner but keeps its consumedBy, so it can never be re-minted.
+            if (kindOf(id) != Kind.None) revert AlreadyMinted();
             _safeMint(to, id);
         }
         emit SymbolsMinted(to, bidder, firstId, quantity);
@@ -227,7 +241,6 @@ contract Kilim is ERC721, ReentrancyGuard {
         _validateRecipient(to);
         if (masterpieceMinted) revert AlreadyMinted();
         masterpieceMinted = true;
-        kindOf[MASTERPIECE_ID] = Kind.Masterpiece;
         _safeMint(to, MASTERPIECE_ID);
     }
 
@@ -240,8 +253,7 @@ contract Kilim is ERC721, ReentrancyGuard {
     {
         _validateLayout(cells.length, columns, rows);
         artworkId = _nextArtworkId++;
-        kindOf[artworkId] = Kind.Artwork;
-        ArtworkData storage art = _artworks[artworkId];
+        ArtworkStore storage art = _artworks[artworkId];
         art.revision = 1;
         _consumeLayout(artworkId, cells, 1, 0);
         _writeLayout(art, cells, columns, rows, appearance);
@@ -261,11 +273,11 @@ contract Kilim is ERC721, ReentrancyGuard {
         bytes32 appearance
     ) external nonReentrant {
         _requireArtworkOwner(artworkId);
-        ArtworkData storage art = _artworks[artworkId];
+        ArtworkStore storage art = _artworks[artworkId];
         if (art.frozen) revert ArtworkFrozen();
         if (art.revision != expectedRevision) revert StaleRevision();
         _validateLayout(cells.length, columns, rows);
-        uint256 oldLength = art.cells.length;
+        uint256 oldLength = uint256(art.columns) * art.rows;
         if (cells.length <= oldLength) revert InvalidLayout();
         uint64 revision = art.revision + 1;
         _consumeLayout(artworkId, cells, revision, oldLength);
@@ -283,35 +295,56 @@ contract Kilim is ERC721, ReentrancyGuard {
         emit MetadataUpdate(artworkId);
     }
 
-    /// @notice Burned source data remains queryable to reconstruct compositions.
-    function symbolData(uint256 tokenId) external view returns (SymbolData memory) {
-        if (kindOf[tokenId] != Kind.Symbol) revert WrongKind(tokenId);
-        return _symbols[tokenId];
+    /// @notice What a token ID is. Symbols exist once minted and stay symbols after being burned;
+    ///         artworks are never burned; the masterpiece exists once claimed.
+    function kindOf(uint256 id) public view returns (Kind) {
+        if (id == MASTERPIECE_ID) return masterpieceMinted ? Kind.Masterpiece : Kind.None;
+        if (id < FIRST_SYMBOL_ID) return Kind.None;
+        if (id - FIRST_SYMBOL_ID < symbolCap) {
+            bool minted = _ownerOf(id) != address(0) || _symbolState[id].consumedBy != 0;
+            return minted ? Kind.Symbol : Kind.None;
+        }
+        return id < _nextArtworkId ? Kind.Artwork : Kind.None;
     }
 
-    function artworkData(uint256 tokenId) external view returns (ArtworkData memory) {
-        if (kindOf[tokenId] != Kind.Artwork) revert WrongKind(tokenId);
-        return _artworks[tokenId];
+    /// @notice Burned source data remains queryable to reconstruct compositions.
+    function symbolData(uint256 tokenId) external view returns (SymbolData memory data) {
+        if (kindOf(tokenId) != Kind.Symbol) revert WrongKind(tokenId);
+        (data.seed, data.motif, data.material) = symbolTraits(tokenId);
+        SymbolState storage state = _symbolState[tokenId];
+        data.consumedBy = state.consumedBy;
+        data.lastRevision = state.lastRevision;
+    }
+
+    function artworkData(uint256 tokenId) public view returns (ArtworkData memory data) {
+        if (kindOf(tokenId) != Kind.Artwork) revert WrongKind(tokenId);
+        ArtworkStore storage art = _artworks[tokenId];
+        data.cells = _unpackCells(art);
+        data.appearance = art.appearance;
+        data.revision = art.revision;
+        data.columns = art.columns;
+        data.rows = art.rows;
+        data.frozen = art.frozen;
     }
 
     /// @dev Self-contained metadata. Artwork media renderer is a separate, unfinished integration.
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
-        Kind kind = kindOf[tokenId];
+        Kind kind = kindOf(tokenId);
         string memory details;
         if (kind == Kind.Symbol) {
-            SymbolData storage symbol = _symbols[tokenId];
+            (bytes32 seed, uint16 motif, uint8 material) = symbolTraits(tokenId);
             details = string.concat(
                 '"kind":"symbol","motif":',
-                uint256(symbol.motif).toString(),
+                uint256(motif).toString(),
                 ',"material":',
-                uint256(symbol.material).toString(),
+                uint256(material).toString(),
                 ',"seed":"',
-                uint256(symbol.seed).toHexString(32),
+                uint256(seed).toHexString(32),
                 '"'
             );
         } else if (kind == Kind.Artwork) {
-            ArtworkData storage art = _artworks[tokenId];
+            ArtworkData memory art = artworkData(tokenId);
             details = string.concat(
                 '"kind":"artwork","revision":',
                 uint256(art.revision).toString(),
@@ -397,8 +430,8 @@ contract Kilim is ERC721, ReentrancyGuard {
         uint256 retained = 0;
         for (uint256 i; i < cells.length; ++i) {
             uint256 id = cells[i];
-            if (kindOf[id] != Kind.Symbol) revert WrongKind(id);
-            SymbolData storage symbol = _symbols[id];
+            if (kindOf(id) != Kind.Symbol) revert WrongKind(id);
+            SymbolState storage symbol = _symbolState[id];
             if (symbol.consumedBy == artworkId) {
                 if (symbol.lastRevision == revision) revert DuplicateSymbol(id);
                 ++retained;
@@ -416,20 +449,34 @@ contract Kilim is ERC721, ReentrancyGuard {
     }
 
     function _writeLayout(
-        ArtworkData storage art,
+        ArtworkStore storage art,
         uint256[] calldata cells,
         uint16 columns,
         uint16 rows,
         bytes32 appearance
     ) private {
-        art.cells = cells;
+        uint256[] memory packed = new uint256[]((cells.length + 7) / 8);
+        for (uint256 i; i < cells.length; ++i) {
+            // Every cell is a validated symbol ID, and symbol IDs fit 32 bits (constructor bound).
+            packed[i / 8] |= uint256(uint32(cells[i])) << ((i % 8) * 32);
+        }
+        art.packedCells = packed;
         art.columns = columns;
         art.rows = rows;
         art.appearance = appearance;
     }
 
+    function _unpackCells(ArtworkStore storage art) private view returns (uint256[] memory cells) {
+        cells = new uint256[](uint256(art.columns) * art.rows);
+        uint256 word;
+        for (uint256 i; i < cells.length; ++i) {
+            if (i % 8 == 0) word = art.packedCells[i / 8];
+            cells[i] = uint32(word >> ((i % 8) * 32));
+        }
+    }
+
     function _requireArtworkOwner(uint256 tokenId) private view {
-        if (kindOf[tokenId] != Kind.Artwork) revert WrongKind(tokenId);
+        if (kindOf(tokenId) != Kind.Artwork) revert WrongKind(tokenId);
         if (ownerOf(tokenId) != msg.sender) revert Unauthorized();
     }
 
