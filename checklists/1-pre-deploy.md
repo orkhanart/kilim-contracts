@@ -143,8 +143,8 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
 - [x] **Bid quote.** Always read from the chain; never recompute.
   - `minimumBid()` gives the next valid amount.
   - `rewardForBid(amount)` gives the symbol count, which is capped and can be 0. Pass it as `minimumReward`.
-  - While `rewardForBid(amount) > 0`, pass `expectedFirstSymbolId = collection().FIRST_SYMBOL_ID() + symbolsAllocated()`. **Otherwise pass 0**, or every bid reverts once the pool runs out.
-  - On `SymbolRangeMoved`, re-quote and show the new traits. Near the close, consider an "accept any IDs" option, so a reverted bid doesn't cost the bidder the auction.
+  - The pages don't show which symbols a bid reserves until they are claimed, so they pass `expectedFirstSymbolId = 0` and take whichever IDs are next; a bid that lands first never reverts yours. The reward count is still guarded by `minimumReward`.
+  - `create({ lockSymbolIds: true })` is the opt-in for a caller that does show the range: it passes `collection().FIRST_SYMBOL_ID() + symbolsAllocated()` while `rewardForBid(amount) > 0` (0 once the pool runs out) and re-quotes on `SymbolRangeMoved`.
 - [x] **Pay with ETH.** Swap ETH to the exact USDC amount into the bidder's own wallet (exact-output swap), then approve and bid from that same wallet. Where the wallet supports batched calls (EIP-5792), send swap, approve and bid as one confirmation; the bid still comes from the bidder's own account. Show the swap price and fee before confirming, and say refunds come back in USDC.
 - [x] **Approval.** Check `allowance` and balance against the full new bid. Re-bids aren't netted against refunds, so offer `withdrawRefund` first. Consider one up-front approval so the late-bid window isn't spent on two transactions.
 - [x] **Clock.** Read `startsAt`, `duration` and `endsAt` from the chain, and compare them with the latest block time.

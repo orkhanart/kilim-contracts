@@ -36,9 +36,9 @@ async function world(overrides = {}) {
   const ctx = loadSite([...CORE, 'dev/devwallet.js', 'chain.js'], {
     KILIM_CHAINS: { 31337: cfg }, KILIM_DEFAULT_CHAIN: 31337, KILIM_NO_AUTO: true, KILIM_DEV_NO_AUTO: true,
   });
-  const as = async (account, batch = false) => {
+  const as = async (account, batch = false, lockSymbolIds = false) => {
     const provider = ctx.KILIM_DEV.createWallet({ rpcUrl: anvil.rpcUrl, account, batch });
-    const chain = ctx.KILIM_CHAIN.create({ chainId: 31337, provider, poll: false, receiptMs: 20 });
+    const chain = ctx.KILIM_CHAIN.create({ chainId: 31337, provider, poll: false, receiptMs: 20, lockSymbolIds });
     await chain.ready;
     return chain;
   };
@@ -52,7 +52,7 @@ const W = await world();
 KILIM_CHAIN = W.ctx.KILIM_CHAIN;
 const { d, rpc } = W;
 try {
-  const alice = await W.as(1), bob = await W.as(2, true), carol = await W.as(3), treasury = await W.as(9);
+  const alice = await W.as(1), bob = await W.as(2, true), carol = await W.as(3, false, true), treasury = await W.as(9);
 
   step('Before startsAt: the page counts down; a bid is simulated and refused');
   assert.equal(alice.phase(), 'before');

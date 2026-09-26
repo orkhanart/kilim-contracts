@@ -23,7 +23,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 - [ ] Smoke test in read-only mode against the live contracts:
   - before the first bid the page shows bidding open with no countdown, and `endsAt` reads 0;
   - the bid quote shows `minimumBid()` and `rewardForBid()`;
-  - the trait preview matches `symbolTraits`;
+  - the page names no symbol IDs or traits before a claim, and claimed symbols match `symbolTraits`;
   - bidding is disabled until `startsAt`.
 - [ ] Test the kill switch: disable the bid button, post a banner, then restore.
 - [ ] Check that `ethUsdRange` in `site/chains/1.json` still brackets the ETH price with room on both sides (README, "The ETH/USD sanity band"). Outside it the site turns pay-with-ETH off; move it, rebuild, republish.
@@ -44,8 +44,8 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 
 ## Opening
 
-- [ ] At `startsAt`, confirm the first bid lands, and that the site shows the new high bid, reward, reserved IDs and deadline correctly.
-- [ ] Check that claims work: a bidder can claim symbols straight away, before the auction ends.
+- [ ] At `startsAt`, confirm the first bid lands, and that the site shows the new high bid, reward count and deadline correctly.
+- [ ] Check that claims work: a bidder can claim symbols straight away, before the auction ends, and sees which ones they are only then.
 
 ## During the auction
 
@@ -54,7 +54,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
   - outbid funds must be **withdrawn** with `withdrawRefund`;
   - symbols are **claimed** separately and never expire;
   - any bid in the last 10 minutes extends the close, with no limit.
-- [ ] If the symbol pool runs out, announce that bids still count for the 1/1 but earn no symbols. Confirm the site now sends `expectedFirstSymbolId = 0`.
+- [ ] If the symbol pool runs out, announce that bids still count for the 1/1 but earn no symbols.
 
 ## Closing and settlement
 
