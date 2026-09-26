@@ -240,6 +240,29 @@ contract KilimTest is TestBase {
         assertEq(nft.artworksMinted(), 1);
     }
 
+    /// @dev Re-entering with symbols the receiver still owns would succeed but for the reentrancy guard.
+    function testArtworkCallbackCannotWeaveOtherSymbols() public {
+        Receiver receiver = new Receiver();
+        uint256 first = mintNext(nft, address(receiver), ALICE, 8);
+        receiver.configure(false, address(nft), abi.encodeCall(nft.weave, (ids(first + 4, 4), 2, 2, INK)));
+        vm.prank(address(receiver));
+        nft.weave(ids(first, 4), 2, 2, INK);
+        assertTrue(!receiver.callbackSucceeded());
+        assertEq(nft.artworksMinted(), 1);
+        assertEq(nft.ownerOf(first + 4), address(receiver));
+    }
+
+    /// @dev The same for a symbol mint: the receiver cannot weave inside the minter's call.
+    function testSymbolMintCallbackCannotWeave() public {
+        Receiver receiver = new Receiver();
+        uint256 first = mintNext(nft, address(receiver), ALICE, 4);
+        receiver.configure(false, address(nft), abi.encodeCall(nft.weave, (ids(first, 4), 2, 2, INK)));
+        mintNext(nft, address(receiver), ALICE, 1);
+        assertTrue(!receiver.callbackSucceeded());
+        assertEq(nft.artworksMinted(), 0);
+        assertEq(nft.ownerOf(first), address(receiver));
+    }
+
     function testMasterpieceCannotBeBurnedAndOnlyMintsOnce() public {
         nft.mintMasterpiece(ALICE);
         vm.expectRevert(Kilim.AlreadyMinted.selector);
@@ -291,6 +314,21 @@ contract KilimTest is TestBase {
         nft.artworkData(2);
         vm.expectRevert();
         nft.tokenURI(1000);
+    }
+
+    /// @dev kindOf is derived, not stored: nothing may exist before it is minted, and a symbol stays a symbol.
+    function testKindOfBeforeAndAfterEachMint() public {
+        assertTrue(nft.kindOf(0) == Kilim.Kind.None);
+        assertTrue(nft.kindOf(1) == Kilim.Kind.None); // the 1/1 before the prize is claimed
+        assertTrue(nft.kindOf(18) == Kilim.Kind.None); // the next unminted symbol
+        assertTrue(nft.kindOf(10002) == Kilim.Kind.None); // the first artwork ID, before any weave
+        uint256 art = _weave();
+        assertEq(art, 10002);
+        assertTrue(nft.kindOf(2) == Kilim.Kind.Symbol); // burned into the artwork
+        assertTrue(nft.kindOf(art) == Kilim.Kind.Artwork);
+        assertTrue(nft.kindOf(art + 1) == Kilim.Kind.None); // the next artwork ID
+        nft.mintMasterpiece(BOB);
+        assertTrue(nft.kindOf(1) == Kilim.Kind.Masterpiece);
     }
 
     function _decode(string memory uri) private pure returns (string memory) {
@@ -377,6 +415,9 @@ contract KilimTest is TestBase {
             nft.mintSymbols(bad[i], ALICE, 18, 1);
             vm.expectRevert(Kilim.InvalidRecipient.selector);
             nft.mintMasterpiece(bad[i]);
+            // The recipient is checked before the quantity.
+            vm.expectRevert(Kilim.InvalidRecipient.selector);
+            nft.mintSymbols(bad[i], ALICE, 18, 0);
         }
         vm.expectRevert(Kilim.InvalidRecipient.selector);
         nft.mintSymbols(ALICE, address(0), 18, 1);
@@ -469,6 +510,24 @@ contract KilimTest is TestBase {
         );
     }
 
+    /// @dev Byte for byte, not through a JSON parser: control characters, 0x1f included, become lowercase
+    ///      \u00XX escapes, and fee_recipient keeps all 20 bytes of an address with leading zero bytes.
+    function testContractUriBytesAreExact() public {
+        vm.prank(ALICE);
+        nft.setCollectionInfo(string(bytes.concat(hex"1b1f00", " x")), 'a"b\\c');
+        assertEq(
+            keccak256(bytes(_decode(nft.contractURI()))),
+            keccak256(
+                bytes(
+                    string.concat(
+                        '{"name":"Kilim","description":"\\u001b\\u001f\\u0000 x","external_link":"a\\"b\\\\c",',
+                        '"seller_fee_basis_points":500,"fee_recipient":"0x0000000000000000000000000000000000007777"}'
+                    )
+                )
+            )
+        );
+    }
+
     function testOwnershipTransferAndRenounce() public {
         vm.prank(ALICE);
         nft.transferOwnership(BOB);
@@ -484,6 +543,17 @@ contract KilimTest is TestBase {
         nft.setCollectionInfo("x", "y");
         (address receiver,) = nft.royaltyInfo(2, 100);
         assertEq(receiver, TREASURY);
+    }
+
+    function testZeroAddressIsNeitherRoyaltyReceiverNorOwner() public {
+        vm.startPrank(ALICE);
+        vm.expectRevert(Kilim.InvalidRecipient.selector);
+        nft.setRoyaltyReceiver(address(0));
+        vm.expectRevert(Kilim.InvalidRecipient.selector);
+        nft.transferOwnership(address(0)); // renounceOwnership is the only way to give the role up
+        vm.stopPrank();
+        assertEq(nft.owner(), ALICE);
+        assertEq(nft.royaltyReceiver(), TREASURY);
     }
 
     function testFuzzInvalidCollectionConfiguration(uint8 selector) public {
@@ -518,6 +588,19 @@ contract KilimTest is TestBase {
         );
     }
 
+    /// @dev A funded account without code has the empty-code hash, so publishing that hash passes the
+    ///      codehash comparison and only the code-length check stands between it and a renderer call.
+    function testCodelessRendererRejectedEvenWithTheEmptyCodeHash() public {
+        address codeless = address(0xC0DE1E55);
+        vm.deal(codeless, 1);
+        assertEq(codeless.codehash, keccak256(""));
+        bytes32 geometry = mockRenderer.geometryHash();
+        vm.expectRevert(Kilim.InvalidConfiguration.selector);
+        new Kilim(
+            address(this), ALICE, TREASURY, 1000, 812, 256, geometry, keccak256(""), MockRenderer(codeless)
+        );
+    }
+
     function testMaximumCanvasGasAndLimit() public {
         Kilim large = newKilim(address(this), ALICE, TREASURY, 2048, 812, 256);
         for (uint256 i; i < 4; ++i) {
@@ -530,6 +613,49 @@ contract KilimTest is TestBase {
         vm.expectRevert(Kilim.InvalidLayout.selector);
         vm.prank(ALICE);
         large.expand(art, 1, ids(2, 272), 17, 16, INK);
+    }
+
+    /// @dev Cells pack eight to a storage word, so 3x3 spans two words (the second holding one cell) and 16x16
+    ///      fills 32. Reversed IDs make every lane distinct. Each layout must come back exactly, and tokenURI
+    ///      must send the renderer every cell's motif in order.
+    function testLayoutsBeyondOneWordKeepAndForwardEveryCell() public {
+        Kilim large = newKilim(address(this), ALICE, TREASURY, 2048, 812, 256);
+        for (uint256 i; i < 4; ++i) {
+            mintNext(large, ALICE, ALICE, 64);
+        }
+        mintNext(large, ALICE, ALICE, 9); // IDs 2-266
+        _weaveAndCheck(large, _reversed(258, 9), 3, 3, INK, 1);
+        _weaveAndCheck(large, _reversed(2, 256), 16, 16, INDIGO, 2);
+    }
+
+    function _reversed(uint256 first, uint256 n) private pure returns (uint256[] memory cells) {
+        cells = new uint256[](n);
+        for (uint256 i; i < n; ++i) {
+            cells[i] = first + n - 1 - i;
+        }
+    }
+
+    function _weaveAndCheck(
+        Kilim k,
+        uint256[] memory cells,
+        uint16 cols,
+        uint16 rows,
+        bytes32 appearance,
+        uint256 number
+    ) private {
+        vm.prank(ALICE);
+        uint256 art = k.weave(cells, cols, rows, appearance);
+        Kilim.ArtworkData memory data = k.artworkData(art);
+        assertEq(data.cells.length, cells.length);
+        uint16[] memory motifs = new uint16[](cells.length);
+        for (uint256 i; i < cells.length; ++i) {
+            assertEq(data.cells[i], cells[i]);
+            motifs[i] = k.symbolData(cells[i]).motif;
+        }
+        assertEq(
+            keccak256(bytes(k.tokenURI(art))),
+            keccak256(bytes(mockRenderer.artworkURI(number, motifs, cols, rows, appearance, 1, false)))
+        );
     }
 
     function testFuzzTraitsAreFixedBeforeClaimAndIgnoreBidder(address bidder, uint8 count, uint16 offset)
