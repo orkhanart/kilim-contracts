@@ -36,7 +36,7 @@ OpenZeppelin is pinned through the package lockfile. Its [5.6.1 source tree](htt
 | Percentage-based winning-bid predicate | Same predicate, plus whole-unit bids and uint128 upper bound | Fuzzed quote acceptance and minimality across 0–18 decimals and 1–10,000 bps; overflow boundary tested. |
 | Refund old bidder during the new bid | Record refund credit; old bidder withdraws separately | A blocked previous recipient cannot stop later bids. |
 | Currency wrapper moves incoming funds | SafeERC20 collects the entire recorded amount; check exact balance change | Fee/false-return/failed-deposit tests and solvency invariants. |
-| Extend by adding a time buffer | Extend to at least now plus the buffer, capped by an absolute end | Deadline, last-second, zero-extension and stateful tests. |
+| Fixed start and end, extended by adding a time buffer | `startsAt` only opens bidding; the first bid starts a `duration` clock. A later bid extends the close to at least now plus the window, with no absolute end, so the auction ends only after a full window with no new bid. With no bids it never ends and cannot settle | First-bid clock, unlimited-extension, no-bids, last-second and stateful tests. |
 | Payable and native-currency support | Nonpayable ERC-20 entry points, no receive function | Attached ETH and direct ETH calls revert. Forced ETH remains unrecoverable. |
 | Optional immediate buyout | No buyout or amount clamp | Large overbids must be fully collected and remain fully payable. |
 | Marketplace fees, royalty routing and asset delivery | Treasury receives winning principal; winner separately claims one Kilim NFT | Failed NFT receiver cannot block settlement or proceeds. |
