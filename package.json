@@ -27,7 +27,10 @@
     "verify:upstream": "node scripts/verify-upstream.mjs",
     "dev:chain": "node scripts/dev-chain.mjs",
     "walkthrough": "node scripts/forge.mjs build && node scripts/walkthrough.mjs",
-    "site-config": "node scripts/site-config.mjs"
+    "site-config": "node scripts/site-config.mjs",
+    "site:build": "python3 ../site/build.py",
+    "site:orkhanart": "python3 ../site/build.py --target orkhanart",
+    "site:sync-orkhanart": "python3 ../site/tools/sync_orkhanart.py"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.6.1"

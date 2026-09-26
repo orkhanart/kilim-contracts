@@ -69,4 +69,5 @@ cfg.auction = A.checksum(a);
 cfg.collection = A.checksum(collection);
 cfg.deployBlock = block;
 writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
-console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html, auction.html and weave.html.`);
+console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html, auction.html and weave.html.`
+  + (chainId === 1 ? '\nFor orkhan.art (the pages go live there too): pnpm site:sync-orkhanart on its local branch kilim/unified-site, then review and commit there.' : ''));
