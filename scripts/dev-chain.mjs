@@ -33,10 +33,11 @@ if (!flag('--no-build')) run(process.execPath, ['scripts/forge.mjs', 'build'], c
 
 const port = Number(value('--port', '8545'));
 const forkName = value('--fork', null);
-let fork = null;
+let fork = null, ethUsdRange = null;
 if (forkName) {
   if (!FORKS[forkName]) { console.error(`--fork must be one of ${Object.keys(FORKS).join(', ')}`); process.exit(1); }
   const real = JSON.parse(readFileSync(resolve(site, `chains/${FORKS[forkName].chain}.json`), 'utf8'));
+  ethUsdRange = real.ethUsdRange ?? null;                 // the real chain's ETH/USD sanity band
   fork = { url: process.env.KILIM_FORK_URL || FORKS[forkName].url, block: process.env.KILIM_FORK_BLOCK,
            usdc: real.usdc, weth: real.weth, swapRouter02: real.swapRouter02, quoterV2: real.quoterV2, feeTiers: real.feeTiers };
 }
@@ -51,6 +52,7 @@ process.on('SIGTERM', () => stop(0));
 try {
   const d = await deployLocal(anvil.rpcUrl, fork ? { fork } : {});
   const cfg = siteConfig(d, { rpcUrl: anvil.rpcUrl, name: fork ? `Local anvil (fork of ${forkName})` : 'Local anvil', fork: forkName });
+  if (ethUsdRange) cfg.ethUsdRange = ethUsdRange;
   writeFileSync(resolve(site, 'chains/31337.json'), JSON.stringify(cfg, null, 2) + '\n');
   console.log(`auction    ${cfg.auction}\ncollection ${cfg.collection}\nUSDC       ${cfg.usdc}\ndeployed at block ${d.deployBlock}; bidding opens at ${new Date(d.startsAt * 1000).toISOString()}`);
   if (flag('--open')) {
