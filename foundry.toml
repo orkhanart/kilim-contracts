@@ -1,6 +1,7 @@
 [profile.default]
 src = "src"
 test = "test"
+script = "script"
 out = "out"
 libs = ["node_modules"]
 remappings = ["@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"]
@@ -12,10 +13,17 @@ via_ir = false
 bytecode_hash = "ipfs"
 fuzz = { runs = 512 }
 invariant = { runs = 128, depth = 64, fail_on_revert = true }
+# The renderer tests and the deploy script read the packed store, manifest and golden files.
+fs_permissions = [{ access = "read", path = "../onchain" }]
 
 [profile.ci]
 fuzz = { runs = 4096 }
 invariant = { runs = 256, depth = 128, fail_on_revert = true }
+
+# Differential tests that shell out to onchain/render_ref.py. Opt in: pnpm test:render-ffi.
+[profile.ffi]
+ffi = true
+fuzz = { runs = 64 }
 
 [fmt]
 line_length = 110

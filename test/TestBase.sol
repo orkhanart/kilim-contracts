@@ -30,6 +30,9 @@ abstract contract TestBase {
     address internal constant TREASURY = address(0x7777);
     address internal constant PAGE_OWNER = address(0x9999);
     uint256 internal constant UNIT = 1e6;
+    bytes32 internal constant INK = "flat/ink";
+    bytes32 internal constant INDIGO = "flat/indigo";
+    bytes32 internal constant VERMILION = "flat/vermilion";
 
     function assertEq(uint256 a, uint256 b) internal pure {
         require(a == b, "uint mismatch");
@@ -64,6 +67,12 @@ abstract contract TestBase {
             geometryHash: keccak256("test geometry"),
             rendererHash: keccak256("test renderer")
         });
+    }
+
+    /// @dev One of the three canonical appearances, picked by `seed`.
+    function appearanceOf(uint256 seed) internal pure returns (bytes32) {
+        uint256 k = seed % 3;
+        return k == 0 ? INK : k == 1 ? INDIGO : VERMILION;
     }
 
     /// @dev Mints the next unminted symbol IDs, as a minter reserving them in order would.
