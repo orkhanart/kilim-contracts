@@ -6,8 +6,8 @@ The contracts have **no admin, pause, upgrade or metadata setter**, and a deploy
 
 ## Timing
 
-- [ ] **The auction page still says "Opens Sep 22 · 2:00 PM EST"** (`site/auction.js:100`, `site/chain.js:9`). That date has passed. Remove it, and don't announce a new one until this checklist is complete.
-- [ ] When a date is set, label the time zone correctly: 18:00 UTC is 2:00 PM **EDT**, not EST. The site's mock also still runs a 22-hour fixed-start auction; the decided rules are a 24-hour clock that starts at the first bid.
+- [x] **The auction page still says "Opens Sep 22 · 2:00 PM EST"** (`site/auction.js:100`, `site/chain.js:9`). That date has passed. Remove it, and don't announce a new one until this checklist is complete.
+- [x] When a date is set, label the time zone correctly: 18:00 UTC is 2:00 PM **EDT**, not EST. The site's mock also still runs a 22-hour fixed-start auction; the decided rules are a 24-hour clock that starts at the first bid.
 
 ## Launch settings
 
@@ -131,49 +131,49 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
 
 ## Website
 
-`site/chain.js` is still a local mock. After editing, rebuild with `site/build.py`: the pages inline the scripts, so editing `chain.js` alone changes nothing that gets served.
+`site/chain.js` now talks to the contracts: reads from the configured RPC, writes through the wallet, with every transaction simulated first. The items below are implemented and covered by `pnpm test` (the site tests run against a real local anvil) and `pnpm walkthrough`; they still need the testnet rehearsal above. After editing, rebuild with `python3 site/build.py`: the pages inline the scripts, so editing `chain.js` alone changes nothing that gets served. Point the site at a deployment with `pnpm site-config --chain <id> --auction <address> --block <deployment block>`.
 
-- [ ] **Bid quote.** Always read from the chain; never recompute.
+- [x] **Bid quote.** Always read from the chain; never recompute.
   - `minimumBid()` gives the next valid amount.
   - `rewardForBid(amount)` gives the symbol count, which is capped and can be 0. Pass it as `minimumReward`.
   - While `rewardForBid(amount) > 0`, pass `expectedFirstSymbolId = collection().FIRST_SYMBOL_ID() + symbolsAllocated()`. **Otherwise pass 0**, or every bid reverts once the pool runs out.
   - On `SymbolRangeMoved`, re-quote and show the new traits. Near the close, consider an "accept any IDs" option, so a reverted bid doesn't cost the bidder the auction.
-- [ ] **Pay with ETH.** Swap ETH to the exact USDC amount into the bidder's own wallet (exact-output swap), then approve and bid from that same wallet. Where the wallet supports batched calls (EIP-5792), send swap, approve and bid as one confirmation; the bid still comes from the bidder's own account. Show the swap price and fee before confirming, and say refunds come back in USDC.
-- [ ] **Approval.** Check `allowance` and balance against the full new bid. Re-bids aren't netted against refunds, so offer `withdrawRefund` first. Consider one up-front approval so the late-bid window isn't spent on two transactions.
-- [ ] **Clock.** Read `startsAt`, `duration` and `endsAt` from the chain, and compare them with the latest block time.
+- [x] **Pay with ETH.** Swap ETH to the exact USDC amount into the bidder's own wallet (exact-output swap), then approve and bid from that same wallet. Where the wallet supports batched calls (EIP-5792), send swap, approve and bid as one confirmation; the bid still comes from the bidder's own account. Show the swap price and fee before confirming, and say refunds come back in USDC.
+- [x] **Approval.** Check `allowance` and balance against the full new bid. Re-bids aren't netted against refunds, so offer `withdrawRefund` first. Consider one up-front approval so the late-bid window isn't spent on two transactions.
+- [x] **Clock.** Read `startsAt`, `duration` and `endsAt` from the chain, and compare them with the latest block time.
   - Before the first bid, `endsAt` is 0: show "Bidding open — the 24-hour clock starts with the first bid".
   - Start the countdown from `AuctionStarted`, and update `endsAt` from each `BidPlaced`. There is no latest possible close.
   - After `endsAt`, show "Ended, awaiting settlement" with a `settle()` button.
   - Remove the mock's hard-coded open time and 22-hour fixed run.
-- [ ] **Claims.** Loop `claimSymbols(min(64, credits), to)` until credits reach 0, showing progress from `unclaimedSymbolRanges`.
+- [x] **Claims.** Loop `claimSymbols(min(64, credits), to)` until credits reach 0, showing progress from `unclaimedSymbolRanges`.
   - Take minted IDs from the collection's `SymbolsMinted` event, one per range. Ranges aren't contiguous, and `SymbolsClaimed.firstTokenId` is only the first ID.
   - Treat `BidPlaced.firstSymbolId == 0` as "no IDs reserved".
   - Refresh metadata on `MetadataUpdate`.
-- [ ] **Winner.** Connect `claimPrize(to)` so the winner, including a Safe, can claim the 1/1.
-- [ ] **Holdings.** `Kilim` has no enumeration. List a wallet's tokens from `Transfer` logs since the deployment block, or from an indexer that supports the chain. Include secondary-market symbols.
-- [ ] **Traits.** Port `symbolTraits` to JavaScript exactly:
+- [ ] **Winner.** Connect `claimPrize(to)` so the winner, including a Safe, can claim the 1/1. (Connected for injected and EIP-6963 wallets. A Safe still has no path: it needs WalletConnect or a Safe Apps shim.)
+- [x] **Holdings.** `Kilim` has no enumeration. List a wallet's tokens from `Transfer` logs since the deployment block, or from an indexer that supports the chain. Include secondary-market symbols.
+- [x] **Traits.** Port `symbolTraits` to JavaScript exactly:
   - `seed = keccak256(abi.encode(chainId, collection, id))`;
   - the material roll is `keccak256(abi.encode(seed, "material")) % 100`, with "material" ABI-encoded as a dynamic string;
   - `motif = seed % motifCount`.
 
   Replace the mock's wallet-based `tokenOf`, and use one motif numbering everywhere.
-- [ ] **Merge page.** Offer only grids with at most `maxCells()` cells; `merge.js` offers 20×20, 24×24 and 29×28, which revert. Also:
+- [x] **Merge page.** Offer only grids with at most `maxCells()` cells; `merge.js` offers 20×20, 24×24 and 29×28, which revert. Also:
   - build the `expand` flow: pass the current `revision`, include every existing cell exactly once, and make it strictly larger;
   - build the `freezeArtwork` flow;
   - or remove the "add more symbols later" promise.
-- [ ] **Errors.** Simulate each transaction before sending. Decode reverts using the auction, collection and stablecoin ABIs together. Show a clear next step for `BidTooLow`, `RewardSlippage`, `SymbolRangeMoved`, `NonWholeUnitBid`, `AuctionNotOpen`, `TreasuryCannotBid`, `InvalidQuantity`, and `ERC721InvalidReceiver` (suggest another recipient).
-- [ ] **Security.**
+- [x] **Errors.** Simulate each transaction before sending. Decode reverts using the auction, collection and stablecoin ABIs together. Show a clear next step for `BidTooLow`, `RewardSlippage`, `SymbolRangeMoved`, `NonWholeUnitBid`, `AuctionNotOpen`, `TreasuryCannotBid`, `InvalidQuantity`, and `ERC721InvalidReceiver` (suggest another recipient).
+- [ ] **Security.** (The two site items are done: `bid()` is sent from the bidder's own account, including after a pay-with-ETH swap, and the only approval requested is to the configured auction.)
   - Call `bid()` straight from the user's account, never through a router or multicall; credits, refunds and the prize belong to `msg.sender`.
   - Only ever request approval for the published auction address.
   - Lock DNS and hosting accounts.
   - Never ask anyone to send tokens straight to a contract (K-06).
-- [ ] **Copy that contradicts the contracts:**
+- [x] **Copy that contradicts the contracts:**
   - "Receive randomly assigned symbols" and the FAQ's "randomly assigned" → traits are deterministic and public before bidding.
   - "Every dollar you bid sends you a symbol" and "Mints 250 symbols … in the same transaction" → rewards are capped, can be 0, and are claimed separately, up to 64 at a time.
   - "If outbid · Refunded" → refunds must be withdrawn.
   - Gold listed as a symbol material → gold is only the 1/1.
   - Opening date, time zone and duration → the real schedule.
-- [ ] Delete or rewrite the unused drafts `site/head.html` and `site/stages.html`. They claim wallet-seeded traits, mint-on-bid, 29 × 28 grids and a 1/1 "stored whole on-chain".
+- [x] Delete or rewrite the unused drafts `site/head.html` and `site/stages.html`. They claim wallet-seeded traits, mint-on-bid, 29 × 28 grids and a 1/1 "stored whole on-chain".
 
 ## Disclosures and terms
 

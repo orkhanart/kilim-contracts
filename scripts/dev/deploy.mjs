@@ -129,6 +129,11 @@ export async function deployLocal(rpcUrl, overrides = {}) {
   if (cfg.fork) {
     ({ usdc, weth, swapRouter02, quoterV2, feeTiers } = cfg.fork);
     usdc = usdc.toLowerCase();
+    // On mainnet the public test-mnemonic accounts carry EIP-7702 delegations (sweepers): any
+    // ETH sent to them, such as a swap's refundETH, is forwarded away. Make them plain EOAs here.
+    for (const a of accounts) {
+      if ((await rpc.call('eth_getCode', [a, 'latest'])) !== '0x') await rpc.call('anvil_setCode', [a, '0x']);
+    }
   } else if (cfg.reuse) {
     ({ usdc, weth, swapRouter02, quoterV2, feeTiers } = cfg.reuse);
   } else {
@@ -164,7 +169,8 @@ export async function deployLocal(rpcUrl, overrides = {}) {
       for (const who of bidders) {
         const swap = A.F.uniswap.exactOutputSingle.encode([[weth, usdc, cfg.fork.fundFee ?? 500, who, fund, 10n ** 21n, 0n]]);
         const data = A.F.uniswap.multicall.encode([deadline, [swap, A.F.uniswap.refundETH.encode([])]]);
-        await rpc.send({ from: who, to: swapRouter02, data, value: '0x' + (10n ** 21n).toString(16) });
+        // Explicit gas: anvil's exact estimate can fall just short for forked Uniswap swaps.
+        await rpc.send({ from: who, to: swapRouter02, data, value: '0x' + (10n ** 21n).toString(16), gas: '0x7a120' });
       }
     } else {
       for (const who of bidders) await rpc.send({ from: deployer, to: usdc, data: A.F.erc20.mint.encode([who, fund]) });

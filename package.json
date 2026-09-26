@@ -5,13 +5,19 @@
   "description": "Kilim NFT composition and stablecoin auction contracts",
   "scripts": {
     "build": "node scripts/verify-upstream.mjs && node scripts/forge.mjs build --sizes",
-    "test": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv",
-    "test:ci": "node scripts/verify-upstream.mjs && FOUNDRY_PROFILE=ci node scripts/forge.mjs test -vv",
+    "test": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
+    "test:contracts": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv",
+    "test:site": "node scripts/forge.mjs build && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
+    "test:fork": "node --test ../site/test/fork-swap.test.mjs",
+    "test:ci": "node scripts/verify-upstream.mjs && FOUNDRY_PROFILE=ci node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
     "coverage": "node scripts/forge.mjs coverage --report lcov --report summary",
     "fmt": "node scripts/forge.mjs fmt --check",
     "audit:static": "node scripts/slither.mjs",
     "artifacts": "node scripts/artifacts.mjs",
-    "verify:upstream": "node scripts/verify-upstream.mjs"
+    "verify:upstream": "node scripts/verify-upstream.mjs",
+    "dev:chain": "node scripts/dev-chain.mjs",
+    "walkthrough": "node scripts/forge.mjs build && node scripts/walkthrough.mjs",
+    "site-config": "node scripts/site-config.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.6.1"

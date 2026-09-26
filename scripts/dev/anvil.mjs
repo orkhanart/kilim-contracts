@@ -5,12 +5,12 @@ import { foundryBinary } from '../foundry-bin.mjs';
 // The default anvil/hardhat test mnemonic. Its keys are public: local chains only.
 export const TEST_MNEMONIC = 'test test test test test test test test test test test junk';
 
-function freePort() {
+function freePort(wanted = 0) {
   return new Promise((resolvePort, reject) => {
     const server = createServer();
     server.unref();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
+    server.on('error', (e) => reject(e.code === 'EADDRINUSE' ? new Error(`Port ${wanted} on 127.0.0.1 is already in use; pass another port.`) : e));
+    server.listen(wanted, '127.0.0.1', () => {
       const { port } = server.address();
       server.close(() => resolvePort(port));
     });
@@ -33,7 +33,7 @@ async function rpc(url, method, params = []) {
  * @returns {Promise<{rpcUrl: string, port: number, chainId: number, stop: () => Promise<void>}>}
  */
 export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, quiet = true } = {}) {
-  const chosen = port ?? await freePort();
+  const chosen = await freePort(port ?? 0);
   const args = [
     '--host', '127.0.0.1', '--port', String(chosen), '--chain-id', String(chainId),
     '--accounts', '10', '--balance', '10000', '--mnemonic', TEST_MNEMONIC,

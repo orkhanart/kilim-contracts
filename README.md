@@ -62,7 +62,9 @@ The 1/1 uses token ID 1. Symbols use IDs 2 through `symbolCap + 1`, reserved at 
 
 ## Integration and launch inputs
 
-The website remains a local preview. `site/chain.js` is not connected to this implementation. The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes still need to be finalized.
+The website is integrated with these contracts: see the root [README](../README.md#the-auction-and-weaving-pages) for the local dev chain, the per-chain config and the site tests (`pnpm test` runs them after the forge suite). The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes still need to be finalized.
+
+> The site targets **Ethereum mainnet with USDC** (Sepolia for the rehearsal). The Robinhood Chain and USDG notes below predate that decision and need a separate docs pass.
 
 Before deployment, work through the checklists in order: [pre-deploy](checklists/1-pre-deploy.md), [deploy](checklists/2-deploy.md) and [post-deploy](checklists/3-post-deploy.md). In particular, resolve the specific stablecoin contract, treasury, exact schedule, reserve/increment, total reward supply, per-bid reward cap, canvas limit, renderer/appearance encoding, and the economic/trait findings in [AUDIT.md](AUDIT.md). Test values (10,000 rewards, 1,000 per bid, $25 reserve, 5% increment, 22 hours, 10-minute extensions with a one-hour hard extension limit) are fixtures, not approved launch terms.
 
