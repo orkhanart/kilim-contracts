@@ -106,9 +106,9 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
 
 ## Deployment tooling and key
 
-- [x] Write a deployment script: `script/DeployKilim.s.sol`. It reads the signed-off config (`deploy/sepolia.example.json`) and **refuses to send** on any mismatch (chain, hashes, chunk files, CREATE2 addresses, gas, golden answers, renderer hash, token, schedule, nonce, read-back). Still to check by hand: the [2-deploy.md](2-deploy.md) "Pre-flight" items it cannot see (Safe owners, signed-off config, git tag).
+- [x] Write a deployment script: `script/DeployKilim.s.sol`. It reads the signed-off config (templates: `deploy/mainnet.example.json`, `deploy/sepolia.example.json`) and **refuses to send** on any mismatch (chain, hashes, chunk files, CREATE2 addresses, gas, golden answers, renderer hash, token, schedule, nonce, read-back). On chain 1 it also refuses any auction setting other than the decided values in the table above, a skipped nonce check and a zero inspection window. Still to check by hand: the [2-deploy.md](2-deploy.md) "Pre-flight" items it cannot see (signed-off config, treasury key access, git tag, deployer ETH).
 - [ ] Use a dedicated deployer key, ideally a hardware wallet, and fund it for gas.
-- [ ] Choose the inspection window between deployment and `startsAt`, for example 24 hours.
+- [ ] Choose the inspection window between deployment and `startsAt`, for example 24 hours. It goes in the config as `minLeadSeconds`; the script refuses 0 on chain 1.
 - [ ] Publish before deploy day:
   - the deployer address and its next nonce;
   - the predicted auction and collection addresses;

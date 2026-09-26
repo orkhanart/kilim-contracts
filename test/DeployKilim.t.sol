@@ -17,14 +17,20 @@ interface VmDeployTest {
     function etch(address, bytes calldata) external;
     function setNonce(address, uint64) external;
     function computeCreateAddress(address, uint256) external pure returns (address);
+    function chainId(uint256) external;
 }
 
-/// @notice The deployment script end to end against the local chain, and every refusal it promises.
+/// @notice The deployment script end to end against the local chain, and every refusal it promises,
+///         including the launch settings it pins when the chain is switched to Ethereum mainnet.
 contract DeployKilimTest is TestBase {
     VmDeployTest internal constant vmd =
         VmDeployTest(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant DEPLOYER = address(0xD3910);
     string internal constant STORE = "../onchain/build";
+    address internal constant MAINNET_USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address internal constant SEPOLIA_USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    /// orkhanart.eth: treasury and collection-page owner.
+    address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
 
     DeployKilim internal script;
     MockUSD internal usd;
@@ -160,5 +166,185 @@ contract DeployKilimTest is TestBase {
         script.deployAuction(c, KilimRenderer(address(mockRenderer)));
         // and with everything right, it deploys
         script.deployAuction(c, renderer);
+    }
+
+    function testRefusesForeignCodeAtTheRendererAddress() public {
+        DeployKilim.Config memory c = _config();
+        KilimRenderer renderer = script.deployStore(c);
+        // Other code where the renderer lives: it is checked like a fresh renderer, and refused.
+        vmd.etch(address(renderer), address(mockRenderer).code);
+        _expectRefused("renderer immutables");
+        script.deployStore(c);
+    }
+
+    function testRefusesAnExistingRendererThatIsNotThePublishedOne() public {
+        DeployKilim.Config memory c = _config();
+        script.deployStore(c);
+        c.rendererHash = keccak256("the published renderer");
+        _expectRefused("renderer code hash differs from the published rendererHash");
+        script.deployStore(c);
+    }
+
+    function _expectRefused(string memory reason) internal {
+        vm.expectRevert(abi.encodeWithSelector(DeployKilim.Refused.selector, reason));
+    }
+
+    // ------------------------------------------------------------ Ethereum mainnet
+
+    /// @dev The store on the local chain, then chain 1 with a six-decimal token at the USDC address.
+    function _onMainnet() internal returns (KilimRenderer renderer) {
+        renderer = script.deployStore(_config());
+        vmd.etch(MAINNET_USDC, address(usd).code);
+        vmd.chainId(1);
+    }
+
+    /// @dev Exactly the decided launch settings on chain 1.
+    function _mainnetConfig(KilimRenderer renderer) internal view returns (DeployKilim.Config memory c) {
+        c = _config();
+        c.chainId = 1;
+        c.rendererHash = address(renderer).codehash;
+        c.auction.paymentToken = MAINNET_USDC;
+        c.auction.treasury = ARTIST;
+        c.auction.collectionOwner = ARTIST;
+    }
+
+    function testMainnetDeploysTheExactLaunchSettings() public {
+        KilimRenderer renderer = _onMainnet();
+        DeployKilim.Config memory c = _mainnetConfig(renderer);
+        KilimAuction auction = script.deployAuction(c, renderer);
+        assertEq(address(auction.paymentToken()), MAINNET_USDC);
+        assertEq(auction.tokenUnit(), 1e6);
+        assertEq(auction.treasury(), ARTIST);
+        assertEq(auction.reservePrice(), 1e6);
+        assertEq(auction.incrementBps(), 1000);
+        assertEq(auction.duration(), 86_400);
+        assertEq(auction.extensionWindow(), 600);
+        assertEq(auction.symbolCap(), 1_000_000);
+        assertEq(auction.maxSymbolsPerBid(), 1_000_000);
+        Kilim nft = auction.collection();
+        assertEq(nft.owner(), ARTIST);
+        assertEq(nft.royaltyReceiver(), ARTIST);
+        assertEq(nft.maxCells(), 256);
+    }
+
+    function testMainnetRefusesEverySettingOtherThanTheLaunchValues() public {
+        KilimRenderer renderer = _onMainnet();
+        DeployKilim.Config memory c = _mainnetConfig(renderer);
+        c.auction.paymentToken = address(usd); // a working six-decimal token, but not USDC
+        _expectRefused("mainnet launch value: paymentToken");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.tokenDecimals = 18;
+        _expectRefused("mainnet launch value: tokenDecimals");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.treasury = TREASURY;
+        _expectRefused("mainnet launch value: treasury");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.collectionOwner = PAGE_OWNER;
+        _expectRefused("mainnet launch value: collectionOwner");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.reservePrice = 10 * UNIT; // the stale $10 checklist line
+        _expectRefused("mainnet launch value: reservePrice");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.incrementBps = 100;
+        _expectRefused("mainnet launch value: incrementBps");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.duration = 8640;
+        _expectRefused("mainnet launch value: duration");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.extensionWindow = 60;
+        _expectRefused("mainnet launch value: extensionWindow");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.symbolCap = 10_000;
+        _expectRefused("mainnet launch value: symbolCap");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.maxSymbolsPerBid = 250;
+        _expectRefused("mainnet launch value: maxSymbolsPerBid");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.auction.maxCells = 255;
+        _expectRefused("mainnet launch value: maxCells");
+        script.deployAuction(c, renderer);
+    }
+
+    function testMainnetRequiresThePublishedNonceAndAnInspectionWindow() public {
+        KilimRenderer renderer = _onMainnet();
+        DeployKilim.Config memory c = _mainnetConfig(renderer);
+        c.deployerNonce = script.NO_NONCE_CHECK();
+        _expectRefused("mainnet needs the published deployerNonce");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.minLeadSeconds = 0;
+        c.auction.startsAt = uint64(block.timestamp + 2 minutes);
+        _expectRefused("mainnet needs a nonzero minLeadSeconds");
+        script.deployAuction(c, renderer);
+
+        c = _mainnetConfig(renderer);
+        c.deployerNonce = vmd.getNonce(DEPLOYER) + 1;
+        _expectRefused("deployer nonce");
+        script.deployAuction(c, renderer);
+    }
+
+    /// @dev The Sepolia rehearsal and the local chain stay configurable: none of the above is refused there.
+    function testOtherChainsAcceptSettingsThatDifferFromTheLaunch() public {
+        KilimRenderer renderer = script.deployStore(_config());
+        vmd.chainId(11_155_111);
+        DeployKilim.Config memory c = _config();
+        c.chainId = 11_155_111;
+        c.rendererHash = address(renderer).codehash;
+        c.deployerNonce = script.NO_NONCE_CHECK();
+        c.minLeadSeconds = 0;
+        c.auction.startsAt = uint64(block.timestamp + 2 minutes);
+        c.auction.reservePrice = 10 * UNIT;
+        c.auction.incrementBps = 500;
+        c.auction.symbolCap = 10_000;
+        c.auction.maxSymbolsPerBid = 250;
+        KilimAuction auction = script.deployAuction(c, renderer);
+        assertEq(auction.reservePrice(), 10 * UNIT);
+        assertEq(auction.incrementBps(), 500);
+    }
+
+    /// @dev The committed templates carry the launch values the script pins, and stay unreadable until
+    ///      every TODO is filled in.
+    function testTemplatesCarryTheLaunchValuesAndFailClosed() public {
+        _checkTemplate("deploy/mainnet.example.json", 1, MAINNET_USDC);
+        _checkTemplate("deploy/sepolia.example.json", 11_155_111, SEPOLIA_USDC);
+    }
+
+    function _checkTemplate(string memory path, uint256 chain, address token) internal {
+        string memory j = vmd.readFile(path);
+        assertEq(vmd.parseJsonUint(j, ".chainId"), chain);
+        assertEq(vmd.parseJsonAddress(j, ".auction.paymentToken"), token);
+        assertEq(vmd.parseJsonUint(j, ".auction.tokenDecimals"), script.LAUNCH_TOKEN_DECIMALS());
+        assertEq(vmd.parseJsonAddress(j, ".auction.treasury"), script.LAUNCH_TREASURY());
+        assertEq(vmd.parseJsonAddress(j, ".auction.collectionOwner"), script.LAUNCH_COLLECTION_OWNER());
+        assertEq(vmd.parseJsonUint(j, ".auction.reservePrice"), script.LAUNCH_RESERVE_PRICE());
+        assertEq(vmd.parseJsonUint(j, ".auction.incrementBps"), script.LAUNCH_INCREMENT_BPS());
+        assertEq(vmd.parseJsonUint(j, ".auction.duration"), script.LAUNCH_DURATION());
+        assertEq(vmd.parseJsonUint(j, ".auction.extensionWindow"), script.LAUNCH_EXTENSION_WINDOW());
+        assertEq(vmd.parseJsonUint(j, ".auction.symbolCap"), script.LAUNCH_SYMBOL_CAP());
+        assertEq(vmd.parseJsonUint(j, ".auction.maxSymbolsPerBid"), script.LAUNCH_MAX_SYMBOLS_PER_BID());
+        assertEq(vmd.parseJsonUint(j, ".auction.maxCells"), script.LAUNCH_MAX_CELLS());
+        vm.expectRevert();
+        script.loadConfig(path);
     }
 }

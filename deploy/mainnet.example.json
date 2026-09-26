@@ -1,0 +1,29 @@
+{
+  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/RENDERER.md. The expected values come from onchain/build/manifest.json once the symbol set is final; rendererHash stays zero until runStore prints it.",
+  "chainId": 1,
+  "store": "../onchain/build",
+  "deployer": "TODO: the dedicated deployer address",
+  "deployerNonce": "TODO: the published nonce for the auction transaction",
+  "minLeadSeconds": "TODO: the inspection window in seconds, nonzero (for example 86400)",
+  "expected": {
+    "motifCount": "TODO: motifCount from the final onchain/build/manifest.json",
+    "geometryHash": "TODO: hashes.geometryHash from the final manifest",
+    "indexHash": "TODO: hashes.indexHash from the final manifest",
+    "pageHash": "TODO: hashes.pageHash from the final manifest",
+    "rendererHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "auction": {
+    "paymentToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "tokenDecimals": 6,
+    "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+    "collectionOwner": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+    "startsAt": "TODO: unix seconds, at least minLeadSeconds after deployment",
+    "duration": 86400,
+    "extensionWindow": 600,
+    "incrementBps": 1000,
+    "reservePrice": 1000000,
+    "symbolCap": 1000000,
+    "maxSymbolsPerBid": 1000000,
+    "maxCells": 256
+  }
+}

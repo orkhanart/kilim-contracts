@@ -6,18 +6,19 @@ Don't start unless the pre-deploy go/no-go is signed off. A deployed auction **c
 
 ## Pre-flight
 
-The deployment script must check all of these itself and **refuse to send** if any fail. Also confirm them by hand.
+`script/DeployKilim.s.sol` checks the items marked **(script)** itself and **refuses to send** if any fail (the full list is in [docs/RENDERER.md](../docs/RENDERER.md#what-the-script-refuses)). Confirm every item by hand as well.
 
-- [ ] Compare the script's config with the signed-off config line by line. A second person does the same.
-- [ ] Right network: `block.chainid` is 1 for Ethereum mainnet, or 11155111 for the Sepolia rehearsal.
-- [ ] The deployer's pending nonce equals the published nonce. No other transaction from this key since publishing.
-- [ ] The stablecoin address has code, and its `decimals()` matches. `reservePrice == 10 × 10^decimals`.
-- [ ] `startsAt` is in Unix **seconds** (not milliseconds), at least the inspection window ahead, and not absurdly far out.
-- [ ] The treasury matches the config. If it's a Safe: it has code on **this** chain, and its owners and threshold are as expected.
-- [ ] `motifCount` equals the count in the published geometry file.
-- [ ] `geometryHash` and `rendererHash`, recomputed from the published files, match the config. `script/DeployKilim.s.sol` checks these, the chunk files, the CREATE2 addresses, the gas of every transaction and the renderer's golden answers itself, and refuses on any mismatch (docs/RENDERER.md). The data chunks and the renderer are deployed first, in a separate phase, and are already on-chain here.
-- [ ] An `eth_call` simulation of the exact deployment transaction succeeds.
-- [ ] The gas limit comes from Ethereum's own estimate plus margin, and every transaction stays under the 16,777,216 per-transaction cap. The deployer holds enough ETH.
+- [ ] Compare the script's config with the signed-off config line by line. A second person does the same. Start from `deploy/mainnet.example.json`. The auction phase prints every setting it deploys with and flags any that differs from the launch value; on chain 1 there must be no flag.
+- [ ] **(script)** Right network: `block.chainid` is 1 for Ethereum mainnet, or 11155111 for the Sepolia rehearsal, and equals the config's `chainId`.
+- [ ] **(script)** The deployer's pending nonce equals the published `deployerNonce`. On chain 1 the check cannot be skipped. No other transaction from this key since publishing.
+- [ ] **(script)** The stablecoin has code and its `decimals()` matches `tokenDecimals`. On chain 1 it must be USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` with 6 decimals.
+- [ ] **(script)** `reservePrice` is a whole number of token units. On chain 1 it must be `1 × 10^decimals` = `1000000` ($1).
+- [ ] **(script)** On chain 1, the other launch settings: `incrementBps` 1000 (+10%), `duration` 86400 (24 hours from the first bid), `extensionWindow` 600 (10 minutes, no limit on extensions), `symbolCap` and `maxSymbolsPerBid` 1,000,000, `maxCells` 256.
+- [ ] **(script)** `startsAt` is in Unix **seconds** (not milliseconds), at least `minLeadSeconds` (the inspection window) ahead, and at most a year out. On chain 1, `minLeadSeconds` must be nonzero.
+- [ ] **(script)** The treasury and the collection owner are nonzero. On chain 1 both must be `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac` (orkhanart.eth). By hand: fresh proof that the key still works ([1-pre-deploy.md](1-pre-deploy.md)). Switching to a Safe would mean changing `LAUNCH_TREASURY` in the script, its tests and the signed-off config, then re-tagging.
+- [ ] **(script)** `motifCount` equals the count in the published geometry file (`onchain/build/manifest.json`).
+- [ ] **(script)** `geometryHash` and `rendererHash`, recomputed from the published files, match the config. The script also checks the chunk files, the CREATE2 addresses and the renderer's golden answers, and refuses on any mismatch. The data chunks and the renderer are deployed first, in a separate phase, and are already on-chain here.
+- [ ] **(script)** forge simulates the whole deployment before sending anything, and dry-runs each transaction to measure its gas: every one stays under the script's 8M policy, well under the 16,777,216 per-transaction cap. By hand: the broadcast gas limit comes from Ethereum's own estimate plus margin, and the deployer holds enough ETH.
 - [ ] The git tag is checked out, and `pnpm artifacts` matches the frozen `audit/build-manifest.json`.
 
 ## Send
@@ -40,7 +41,7 @@ The deployment script must check all of these itself and **refuse to send** if a
 
 ## Read back
 
-Check every value on-chain against the config **before any bid**.
+Check every value on-chain against the config **before any bid**. The script only read back its own simulation before sending; this checks the chain itself. On chain 1 every value must also equal the launch value in the pre-flight list above.
 
 - [ ] **Auction:** `paymentToken`, `treasury`, `tokenUnit` (= 10^decimals), `reservePrice`, `incrementBps`, `startsAt`, `duration`, `extensionWindow`, `symbolCap`, `maxSymbolsPerBid`.
 - [ ] **Clock not started:** `endsAt == 0`. It is set only by the first bid, to that bid's time plus `duration`.

@@ -37,9 +37,13 @@ interface IERC20Decimals {
 ///                            deployed is verified and skipped), then KilimRenderer, also by CREATE2.
 ///                            Prints the addresses and rendererHash to publish.
 ///           2. runAuction(): KilimAuction, which creates Kilim, from the signed-off config, at the
-///                            published deployer nonce.
+///                            published deployer nonce. Prints every setting it deploys with.
 ///         `run()` does both (testnet rehearsal). The config is a JSON file named by $KILIM_DEPLOY_CONFIG;
-///         see deploy/config.example.json and docs/RENDERER.md.
+///         see deploy/mainnet.example.json, deploy/sepolia.example.json and docs/RENDERER.md.
+///         On Ethereum mainnet (chain 1) the auction settings must be the decided launch values below,
+///         the published nonce is always checked and the inspection window must be nonzero. Other chains
+///         (the Sepolia rehearsal, the local chain) accept any valid settings and print each one next to
+///         the launch value it differs from.
 /// @dev forge simulates the whole script before broadcasting, so any revert here means nothing is sent.
 ///      Every heavy step is first dry-run inside a state snapshot to measure its gas and check its output.
 contract DeployKilim {
@@ -53,12 +57,35 @@ contract DeployKilim {
     uint256 public constant MAX_TX_GAS = 8_000_000;
     /// @notice No start date further out than this is accepted.
     uint256 public constant MAX_LEAD = 365 days;
+    /// @notice A `deployerNonce` of this value skips the published-nonce check. Refused on chain 1.
+    uint256 public constant NO_NONCE_CHECK = type(uint256).max;
+
+    // The decided launch settings (checklists/1-pre-deploy.md). On chain 1 any other value is refused.
+    uint256 public constant MAINNET_CHAIN_ID = 1;
+    /// @notice USDC on Ethereum mainnet, 6 decimals.
+    address public constant LAUNCH_PAYMENT_TOKEN = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    uint8 public constant LAUNCH_TOKEN_DECIMALS = 6;
+    /// @notice orkhanart.eth: the treasury, royalty receiver and collection-page owner.
+    address public constant LAUNCH_TREASURY = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
+    address public constant LAUNCH_COLLECTION_OWNER = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
+    /// @notice $1 opening bid: 1 × 10^6.
+    uint256 public constant LAUNCH_RESERVE_PRICE = 1_000_000;
+    /// @notice Each raise at least +10%.
+    uint16 public constant LAUNCH_INCREMENT_BPS = 1000;
+    /// @notice 24 hours from the first bid.
+    uint64 public constant LAUNCH_DURATION = 86_400;
+    /// @notice A bid in the last 10 minutes moves the close to 10 minutes after it, with no limit.
+    uint64 public constant LAUNCH_EXTENSION_WINDOW = 600;
+    uint256 public constant LAUNCH_SYMBOL_CAP = 1_000_000;
+    uint256 public constant LAUNCH_MAX_SYMBOLS_PER_BID = 1_000_000;
+    uint16 public constant LAUNCH_MAX_CELLS = 256;
 
     struct Config {
         uint256 chainId;
         string store;
         address deployer;
-        /// @dev The published nonce for the auction deployment; type(uint256).max skips the check.
+        /// @dev The published nonce for the auction deployment. NO_NONCE_CHECK skips the check, except on
+        ///      chain 1, where it is refused.
         uint256 deployerNonce;
         uint256 motifCount;
         bytes32 geometryHash;
@@ -67,6 +94,8 @@ contract DeployKilim {
         /// @dev Zero until the renderer is deployed and its hash published; required by the auction phase.
         bytes32 rendererHash;
         uint8 tokenDecimals;
+        /// @dev The inspection window: `startsAt` must be at least this many seconds after deployment.
+        ///      Must be nonzero on chain 1.
         uint256 minLeadSeconds;
         KilimAuction.Config auction;
     }
@@ -140,15 +169,14 @@ contract DeployKilim {
             missing[k] = s.addresses[k].code.length == 0;
             if (missing[k]) _create2(_sstore2(s.chunks[k]), s.addresses[k], "chunk");
         }
-        bytes32 codehash = predicted.code.length == 0
-            ? _create2(initcode, predicted, "renderer").codehash
-            : predicted.codehash;
+        // A renderer already at `predicted` came from this same initcode (CREATE2 commits to it), so it is
+        // not compared with anything here: it goes through the same immutables, chunk-list and golden checks
+        // as a fresh one, and below its code hash must equal a published rendererHash.
+        if (predicted.code.length == 0) _create2(initcode, predicted, "renderer");
+        bytes32 codehash = predicted.codehash;
         _checkRenderer(c, s, KilimRenderer(predicted));
         vm.revertToState(snap);
 
-        if (predicted.code.length != 0 && predicted.codehash != codehash) {
-            revert Refused("foreign code at the renderer address");
-        }
         if (c.rendererHash != bytes32(0) && c.rendererHash != codehash) {
             revert Refused("renderer code hash differs from the published rendererHash");
         }
@@ -297,6 +325,8 @@ contract DeployKilim {
     /// @notice Deploy KilimAuction (and with it Kilim) against the deployed renderer.
     function deployAuction(Config memory c, KilimRenderer renderer) public returns (KilimAuction auction) {
         _requireChain(c);
+        _printSettings(c, renderer);
+        _requireLaunchSettings(c);
         if (address(renderer).code.length == 0) revert Refused("renderer not deployed");
         if (c.rendererHash == bytes32(0)) revert Refused("publish rendererHash in the config first");
         if (address(renderer).codehash != c.rendererHash) revert Refused("renderer code hash differs");
@@ -318,7 +348,7 @@ contract DeployKilim {
         }
         if (a.treasury == address(0) || a.collectionOwner == address(0)) revert Refused("zero address");
         uint256 nonce = vm.getNonce(c.deployer);
-        if (c.deployerNonce != type(uint256).max && nonce != c.deployerNonce) {
+        if (c.deployerNonce != NO_NONCE_CHECK && nonce != c.deployerNonce) {
             revert Refused("deployer nonce");
         }
         address predicted = vm.computeCreateAddress(c.deployer, nonce);
@@ -361,6 +391,86 @@ contract DeployKilim {
                 || k.geometryHash() != c.geometryHash || k.rendererHash() != c.rendererHash
                 || address(k.renderer()) != a.renderer
         ) revert Refused("collection read-back");
+    }
+
+    /// @dev Chain 1 only: every auction setting must be the decided launch value, the published nonce is
+    ///      always checked, and the inspection window must be nonzero. Other chains stay configurable.
+    function _requireLaunchSettings(Config memory c) internal view {
+        if (block.chainid != MAINNET_CHAIN_ID) return;
+        KilimAuction.Config memory a = c.auction;
+        if (a.paymentToken != LAUNCH_PAYMENT_TOKEN) revert Refused("mainnet launch value: paymentToken");
+        if (c.tokenDecimals != LAUNCH_TOKEN_DECIMALS) revert Refused("mainnet launch value: tokenDecimals");
+        if (a.treasury != LAUNCH_TREASURY) revert Refused("mainnet launch value: treasury");
+        if (a.collectionOwner != LAUNCH_COLLECTION_OWNER) {
+            revert Refused("mainnet launch value: collectionOwner");
+        }
+        if (a.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("mainnet launch value: reservePrice");
+        if (a.incrementBps != LAUNCH_INCREMENT_BPS) revert Refused("mainnet launch value: incrementBps");
+        if (a.duration != LAUNCH_DURATION) revert Refused("mainnet launch value: duration");
+        if (a.extensionWindow != LAUNCH_EXTENSION_WINDOW) {
+            revert Refused("mainnet launch value: extensionWindow");
+        }
+        if (a.symbolCap != LAUNCH_SYMBOL_CAP) revert Refused("mainnet launch value: symbolCap");
+        if (a.maxSymbolsPerBid != LAUNCH_MAX_SYMBOLS_PER_BID) {
+            revert Refused("mainnet launch value: maxSymbolsPerBid");
+        }
+        if (a.maxCells != LAUNCH_MAX_CELLS) revert Refused("mainnet launch value: maxCells");
+        if (c.deployerNonce == NO_NONCE_CHECK) revert Refused("mainnet needs the published deployerNonce");
+        if (c.minLeadSeconds == 0) revert Refused("mainnet needs a nonzero minLeadSeconds");
+    }
+
+    /// @dev Prints every setting the auction phase deploys with. A value that differs from the decided
+    ///      launch value is flagged; on chain 1 it is then refused. The payment token is compared only on
+    ///      chain 1, since each chain has its own USDC address.
+    function _printSettings(Config memory c, KilimRenderer renderer) internal view {
+        KilimAuction.Config memory a = c.auction;
+        bool mainnet = block.chainid == MAINNET_CHAIN_ID;
+        _log(string.concat("auction settings for chain ", vm.toString(block.chainid)));
+        _log(string.concat("  deployer          ", vm.toString(c.deployer)));
+        _log(
+            string.concat(
+                "  deployerNonce     ",
+                c.deployerNonce == NO_NONCE_CHECK ? string("not checked") : vm.toString(c.deployerNonce),
+                " (pending: ",
+                vm.toString(uint256(vm.getNonce(c.deployer))),
+                ")"
+            )
+        );
+        _log(string.concat("  minLeadSeconds    ", vm.toString(c.minLeadSeconds)));
+        _log(
+            string.concat(
+                "  startsAt          ",
+                vm.toString(uint256(a.startsAt)),
+                a.startsAt > block.timestamp
+                    ? string.concat(" (in ", vm.toString(a.startsAt - block.timestamp), " s)")
+                    : string(" (not in the future)")
+            )
+        );
+        _log(string.concat("  renderer          ", vm.toString(address(renderer))));
+        _log(string.concat("  rendererHash      ", vm.toString(c.rendererHash)));
+        _log(string.concat("  motifCount        ", vm.toString(c.motifCount)));
+        _log(string.concat("  geometryHash      ", vm.toString(c.geometryHash)));
+        _show("paymentToken      ", a.paymentToken, mainnet ? LAUNCH_PAYMENT_TOKEN : a.paymentToken);
+        _show("tokenDecimals     ", c.tokenDecimals, LAUNCH_TOKEN_DECIMALS);
+        _show("treasury          ", a.treasury, LAUNCH_TREASURY);
+        _show("collectionOwner   ", a.collectionOwner, LAUNCH_COLLECTION_OWNER);
+        _show("reservePrice      ", a.reservePrice, LAUNCH_RESERVE_PRICE);
+        _show("incrementBps      ", a.incrementBps, LAUNCH_INCREMENT_BPS);
+        _show("duration          ", a.duration, LAUNCH_DURATION);
+        _show("extensionWindow   ", a.extensionWindow, LAUNCH_EXTENSION_WINDOW);
+        _show("symbolCap         ", a.symbolCap, LAUNCH_SYMBOL_CAP);
+        _show("maxSymbolsPerBid  ", a.maxSymbolsPerBid, LAUNCH_MAX_SYMBOLS_PER_BID);
+        _show("maxCells          ", a.maxCells, LAUNCH_MAX_CELLS);
+    }
+
+    function _show(string memory name, uint256 value, uint256 launch) internal view {
+        string memory line = string.concat("  ", name, vm.toString(value));
+        _log(value == launch ? line : string.concat(line, "   <- launch value ", vm.toString(launch)));
+    }
+
+    function _show(string memory name, address value, address launch) internal view {
+        string memory line = string.concat("  ", name, vm.toString(value));
+        _log(value == launch ? line : string.concat(line, "   <- launch value ", vm.toString(launch)));
     }
 
     // ------------------------------------------------------------ helpers
