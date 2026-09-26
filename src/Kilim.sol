@@ -176,10 +176,12 @@ contract Kilim is ERC721, ReentrancyGuard {
     }
 
     /// @notice Set where marketplaces send resale royalties. The 5% rate itself cannot change.
+    /// @dev contractURI shows the receiver as fee_recipient, so this also emits ERC-7572 ContractURIUpdated.
     function setRoyaltyReceiver(address receiver) external onlyOwner {
         if (receiver == address(0)) revert InvalidRecipient();
         royaltyReceiver = receiver;
         emit RoyaltyReceiverUpdated(receiver);
+        emit ContractURIUpdated();
     }
 
     /// @notice Set the collection-page blurb and link. Token metadata is untouched by this.

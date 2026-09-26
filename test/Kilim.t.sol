@@ -445,6 +445,30 @@ contract KilimTest is TestBase {
         assertEq(vm.parseJsonUint(json, ".seller_fee_basis_points"), 500);
     }
 
+    event RoyaltyReceiverUpdated(address indexed receiver);
+    event ContractURIUpdated();
+
+    /// @dev contractURI shows the receiver as fee_recipient, so ERC-7572 indexers must hear about the change.
+    function testRoyaltyReceiverChangeAnnouncesTheNewContractUri() public {
+        vm.expectEmit();
+        emit RoyaltyReceiverUpdated(BOB);
+        vm.expectEmit();
+        emit ContractURIUpdated();
+        vm.prank(ALICE);
+        nft.setRoyaltyReceiver(BOB);
+        assertEq(
+            keccak256(bytes(_decode(nft.contractURI()))),
+            keccak256(
+                bytes(
+                    string.concat(
+                        '{"name":"Kilim","description":"","external_link":"","seller_fee_basis_points":500,',
+                        '"fee_recipient":"0x0000000000000000000000000000000000000b0b"}'
+                    )
+                )
+            )
+        );
+    }
+
     function testOwnershipTransferAndRenounce() public {
         vm.prank(ALICE);
         nft.transferOwnership(BOB);
