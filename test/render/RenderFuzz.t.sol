@@ -44,6 +44,46 @@ contract RenderFuzzTest is RenderBase {
         assertEq(_occurrences(svg, "</svg>"), 1);
     }
 
+    /// @dev The hardest layout for the artwork buffer relative to its estimate: 256 distinct motifs whose path
+    ///      text comes closest to 3 characters per record byte, at 16x16 and 2x128. The image is longer than
+    ///      700 + 90 per cell + 3 per record byte, so it fits only because the bound also allows 140 bytes
+    ///      per distinct motif (each <symbol> wrapper). It must render without outgrowing the buffer.
+    function testDensestPathsFitTheArtworkBuffer() public view {
+        bytes memory store = vmr.readFileBinary(string.concat(storeDir, "/store.bin"));
+        uint256 idx = 64 + _u32(store, 4);
+        uint256[] memory spare = new uint256[](count); // 3 x record bytes - path length
+        uint256[] memory order = new uint256[](count);
+        for (uint256 m; m < count; ++m) {
+            (, uint256 pathLen) = _sha(address(renderer), abi.encodeCall(KilimRenderer.motifPath, (m)));
+            spare[m] = 3 * _u32(store, idx + 16 * m + 4) - pathLen;
+            order[m] = m;
+        }
+        uint16[] memory motifs = new uint16[](256);
+        uint256 recordBytes;
+        for (uint256 i; i < 256; ++i) {
+            uint256 best = i;
+            for (uint256 j = i + 1; j < count; ++j) {
+                if (spare[order[j]] < spare[order[best]]) best = j;
+            }
+            (order[i], order[best]) = (order[best], order[i]);
+            motifs[i] = uint16(order[i]);
+            recordBytes += _u32(store, idx + 16 * order[i] + 4);
+        }
+        (, uint256 len) =
+            _sha(address(renderer), abi.encodeCall(KilimRenderer.artworkSVG, (motifs, 16, 16, INK)));
+        assertTrue(len > 700 + 90 * 256 + 3 * recordBytes);
+        _sha(address(renderer), abi.encodeCall(KilimRenderer.artworkSVG, (motifs, 2, 128, VERMILION)));
+        _sha(
+            address(renderer), abi.encodeCall(KilimRenderer.artworkURI, (1, motifs, 16, 16, INDIGO, 1, true))
+        );
+    }
+
+    function _u32(bytes memory b, uint256 pos) internal pure returns (uint256 v) {
+        for (uint256 i; i < 4; ++i) {
+            v = (v << 8) | uint8(b[pos + i]);
+        }
+    }
+
     function testFuzzLayoutsOutsideTheRulesRevert(uint16 cols, uint16 rows) public {
         uint256 n = uint256(cols) * rows;
         vmr.assume(cols < 2 || rows < 2 || n > 256);

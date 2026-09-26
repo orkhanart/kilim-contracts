@@ -240,4 +240,56 @@ contract RenderGoldenTest is RenderBase {
         // the still is also the page's static fallback, visible before (or without) the script
         assertTrue(_contains(html, bytes('<div id="f"><svg xmlns=')));
     }
+
+    /// @dev The public views take any input, so each must refuse the first value past its range with its own
+    ///      error: motif == motifCount would otherwise read past the index.
+    function testViewsRejectTheFirstValueOutOfRange() public {
+        uint16[] memory motifs = new uint16[](4);
+        motifs[3] = uint16(count - 1);
+        renderer.artworkSVG(motifs, 2, 2, INK);
+        motifs[3] = uint16(count);
+        vm.expectRevert(KilimRenderer.UnknownMotif.selector);
+        renderer.artworkSVG(motifs, 2, 2, INK);
+        vm.expectRevert(KilimRenderer.UnknownMotif.selector);
+        renderer.artworkURI(1, motifs, 2, 2, INK, 1, false);
+        renderer.motifPath(count - 1);
+        vm.expectRevert(KilimRenderer.UnknownMotif.selector);
+        renderer.motifPath(count);
+        vm.expectRevert(KilimRenderer.UnknownMotif.selector);
+        renderer.symbolSVG(count, 0);
+        renderer.symbolSVG(0, 6); // leaf gold: drawable, though no token uses it
+        vm.expectRevert(KilimRenderer.UnknownMaterial.selector);
+        renderer.symbolSVG(0, 7);
+    }
+
+    /// @dev The ABI padding after a returned string is zero, as the encoding requires. Kilim.tokenURI forwards
+    ///      these bytes verbatim, so strict decoders and byte comparisons see them too.
+    function testReturnedAbiPaddingIsZero() public view {
+        uint256 checked;
+        for (uint256 m; m < 24; ++m) {
+            checked += _zeroPadding(
+                abi.encodeCall(KilimRenderer.symbolURI, (2 + m, bytes32(m), uint16(m), uint8(m % 6)))
+            );
+            checked += _zeroPadding(abi.encodeCall(KilimRenderer.motifPath, (m)));
+        }
+        assertTrue(checked != 0);
+    }
+
+    /// @dev Calls the renderer and returns how many padding bytes it checked.
+    function _zeroPadding(bytes memory data) private view returns (uint256 n) {
+        (bool ok, bytes memory rd) = address(renderer).staticcall(data);
+        require(ok, "call reverted");
+        uint256 offset;
+        uint256 len;
+        assembly {
+            offset := mload(add(rd, 32))
+            len := mload(add(rd, 64))
+        }
+        assertEq(offset, 32);
+        assertEq(rd.length, 64 + (len + 31) / 32 * 32);
+        for (uint256 i = 64 + len; i < rd.length; ++i) {
+            require(rd[i] == 0, "dirty padding");
+            ++n;
+        }
+    }
 }

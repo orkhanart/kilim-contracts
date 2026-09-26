@@ -90,6 +90,21 @@ contract WriterHarness {
         W.check(o, 10, o + 11);
     }
 
+    function checkFailsBackwards() external pure {
+        uint256 o = W.buf(10);
+        W.check(o, 10, o - 1);
+    }
+
+    /// @dev Rule 1: a writer that ends exactly at the bound may overrun it by up to 31 bytes, and the next
+    ///      Solidity allocation (here a marked 32-byte array) must come through untouched.
+    function slackAbsorbsAMaximalOverrun(uint256 bound) external pure returns (bool) {
+        uint256 o = W.buf(bound);
+        bytes32 mark = keccak256("next allocation");
+        bytes memory next = abi.encodePacked(mark);
+        W.w(o + bound - 1, bytes32(type(uint256).max), 1); // the last byte, overrunning by 31
+        return next.length == 32 && bytes32(next) == mark;
+    }
+
     function exactFails() external pure {
         uint256 o = W.buf(10);
         W.exact(o, 10, o + 9);
@@ -171,8 +186,17 @@ contract KilimWriterTest is TestBase {
     function testPostconditionsRevert() public {
         vm.expectRevert(W.BufferOverflow.selector);
         h.checkFails();
+        vm.expectRevert(W.BufferOverflow.selector);
+        h.checkFailsBackwards();
         vm.expectRevert(abi.encodeWithSelector(W.LengthMismatch.selector, 10, 9));
         h.exactFails();
+    }
+
+    /// @dev Every bound, aligned or not, leaves at least 32 bytes of slack after the buffer.
+    function testBufferSlackAbsorbsTheLargestOverrun() public view {
+        for (uint256 bound = 1; bound <= 96; ++bound) {
+            require(h.slackAbsorbsAMaximalOverrun(bound), string.concat("bound ", vm.toString(bound)));
+        }
     }
 
     // ------------------------------------------------------------ the geometry decoder
@@ -201,6 +225,12 @@ contract KilimWriterTest is TestBase {
         assertTrue(_eq(h.path(hex"01052c206d004e4338440302"), "M 22 16l-55 0 39-34 28 34-2 1z"));
     }
 
+    function testDecodesASinglePointRing() public view {
+        // one ring of one point: no "l", since there are no relative points after the first
+        assertTrue(_eq(h.path(hex"01010204"), "M 1 2z"));
+        assertTrue(_eq(h.path(hex"020102040202040304"), "M 1 2zM 1 2l-2 2z"));
+    }
+
     function testDecodesMultiByteVarintsAndLargeCoordinates() public view {
         // 2 rings; 2- and 3-byte varints; the int16 extremes (zigzag 65535 = ff ff 03)
         assertTrue(
@@ -223,15 +253,15 @@ contract KilimWriterTest is TestBase {
         assertTrue(_eq(h.path(rec), want));
     }
 
-    /// @dev A random ring (3..14 points) as stored bytes and as the expected path text.
+    /// @dev A random ring (1..14 points) as stored bytes and as the expected path text.
     function _ring(uint256 seed) internal pure returns (bytes memory rec, string memory text) {
-        uint256 n = 3 + seed % 12;
+        uint256 n = 1 + seed % 14;
         rec = _varint(n);
         text = "M";
         for (uint256 k; k < n; ++k) {
             (int256 dx, int256 dy) = _delta(uint256(keccak256(abi.encode(seed, k))));
             rec = bytes.concat(rec, _zz(dx), _zz(dy));
-            text = string.concat(text, _n(dx), _n(dy), k == 0 ? "l" : "");
+            text = string.concat(text, _n(dx), _n(dy), k == 0 && n > 1 ? "l" : "");
         }
         text = string.concat(text, "z");
     }
@@ -257,5 +287,10 @@ contract KilimWriterTest is TestBase {
             vm.expectRevert(W.BadRecord.selector);
             h.path(bad[i]);
         }
+        // A point count whose varint runs into the end of the record (ended by the zero word): rejected
+        // at once, not decoded as 2^28 - 1 points from memory past the record. The gas cap keeps a
+        // regression from running for minutes before it fails.
+        vm.expectRevert(W.BadRecord.selector);
+        h.path{gas: 10_000_000}(hex"01ffffffff");
     }
 }

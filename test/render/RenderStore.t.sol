@@ -167,6 +167,21 @@ contract RenderStoreTest is RenderBase {
         }
         more[cs.length] = sstore2(""); // an empty last chunk (code is only the 0x00 prefix)
         _expect(more, gh, ih, ph, 2);
+        // The same after full chunks only, so no other chunk is the wrong size: pad the page to a whole
+        // number of chunks. The padded store deploys; with an empty chunk after it, it must not.
+        bytes memory s = _copy();
+        uint256 pad = CHUNK - s.length % CHUNK;
+        s = bytes.concat(s, new bytes(pad));
+        _setU32(s, 12, _u32(s, 12) + pad);
+        (gh, ih, ph) = _hashes(s);
+        cs = _split(s, CHUNK);
+        new KilimRenderer(cs, gh, ih, ph);
+        more = new address[](cs.length + 1);
+        for (uint256 k; k < cs.length; ++k) {
+            more[k] = cs[k];
+        }
+        more[cs.length] = sstore2("");
+        _expect(more, gh, ih, ph, 2);
     }
 
     function testRejectsANonZeroPrefixByte() public {
@@ -202,6 +217,10 @@ contract RenderStoreTest is RenderBase {
         s = _copy();
         _setU32(s, 12, _u32(s, 12) - 1);
         _expect(_split(s, CHUNK), gh, ih, ph, 6);
+        // Too short to hold even the header.
+        address[] memory cs = new address[](1);
+        cs[0] = sstore2(new bytes(10));
+        _expect(cs, gh, ih, ph, 6);
     }
 
     function testRejectsSpliceOffsets() public {
@@ -211,6 +230,15 @@ contract RenderStoreTest is RenderBase {
         s = _copy();
         _setU32(s, 20, _u32(s, 12) + 1); // symbolsAt beyond the page
         _expectStore(s, 7);
+    }
+
+    function testAcceptsSplicePointsAtThePageEnd() public {
+        bytes memory s = _copy();
+        _setU32(s, 16, _u32(s, 12)); // stillAt == symbolsAt == pageLen
+        _setU32(s, 20, _u32(s, 12));
+        (bytes32 gh, bytes32 ih, bytes32 ph) = _hashes(s);
+        KilimRenderer r = new KilimRenderer(_split(s, CHUNK), gh, ih, ph);
+        assertEq(r.motifCount(), count);
     }
 
     function testRejectsAWrongGeometryHashOrChunkOrder() public {
@@ -230,6 +258,25 @@ contract RenderStoreTest is RenderBase {
         s[64] = 0x80;
         s[65] = 0x80;
         s[66] = 0x80; // a count varint longer than three bytes
+        _expectStore(s, 9);
+        // The same count re-encoded in four bytes, with every index offset shifted to match, so only the
+        // varint's length is wrong.
+        s = _copy();
+        uint256 k;
+        while (uint8(s[64 + k]) >= 0x80) ++k;
+        uint256 shift = 3 - k; // four bytes replace k + 1
+        bytes memory four = abi.encodePacked(
+            uint8((count & 0x7f) | 0x80),
+            uint8(((count >> 7) & 0x7f) | 0x80),
+            uint8(((count >> 14) & 0x7f) | 0x80),
+            uint8(count >> 21)
+        );
+        s = bytes.concat(_slice(s, 0, 64), four, _slice(s, 65 + k, s.length));
+        _setU32(s, 4, _geoLen(s) + shift);
+        uint256 idx = _idxOff(s);
+        for (uint256 m; m < count; ++m) {
+            _setU32(s, idx + 16 * m, _u32(s, idx + 16 * m) + shift);
+        }
         _expectStore(s, 9);
     }
 
@@ -264,6 +311,15 @@ contract RenderStoreTest is RenderBase {
         _expectStore(s, 13);
         s = _copy();
         _setU32(s, r3 + 4, _u32(s, r3 + 4) + 1); // a record overlapping the next
+        _expectStore(s, 13);
+        // An empty record even when the index stays contiguous: record 4 starts where record 3 did and
+        // takes over its bytes.
+        s = _copy();
+        uint256 r4 = r3 + 16;
+        uint256 len3 = _u32(s, r3 + 4);
+        _setU32(s, r3 + 4, 0);
+        _setU32(s, r4, _u32(s, r3));
+        _setU32(s, r4 + 4, _u32(s, r4 + 4) + len3);
         _expectStore(s, 13);
     }
 
