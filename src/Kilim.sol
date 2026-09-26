@@ -5,9 +5,12 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IKilimRenderer} from "./render/IKilimRenderer.sol";
 
 /// @notice Symbols, evolving compositions, and the auction's single masterpiece.
-/// @dev No upgrade, admin transfer, metadata setter, or external renderer call.
+/// @dev No upgrade, admin transfer or metadata setter. Token metadata comes from one immutable renderer,
+///      fixed at construction and checked against the published rendererHash and geometryHash; tokenURI
+///      forwards its answer unchanged (see tokenURI).
 ///      Symbol traits depend only on the token ID: public from deployment, NOT verifiable randomness.
 ///      Symbols use IDs FIRST_SYMBOL_ID..symbolCap+1; artworks use the IDs after that range.
 contract Kilim is ERC721, ReentrancyGuard {
@@ -65,6 +68,12 @@ contract Kilim is ERC721, ReentrancyGuard {
     uint16 public immutable maxCells;
     bytes32 public immutable geometryHash;
     bytes32 public immutable rendererHash;
+    /// @notice Draws every token's metadata and media. Its code hash is rendererHash.
+    IKilimRenderer public immutable renderer;
+    /// @notice The only accepted artwork appearances: left-aligned ASCII, as ethers.encodeBytes32String makes.
+    bytes32 public constant APPEARANCE_INK = "flat/ink";
+    bytes32 public constant APPEARANCE_INDIGO = "flat/indigo";
+    bytes32 public constant APPEARANCE_VERMILION = "flat/vermilion";
     uint256 public symbolsMinted;
     uint256 public symbolsBurned;
     uint256 public artworksMinted;
@@ -95,6 +104,7 @@ contract Kilim is ERC721, ReentrancyGuard {
     error ArtworkFrozen();
     error StaleRevision();
     error AlreadyMinted();
+    error InvalidAppearance();
 
     event SymbolsMinted(address indexed recipient, address indexed bidder, uint256 firstId, uint256 count);
     /// @dev creator is the weaver; the receiver callback may already have transferred the artwork.
@@ -114,13 +124,20 @@ contract Kilim is ERC721, ReentrancyGuard {
         uint16 motifCount_,
         uint16 maxCells_,
         bytes32 geometryHash_,
-        bytes32 rendererHash_
+        bytes32 rendererHash_,
+        IKilimRenderer renderer_
     ) ERC721("Kilim", "KILIM") {
         if (
             minter_ == address(0) || owner_ == address(0) || royaltyReceiver_ == address(0) || symbolCap_ == 0
                 || symbolCap_ > type(uint32).max - FIRST_SYMBOL_ID || motifCount_ == 0 || maxCells_ < 4
                 || maxCells_ > HARD_MAX_CELLS || geometryHash_ == bytes32(0) || rendererHash_ == bytes32(0)
         ) revert InvalidConfiguration();
+        // The renderer must be the published code and must draw from the same geometry and motif count.
+        if (
+            address(renderer_).code.length == 0 || address(renderer_).codehash != rendererHash_
+                || renderer_.motifCount() != motifCount_ || renderer_.geometryHash() != geometryHash_
+        ) revert InvalidConfiguration();
+        renderer = renderer_;
         owner = owner_;
         royaltyReceiver = royaltyReceiver_;
         emit OwnershipTransferred(address(0), owner_);
@@ -231,10 +248,14 @@ contract Kilim is ERC721, ReentrancyGuard {
     ///         bidder, recipient, and claim time. Deterministic and public, NOT randomness.
     function symbolTraits(uint256 id) public view returns (bytes32 seed, uint16 motif, uint8 material) {
         if (id < FIRST_SYMBOL_ID || id - FIRST_SYMBOL_ID >= symbolCap) revert WrongKind(id);
-        seed = keccak256(abi.encode(block.chainid, address(this), id));
+        seed = _seed(id);
         uint256 roll = uint256(keccak256(abi.encode(seed, "material"))) % 100;
         material = roll < 44 ? 0 : roll < 68 ? 1 : roll < 82 ? 2 : roll < 91 ? 3 : roll < 96 ? 4 : 5;
         motif = uint16(uint256(seed) % motifCount);
+    }
+
+    function _seed(uint256 id) private view returns (bytes32) {
+        return keccak256(abi.encode(block.chainid, address(this), id));
     }
 
     function mintMasterpiece(address to) external onlyMinter nonReentrant {
@@ -327,58 +348,54 @@ contract Kilim is ERC721, ReentrancyGuard {
         data.frozen = art.frozen;
     }
 
-    /// @dev Self-contained metadata. Artwork media renderer is a separate, unfinished integration.
+    /// @notice Fully on-chain metadata and media, drawn by `renderer` from geometry stored on Ethereum.
+    /// @dev Kilim pushes every input (the renderer never calls back) and forwards the renderer's ABI-encoded
+    ///      string verbatim by ending the call in assembly, instead of decoding and re-encoding up to ~330 KB.
+    ///      Because it ends the call, tokenURI MUST NEVER BE CALLED INTERNALLY: an internal caller would never
+    ///      regain control. A renderer revert is bubbled up unchanged.
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
         Kind kind = kindOf(tokenId);
-        string memory details;
+        bytes memory request;
         if (kind == Kind.Symbol) {
             (bytes32 seed, uint16 motif, uint8 material) = symbolTraits(tokenId);
-            details = string.concat(
-                '"kind":"symbol","motif":',
-                uint256(motif).toString(),
-                ',"material":',
-                uint256(material).toString(),
-                ',"seed":"',
-                uint256(seed).toHexString(32),
-                '"'
-            );
+            request = abi.encodeCall(IKilimRenderer.symbolURI, (tokenId, seed, motif, material));
         } else if (kind == Kind.Artwork) {
-            ArtworkData memory art = artworkData(tokenId);
-            details = string.concat(
-                '"kind":"artwork","revision":',
-                uint256(art.revision).toString(),
-                ',"columns":',
-                uint256(art.columns).toString(),
-                ',"rows":',
-                uint256(art.rows).toString(),
-                ',"frozen":',
-                art.frozen ? "true" : "false",
-                ',"layout_hash":"',
-                uint256(keccak256(abi.encode(art.cells))).toHexString(32),
-                '","appearance_hash":"',
-                uint256(art.appearance).toHexString(32),
-                '"'
-            );
+            request = _artworkRequest(tokenId);
         } else {
-            details = '"kind":"masterpiece"';
+            request = abi.encodeCall(IKilimRenderer.masterpieceURI, ());
         }
-        return string.concat(
-            "data:application/json;base64,",
-            Base64.encode(
-                bytes(
-                    string.concat(
-                        '{"name":"Kilim #',
-                        tokenId.toString(),
-                        '",',
-                        details,
-                        ',"geometry_hash":"',
-                        uint256(geometryHash).toHexString(32),
-                        '","renderer_hash":"',
-                        uint256(rendererHash).toHexString(32),
-                        '"}'
-                    )
-                )
+        address target = address(renderer);
+        assembly {
+            let ok := staticcall(gas(), target, add(request, 32), mload(request), 0, 0)
+            let p := mload(0x40)
+            returndatacopy(p, 0, returndatasize())
+            if iszero(ok) { revert(p, returndatasize()) }
+            return(p, returndatasize())
+        }
+    }
+
+    /// @dev The renderer call for an artwork: each cell's motif is recomputed from its symbol ID, read from
+    ///      the packed cells (one SLOAD per eight cells). Artworks are numbered from 1 in minting order.
+    function _artworkRequest(uint256 tokenId) private view returns (bytes memory) {
+        ArtworkStore storage art = _artworks[tokenId];
+        uint256 n = uint256(art.columns) * art.rows;
+        uint16[] memory motifs = new uint16[](n);
+        uint256 word;
+        for (uint256 i; i < n; ++i) {
+            if (i % 8 == 0) word = art.packedCells[i / 8];
+            motifs[i] = uint16(uint256(_seed(uint32(word >> ((i % 8) * 32)))) % motifCount);
+        }
+        return abi.encodeCall(
+            IKilimRenderer.artworkURI,
+            (
+                tokenId - FIRST_SYMBOL_ID - symbolCap + 1,
+                motifs,
+                art.columns,
+                art.rows,
+                art.appearance,
+                art.revision,
+                art.frozen
             )
         );
     }
@@ -455,6 +472,12 @@ contract Kilim is ERC721, ReentrancyGuard {
         uint16 rows,
         bytes32 appearance
     ) private {
+        if (
+            appearance != APPEARANCE_INK && appearance != APPEARANCE_INDIGO
+                && appearance != APPEARANCE_VERMILION
+        ) {
+            revert InvalidAppearance();
+        }
         uint256[] memory packed = new uint256[]((cells.length + 7) / 8);
         for (uint256 i; i < cells.length; ++i) {
             // Every cell is a validated symbol ID, and symbol IDs fit 32 bits (constructor bound).

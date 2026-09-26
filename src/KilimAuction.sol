@@ -4,6 +4,7 @@ pragma solidity 0.8.37;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ERC20EnglishAuction} from "./auction/ERC20EnglishAuction.sol";
 import {Kilim} from "./Kilim.sol";
+import {IKilimRenderer} from "./render/IKilimRenderer.sol";
 
 /// @notice An ascending stablecoin auction: outbid principal is withdrawable; symbol credits remain.
 /// @dev Kilim reward/prize extension of the Apache-2.0 auction adaptation. See REUSE.md for provenance.
@@ -26,6 +27,8 @@ contract KilimAuction is ERC20EnglishAuction {
         uint16 maxCells;
         bytes32 geometryHash;
         bytes32 rendererHash;
+        /// @dev The deployed KilimRenderer; Kilim's constructor checks it against the three values above.
+        address renderer;
     }
 
     /// @dev Symbol token IDs nextId..nextId+remaining-1, reserved by one bid and not yet claimed.
@@ -83,7 +86,8 @@ contract KilimAuction is ERC20EnglishAuction {
             config.motifCount,
             config.maxCells,
             config.geometryHash,
-            config.rendererHash
+            config.rendererHash,
+            IKilimRenderer(config.renderer)
         );
         if (config.treasury == address(collection)) revert InvalidConfiguration();
     }

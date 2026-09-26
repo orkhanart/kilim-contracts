@@ -3,6 +3,7 @@ pragma solidity 0.8.37;
 
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {Kilim} from "../src/Kilim.sol";
+import {MockRenderer} from "./mocks/MockRenderer.sol";
 
 interface Vm {
     function warp(uint256) external;
@@ -33,6 +34,8 @@ abstract contract TestBase {
     bytes32 internal constant INK = "flat/ink";
     bytes32 internal constant INDIGO = "flat/indigo";
     bytes32 internal constant VERMILION = "flat/vermilion";
+    /// @dev The renderer every unit fixture wires in: 812 motifs, a test geometry hash.
+    MockRenderer internal mockRenderer = new MockRenderer(812, keccak256("test geometry"));
 
     function assertEq(uint256 a, uint256 b) internal pure {
         require(a == b, "uint mismatch");
@@ -64,8 +67,9 @@ abstract contract TestBase {
             maxSymbolsPerBid: 1000,
             motifCount: 812,
             maxCells: 256,
-            geometryHash: keccak256("test geometry"),
-            rendererHash: keccak256("test renderer")
+            geometryHash: mockRenderer.geometryHash(),
+            rendererHash: address(mockRenderer).codehash,
+            renderer: address(mockRenderer)
         });
     }
 
@@ -73,6 +77,22 @@ abstract contract TestBase {
     function appearanceOf(uint256 seed) internal pure returns (bytes32) {
         uint256 k = seed % 3;
         return k == 0 ? INK : k == 1 ? INDIGO : VERMILION;
+    }
+
+    /// @dev A collection wired to a mock renderer with `motifs` motifs, as the auction would create it.
+    function newKilim(
+        address minter,
+        address pageOwner,
+        address royalty,
+        uint256 cap,
+        uint16 motifs,
+        uint16 cells
+    ) internal returns (Kilim) {
+        MockRenderer r = motifs == 812 ? mockRenderer : new MockRenderer(motifs, keccak256("test geometry"));
+        return
+            new Kilim(
+                minter, pageOwner, royalty, cap, motifs, cells, r.geometryHash(), address(r).codehash, r
+            );
     }
 
     /// @dev Mints the next unminted symbol IDs, as a minter reserving them in order would.

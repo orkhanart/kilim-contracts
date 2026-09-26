@@ -16,8 +16,7 @@ contract CompositionHandler is TestBase {
     uint256 public transferCalls;
 
     constructor() {
-        nft =
-            new Kilim(address(this), ALICE, TREASURY, 256, 812, 64, bytes32(uint256(1)), bytes32(uint256(1)));
+        nft = newKilim(address(this), ALICE, TREASURY, 256, 812, 64);
         for (uint256 i; i < actors.length; ++i) {
             _mint(actors[i], 12);
         }
@@ -52,7 +51,7 @@ contract CompositionHandler is TestBase {
         uint256[] memory cells = _ownedSources(actor, 4);
         if (cells.length == 0) return;
         vm.prank(actor);
-        uint256 art = nft.weave(cells, 2, 2, bytes32(0));
+        uint256 art = nft.weave(cells, 2, 2, INK);
         artworks.push(art);
         lastSize[art] = 4;
         ++weaveCalls;
@@ -76,7 +75,7 @@ contract CompositionHandler is TestBase {
         uint256 index = uint256(rotation) % length;
         (cells[0], cells[index]) = (cells[index], cells[0]);
         vm.prank(owner);
-        nft.expand(artId, art.revision, cells, uint16(length / 2), 2, bytes32(uint256(rotation)));
+        nft.expand(artId, art.revision, cells, uint16(length / 2), 2, appearanceOf(rotation));
         require(length > lastSize[artId], "shrinking composition");
         lastSize[artId] = length;
         ++expandCalls;

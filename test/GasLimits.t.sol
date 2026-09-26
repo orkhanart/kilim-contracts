@@ -9,9 +9,7 @@ contract GasLimitsTest is TestBase {
     Kilim internal nft;
 
     function setUp() public {
-        nft = new Kilim(
-            address(this), ALICE, TREASURY, 2048, 812, 256, bytes32(uint256(1)), bytes32(uint256(1))
-        );
+        nft = newKilim(address(this), ALICE, TREASURY, 2048, 812, 256);
         for (uint256 i; i < 4; ++i) {
             mintNext(nft, ALICE, ALICE, 64);
         }
@@ -21,7 +19,7 @@ contract GasLimitsTest is TestBase {
         uint256[] memory cells = ids(2, 256);
         vm.prank(ALICE);
         uint256 start = gasleft();
-        nft.weave(cells, 16, 16, bytes32(0));
+        nft.weave(cells, 16, 16, INK);
         uint256 used = start - gasleft();
         emit log_named_uint("256-cell weave execution gas (before refunds)", used);
         assertTrue(used < 11_000_000); // well under the 16,777,216 per-transaction cap
@@ -29,11 +27,11 @@ contract GasLimitsTest is TestBase {
 
     function testGasExpandToMaximumCanvas() public {
         vm.prank(ALICE);
-        uint256 art = nft.weave(ids(2, 4), 2, 2, bytes32(0));
+        uint256 art = nft.weave(ids(2, 4), 2, 2, INK);
         uint256[] memory cells = ids(2, 256);
         vm.prank(ALICE);
         uint256 start = gasleft();
-        nft.expand(art, 1, cells, 16, 16, bytes32(0));
+        nft.expand(art, 1, cells, 16, 16, INK);
         uint256 used = start - gasleft();
         emit log_named_uint("4-to-256-cell expansion execution gas (before refunds)", used);
         assertTrue(used < 11_000_000);

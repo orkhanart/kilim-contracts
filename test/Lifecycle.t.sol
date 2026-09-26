@@ -26,8 +26,8 @@ contract LifecycleTest is TestBase {
         vm.startPrank(ALICE);
         auction.withdrawRefund(ALICE);
         auction.claimSymbols(6, ALICE);
-        uint256 artwork = nft.weave(ids(2, 4), 2, 2, keccak256("appearance v1"));
-        nft.expand(artwork, 1, ids(2, 6), 3, 2, keccak256("appearance v2"));
+        uint256 artwork = nft.weave(ids(2, 4), 2, 2, INK);
+        nft.expand(artwork, 1, ids(2, 6), 3, 2, VERMILION);
         nft.freezeArtwork(artwork);
         nft.transferFrom(ALICE, CAROL, artwork);
         vm.stopPrank();

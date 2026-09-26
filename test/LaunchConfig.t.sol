@@ -8,7 +8,7 @@ import {TestBase} from "./TestBase.sol";
 import {MockUSD} from "./mocks/MockUSD.sol";
 
 /// @notice The exact launch settings decided by the artist, exercised end to end against a
-///         six-decimal USDC stand-in. Only the times, token and motif count are fixtures.
+///         six-decimal USDC stand-in. Only the times, token, motif count and renderer are fixtures.
 contract LaunchConfigTest is TestBase {
     /// orkhanart.eth: treasury, royalty receiver and collection-page owner.
     address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
@@ -31,8 +31,9 @@ contract LaunchConfigTest is TestBase {
             maxSymbolsPerBid: 1_000_000,
             motifCount: 812,
             maxCells: 256,
-            geometryHash: keccak256("final geometry"),
-            rendererHash: keccak256("final renderer")
+            geometryHash: mockRenderer.geometryHash(),
+            rendererHash: address(mockRenderer).codehash,
+            renderer: address(mockRenderer)
         });
     }
 
