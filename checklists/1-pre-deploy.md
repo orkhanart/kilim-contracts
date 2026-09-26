@@ -89,12 +89,13 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
   - the clock starts at the first bid; extensions have no limit; with no bids the auction never ends;
   - 5% royalties and the page-only owner role.
 - [x] Internal review of the September 18 version: 5 review agents, 2 adversarial verifiers per finding, 34/34 mutants killed.
-- [ ] Review round for everything changed since: the new timing, royalties, owner role, and the renderer once built. Rerun the mutation tests (`audit/mutation.txt`).
-- [ ] Update README, AUDIT and REUSE for these changes, then regenerate the ABIs and build manifest.
-- [ ] Make the first git commit (the repo has **none**), then tag the frozen version.
-- [ ] Add a test using the **exact launch config**. The current fixture uses test values: $25, +5%, 10,000 symbols.
+- [x] Review round for everything changed since (September 26): six lenses with adversarial verification; no critical or high findings; every confirmed finding fixed; mutation testing 169 of 177 killed, the other 8 equivalent (`audit/mutation.txt`).
+- [x] README, AUDIT and REUSE updated for Ethereum, USDC and the current design; ABIs and build manifest regenerated (September 26).
+- [x] First git commit made (September 25).
+- [ ] Tag the frozen version once the symbol set and settings are final.
+- [x] Launch-config test added (`test/LaunchConfig.t.sol`), and the deploy script refuses anything else on chain 1.
 - [ ] Rerun on the frozen commit: `pnpm verify:upstream`, `build`, `test:ci`, `fmt`, `audit:static`, `artifacts`. Confirm `audit/build-manifest.json` matches the tag.
-- [ ] Confirm each heavy transaction fits the **per-transaction gas cap**, not just the block limit. On Ethereum that cap is 16,777,216 (EIP-7825). With margin for receiver callbacks, check:
+- [x] Locally confirmed (September 26: weave 9.77M, expand 9.47M, worst claim about 6.75M; re-measure on Sepolia) that each heavy transaction fits the **per-transaction gas cap**, not just the block limit. On Ethereum that cap is 16,777,216 (EIP-7825). With margin for receiver callbacks, check:
   - the 256-cell weave (~10.7M);
   - the 4→256 expand (~10.4M);
   - a claim of 64 one-symbol ranges into a contract wallet (~6.75M);
