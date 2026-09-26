@@ -1,36 +1,184 @@
-Mutation testing of the owner-requested changes, September 18, 2026. Each mutant was applied alone (A10b combines A10 and A3b) to a private copy of src/, the full 94-test suite was run, and the file was restored. KILLED means at least one test failed.
+Mutation testing of code changed since b731288 (Sep 18 review), plus ERC20EnglishAuction.
+Final review round, September 26, 2026. Each mutant is one textual change, run against the full
+forge suite (16 suites) in a scratch copy, then restored. KILLED means at least one test failed.
+First run: 135 of 177 killed (176 tests). Tests were then added for every non-equivalent survivor
+and the survivors re-run (194 tests at the time; 202 now).
+Final: 169 of 177 killed. The 8 survivors are equivalent (reason given); non-equivalent kill rate 100%.
 
-K1_no_alreadyminted_guard: KILLED Ran 7 test suites in 18.73s (53.41s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K2_traits_gt_cap: KILLED Ran 7 test suites in 19.50s (34.37s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K3a_range_ge: KILLED Ran 7 test suites in 21.08s (97.38s CPU time): 90 tests passed, 4 failed, 0 skipped (94 total tests)
-K3b_range_plus1: KILLED Ran 7 test suites in 22.77s (91.15s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K3c_drop_qty_gt_cap: KILLED Ran 7 test suites in 22.77s (59.91s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K3d_lower_bound_1: KILLED Ran 7 test suites in 23.15s (64.38s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K4_bidder_in_stored_seed: KILLED Ran 7 test suites in 20.89s (81.37s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K4b_bidder_in_stored_motif: KILLED Ran 7 test suites in 21.72s (85.17s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K5_artwork_collides_last_symbol: KILLED Ran 7 test suites in 20.69s (109.09s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K6_motif_time_dependent: KILLED Ran 7 test suites in 20.68s (41.47s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K7_material_time_dependent: KILLED Ran 7 test suites in 19.58s (71.06s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K8_event_firstId_last: KILLED Ran 7 test suites in 16.03s (44.62s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K9_event_bidder_is_to: KILLED Ran 7 test suites in 15.44s (54.18s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K10_seed_no_chainid: KILLED Ran 7 test suites in 16.10s (30.11s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-K11_traits_of_firstId: KILLED Ran 7 test suites in 20.91s (79.86s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-K12_bidder_in_traits_seed_via_minted: KILLED Ran 7 test suites in 18.55s (63.01s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-A1_no_reward_guard: KILLED Ran 7 test suites in 19.50s (94.19s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A2_drop_cursor_advance: KILLED Ran 7 test suites in 18.25s (41.92s CPU time): 85 tests passed, 9 failed, 0 skipped (94 total tests)
-A2b_always_advance: KILLED Ran 7 test suites in 17.89s (20.91s CPU time): 86 tests passed, 8 failed, 0 skipped (94 total tests)
-A3_never_write_cursor: KILLED Ran 7 test suites in 24.55s (52.66s CPU time): 88 tests passed, 6 failed, 0 skipped (94 total tests)
-A3b_write_cursor_after_mints: KILLED Ran 7 test suites in 21.61s (55.31s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A4_event_last_chunk: KILLED Ran 7 test suites in 21.68s (86.43s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A5_mint_bidder_is_to: KILLED Ran 7 test suites in 20.64s (79.68s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A6_drop_auction_batch_cap: KILLED Ran 7 test suites in 20.71s (73.03s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A7_view_ignores_cursor: KILLED Ran 7 test suites in 19.63s (44.09s CPU time): 91 tests passed, 3 failed, 0 skipped (94 total tests)
-A9_no_nextId_advance: KILLED Ran 7 test suites in 18.64s (40.65s CPU time): 87 tests passed, 7 failed, 0 skipped (94 total tests)
-A10_no_reentrancy_and_late_cursor: KILLED Ran 7 test suites in 22.15s (42.36s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-A11_range_uncapped_reward: KILLED Ran 7 test suites in 21.30s (81.42s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-G1_no_id_guard: KILLED Ran 7 test suites in 23.17s (54.69s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
-G2_guard_only_when_rewarded: KILLED Ran 7 test suites in 22.51s (86.98s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-G3_guard_allows_later: KILLED Ran 7 test suites in 23.75s (96.74s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-E1_no_treasury_check: KILLED Ran 7 test suites in 24.01s (58.07s CPU time): 93 tests passed, 1 failed, 0 skipped (94 total tests)
-E2_treasury_check_tx_origin: KILLED Ran 7 test suites in 23.17s (85.82s CPU time): 91 tests passed, 3 failed, 0 skipped (94 total tests)
-A10b_no_reentrancy_plus_late_cursor: KILLED Ran 7 test suites in 27.06s (79.01s CPU time): 92 tests passed, 2 failed, 0 skipped (94 total tests)
+A01: KILLED  src/KilimAuction.sol  firstSymbolId reported even with zero reward
+A02: KILLED  src/KilimAuction.sol  expectedFirstSymbolId 0 no longer wildcard
+A03: KILLED  src/KilimAuction.sol  reservation based on claimed count
+A04: KILLED  src/KilimAuction.sol  range off by one
+A05: KILLED  src/KilimAuction.sol  allocation counter not advanced
+A06: KILLED  src/KilimAuction.sol  cap against claimed count
+A07: KILLED  src/KilimAuction.sol  drop per-bid cap
+A08: KILLED  src/KilimAuction.sol  drop claim batch cap
+A09: KILLED  src/KilimAuction.sol  cursor advances on partial range
+A10: KILLED  src/KilimAuction.sol  cursor not persisted
+A11: KILLED  src/KilimAuction.sol  claim event reports last chunk
+A12: KILLED  src/KilimAuction.sol  drop prizeClaimed check
+A13: KILLED  src/KilimAuction.sol  anyone claims prize
+A14: KILLED  src/KilimAuction.sol  collection accepted as payout recipient
+A15: KILLED  src/KilimAuction.sol  unclaimed ranges ignore cursor
+A16: KILLED  src/KilimAuction.sol  drop treasury==collection guard
+A17: KILLED  src/KilimAuction.sol  slippage strict
+A18: KILLED  src/KilimAuction.sol  drop credit check (relies on underflow)
+A19: KILLED  src/KilimAuction.sol  claimed counter not advanced
+A20: KILLED  src/KilimAuction.sol  take whole range
+A21: SURVIVED  src/KilimAuction.sol  drop uint64 symbolCap bound (Kilim bounds it)  EQUIVALENT: Kilim's tighter 32-bit symbol cap reverts first with the same selector
+A22: KILLED  src/KilimAuction.sol  claimSymbols relies on Kilim's recipient check
+A23: SURVIVED  src/KilimAuction.sol  claimPrize relies on Kilim's recipient check  EQUIVALENT: mintMasterpiece checks the same recipient set first, with the same selector
+E01: KILLED  src/auction/ERC20EnglishAuction.sol  drop treasury-cannot-bid check
+E02: KILLED  src/auction/ERC20EnglishAuction.sol  clock always considered started
+E03: KILLED  src/auction/ERC20EnglishAuction.sol  bid allowed at endsAt
+E04: KILLED  src/auction/ERC20EnglishAuction.sol  bid at startsAt rejected
+E05: SURVIVED  src/auction/ERC20EnglishAuction.sol  drop settled check in _handleBid  EQUIVALENT: once settled, started && now >= endsAt is always true
+E06: KILLED  src/auction/ERC20EnglishAuction.sol  first bid clock anchored at startsAt
+E07: KILLED  src/auction/ERC20EnglishAuction.sol  extension can shorten the close
+E08: KILLED  src/auction/ERC20EnglishAuction.sol  extension adds to endsAt instead of now
+E09: KILLED  src/auction/ERC20EnglishAuction.sol  drop NoBids check in settle
+E10: KILLED  src/auction/ERC20EnglishAuction.sol  settle not allowed at endsAt
+E11: KILLED  src/auction/ERC20EnglishAuction.sol  refund overwrite instead of add
+E12: KILLED  src/auction/ERC20EnglishAuction.sol  drop refundLiability increment
+E13: KILLED  src/auction/ERC20EnglishAuction.sol  increment rounds down
+E14: KILLED  src/auction/ERC20EnglishAuction.sol  minimumBid not rounded to whole unit
+E15: KILLED  src/auction/ERC20EnglishAuction.sol  drop whole-unit check
+E16: KILLED  src/auction/ERC20EnglishAuction.sol  drop uint128 bound
+E17: KILLED  src/auction/ERC20EnglishAuction.sol  withdrawProceeds without settled check
+E18: KILLED  src/auction/ERC20EnglishAuction.sol  liabilities ignores standing bid
+E19: KILLED  src/auction/ERC20EnglishAuction.sol  constructor allows window > duration
+E20: KILLED  src/auction/ERC20EnglishAuction.sol  anyone may withdraw proceeds (to any address)
+E21: KILLED  src/auction/ERC20EnglishAuction.sol  no 30-day duration cap
+E22: KILLED  src/auction/ERC20EnglishAuction.sol  extension ignored when it adds only one second
+G01: KILLED  src/KilimAuction.sol  bid without reentrancy guard
+G02: KILLED  src/KilimAuction.sol  claimSymbols without reentrancy guard
+G03: KILLED  src/KilimAuction.sol  claimPrize without reentrancy guard
+G04: KILLED  src/Kilim.sol  weave without reentrancy guard
+G05: KILLED  src/Kilim.sol  mintSymbols without reentrancy guard
+G06: KILLED  src/Kilim.sol  tokenURI returns renderer revert data as success
+G07: KILLED  src/auction/ERC20EnglishAuction.sol  withdrawRefund without reentrancy guard
+K01: KILLED  src/Kilim.sol  masterpiece kind before mint
+K02: KILLED  src/Kilim.sol  symbol range includes first artwork id
+K03: KILLED  src/Kilim.sol  burned symbol becomes None (re-mint guard lost)
+K04: KILLED  src/Kilim.sol  next artwork id reported as Artwork
+K05: KILLED  src/Kilim.sol  drop re-mint guard
+K06: KILLED  src/Kilim.sol  last range rejected
+K07: KILLED  src/Kilim.sol  drop firstId lower bound (panics instead)
+K08: KILLED  src/Kilim.sol  symbolsMinted not advanced
+K09: KILLED  src/Kilim.sol  packing stride 31
+K10: KILLED  src/Kilim.sol  packed array one word short
+K11: KILLED  src/Kilim.sol  unpack loads word late
+K12: KILLED  src/Kilim.sol  unpack shift off by one
+K13: KILLED  src/Kilim.sol  artwork request unpack wrong lane
+K14: KILLED  src/Kilim.sol  artwork number zero-based
+K15: KILLED  src/Kilim.sol  frozen flag not forwarded
+K16: KILLED  src/Kilim.sol  material not forwarded
+K17: KILLED  src/Kilim.sol  vermilion accepted-check dropped (vermilion rejected? no: any appearance except... )
+K18: KILLED  src/Kilim.sol  allow-list replaced by nonzero check
+K19: KILLED  src/Kilim.sol  appearance not stored
+K20: KILLED  src/Kilim.sol  Kilim indigo constant differs from renderer
+K21: KILLED  src/Kilim.sol  royalty rounds up
+K22: KILLED  src/Kilim.sol  royalty divides first
+K23: KILLED  src/Kilim.sol  zero royalty receiver allowed
+K24: KILLED  src/Kilim.sol  transferOwnership to zero allowed
+K25: KILLED  src/Kilim.sol  renounce does nothing
+K26: KILLED  src/Kilim.sol  setCollectionInfo unguarded
+K27: KILLED  src/Kilim.sol  escape pass 1 forgets backslash
+K28: KILLED  src/Kilim.sol  escape pass 1 treats space as control
+K29: KILLED  src/Kilim.sol  escape pass 2 passes 0x1f raw
+K30: KILLED  src/Kilim.sol  uppercase hex in \u escapes
+K31: KILLED  src/Kilim.sol  fee_recipient not zero-padded
+K32: KILLED  src/Kilim.sol  renderer motifCount unchecked
+K33: KILLED  src/Kilim.sol  renderer codehash unchecked
+K34: KILLED  src/Kilim.sol  renderer geometryHash unchecked
+K35: KILLED  src/Kilim.sol  renderer code length unchecked
+K36: KILLED  src/Kilim.sol  drop uint32 symbolCap bound
+K37: KILLED  src/Kilim.sol  maxCells lower bound 3
+K38: KILLED  src/Kilim.sol  1-column layouts allowed
+K39: KILLED  src/Kilim.sol  max canvas rejected
+K40: KILLED  src/Kilim.sol  same-size expansion allowed
+K41: KILLED  src/Kilim.sol  missing-sources check dropped
+K42: KILLED  src/Kilim.sol  duplicate retained source allowed
+K43: KILLED  src/Kilim.sol  transfers to minter allowed
+K44: KILLED  src/Kilim.sol  ERC-4906 interface dropped
+K45: KILLED  src/Kilim.sol  artwork ids gap
+K46: KILLED  src/Kilim.sol  traits for first artwork id
+K47: KILLED  src/Kilim.sol  material threshold 44->45
+K48: KILLED  src/Kilim.sol  seed ignores chain id
+K49: KILLED  src/Kilim.sol  tokenURI for burned/unminted ids
+K50: KILLED  src/Kilim.sol  drop masterpiece re-mint guard (ERC721 still guards)
+K51: KILLED  src/Kilim.sol  weave burns other holders' symbols
+K52: KILLED  src/Kilim.sol  expand frozen artworks
+K53: KILLED  src/Kilim.sol  artwork motif modulus differs from symbolTraits
+K54: KILLED  src/Kilim.sol  mint to minter allowed
+K55: KILLED  src/Kilim.sol  tokenURI request reads only the first packed word
+K56: KILLED  src/Kilim.sol  \u escape high nibble forced to 0
+K57: KILLED  src/Kilim.sol  expand ignores expectedRevision
+K58: KILLED  src/Kilim.sol  first revision is 2
+K59: KILLED  src/Kilim.sol  weave accepts non-symbol ids
+K60: KILLED  src/Kilim.sol  freeze twice allowed
+K61: KILLED  src/Kilim.sol  artworksMinted not advanced
+K62: KILLED  src/Kilim.sol  symbolsBurned not advanced
+R01: KILLED  src/render/KilimRenderer.sol  motif-count varint may be 4 bytes
+R02: KILLED  src/render/KilimRenderer.sol  non-final chunk size unchecked
+R03: KILLED  src/render/KilimRenderer.sol  chunk prefix byte unchecked
+R04: KILLED  src/render/KilimRenderer.sol  header padding check misses a byte
+R05: KILLED  src/render/KilimRenderer.sol  splice at page end rejected
+R06: KILLED  src/render/KilimRenderer.sol  empty hero accepted
+R07: KILLED  src/render/KilimRenderer.sol  still motif == count accepted
+R08: KILLED  src/render/KilimRenderer.sol  index offsets not contiguous-checked
+R09: KILLED  src/render/KilimRenderer.sol  zero-length record accepted
+R10: KILLED  src/render/KilimRenderer.sol  zero bbox height accepted
+R11: KILLED  src/render/KilimRenderer.sol  index end unchecked
+R12: KILLED  src/render/KilimRenderer.sol  index hash unchecked
+R13: KILLED  src/render/KilimRenderer.sol  tiny store total unchecked
+R14: KILLED  src/render/KilimRenderer.sol  prefix-only chunk accepted
+R15: KILLED  src/render/KilimRenderer.sol  renderer allows >256 cells
+R16: KILLED  src/render/KilimRenderer.sol  artwork motif == count accepted
+R17: KILLED  src/render/KilimRenderer.sol  symbolURI accepts leaf gold
+R18: KILLED  src/render/KilimRenderer.sol  no gradient def for material 6
+R19: KILLED  src/render/KilimRenderer.sol  canvas ignores row height
+R20: KILLED  src/render/KilimRenderer.sol  row pitch off by one
+R21: KILLED  src/render/KilimRenderer.sol  plate x off by one
+R22: KILLED  src/render/KilimRenderer.sol  defs pass does not mark written
+R23: KILLED  src/render/KilimRenderer.sol  seen-map truncated
+R24: SURVIVED  src/render/KilimRenderer.sol  record scratch without read slack  EQUIVALENT: the record scratch is still at least the largest record plus 32 bytes
+R25: KILLED  src/render/KilimRenderer.sol  record scratch without zero word
+R26: KILLED  src/render/KilimRenderer.sol  minX unsigned
+R27: KILLED  src/render/KilimRenderer.sol  still x pitch uses PY
+R28: KILLED  src/render/KilimRenderer.sol  b64 stage not a multiple of 3
+R29: KILLED  src/render/KilimRenderer.sol  symbolURI length off by one
+R30: KILLED  src/render/KilimRenderer.sol  masterpiece Motifs trait off by one
+R31: KILLED  src/render/KilimRenderer.sol  frozen trait inverted (length also changes)
+R32: KILLED  src/render/KilimRenderer.sol  indigo ink/plate swapped
+R33: KILLED  src/render/KilimRenderer.sol  hero motif wrong lane
+R34: KILLED  src/render/KilimRenderer.sol  chunk crossing keeps offset
+R35: KILLED  src/render/KilimRenderer.sol  prefix byte not skipped
+R36: KILLED  src/render/KilimRenderer.sol  symbolSVG accepts material 7
+R37: KILLED  src/render/KilimRenderer.sol  motifPath unbounded motif
+R38: KILLED  src/render/KilimRenderer.sol  masterpiece still truncated
+R39: KILLED  src/render/KilimRenderer.sol  artwork bound drops per-motif overhead
+R40: SURVIVED  src/render/KilimRenderer.sol  symbol bound tighter  EQUIVALENT: measured symbol fixed text is at most 576 bytes, under the tighter 1,000
+R41: SURVIVED  src/render/KilimRenderer.sol  artwork per-cell bound tighter  EQUIVALENT: a cell writes at most 76 bytes, so the tighter 76 still fits
+W01: KILLED  src/render/KilimWriter.sol  buf slack reduced
+W02: KILLED  src/render/KilimWriter.sol  b64len rounding
+W03: KILLED  src/render/KilimWriter.sol  b64 single pad for len%3==1
+W04: KILLED  src/render/KilimWriter.sol  b64 tail not zeroed
+W05: KILLED  src/render/KilimWriter.sol  b64 does not restore the word after input
+W06: SURVIVED  src/render/KilimWriter.sol  b64 postcondition dropped  EQUIVALENT: the loop always ends 0 to 28 bytes past end, so the check cannot fail
+W07: KILLED  src/render/KilimWriter.sol  zero-ring record accepted
+W08: KILLED  src/render/KilimWriter.sol  ring point budget unchecked
+W09: KILLED  src/render/KilimWriter.sol  p > end unchecked
+W10: KILLED  src/render/KilimWriter.sol  l emitted for single-point rings
+W11: KILLED  src/render/KilimWriter.sol  multi-byte negative off by one
+W12: KILLED  src/render/KilimWriter.sol  number table negatives off by one
+W13: KILLED  src/render/KilimWriter.sol  signed zero written as -0
+W14: KILLED  src/render/KilimWriter.sol  hex32 high nibble uppercase
+W15: KILLED  src/render/KilimWriter.sol  check lets 32 extra bytes through
+W16: KILLED  src/render/KilimWriter.sol  exact postcondition dropped
+W17: KILLED  src/render/KilimWriter.sol  digits(10)=1
+W18: KILLED  src/render/KilimWriter.sol  record not consumed exactly accepted
+W19: SURVIVED  src/render/KilimWriter.sol  path does not zero after record  EQUIVALENT: well-formed records never read past their end; malformed ones still revert BadRecord
+W20: KILLED  src/render/KilimWriter.sol  number table 2-digit threshold
+W21: KILLED  src/render/KilimWriter.sol  ret leaves ABI padding dirty
+W22: KILLED  src/render/KilimWriter.sol  check drops end<start

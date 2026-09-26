@@ -3,19 +3,93 @@
 'forge build --build-info --skip ./test/** ./script/** --force' running (wd: /Users/orkhan/Documents/ChatGPT/kilim/contracts)
 
 Detector: calls-loop
-KilimAuction.claimSymbols(uint256,address) (src/KilimAuction.sol#124-154) has external calls inside a loop: collection.mintSymbols(to,msg.sender,firstIds[i],counts[i]) (src/KilimAuction.sol#151)
+KilimAuction.claimSymbols(uint256,address) (src/KilimAuction.sol#130-160) has external calls inside a loop: collection.mintSymbols(to,msg.sender,firstIds[i],counts[i]) (src/KilimAuction.sol#157)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
 
 Detector: timestamp
-ERC20EnglishAuction.constructor(ERC20EnglishAuction.AuctionConfig) (src/auction/ERC20EnglishAuction.sol#64-88) uses timestamp for comparisons
+ERC20EnglishAuction.constructor(ERC20EnglishAuction.AuctionConfig) (src/auction/ERC20EnglishAuction.sol#68-91) uses timestamp for comparisons
 	Dangerous comparisons:
-	- config.paymentToken.code.length == 0 || config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow > config.duration || config.maxExtension > 604800 || config.incrementBps == 0 || config.incrementBps > MAX_BPS (src/auction/ERC20EnglishAuction.sol#66-70)
-ERC20EnglishAuction.settle() (src/auction/ERC20EnglishAuction.sol#108-114) uses timestamp for comparisons
+	- config.paymentToken.code.length == 0 || config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS (src/auction/ERC20EnglishAuction.sol#70-74)
+ERC20EnglishAuction.settle() (src/auction/ERC20EnglishAuction.sol#112-119) uses timestamp for comparisons
 	Dangerous comparisons:
-	- block.timestamp < endsAt (src/auction/ERC20EnglishAuction.sol#110)
-ERC20EnglishAuction._handleBid(uint256) (src/auction/ERC20EnglishAuction.sol#136-153) uses timestamp for comparisons
+	- block.timestamp < endsAt (src/auction/ERC20EnglishAuction.sol#115)
+ERC20EnglishAuction._handleBid(uint256) (src/auction/ERC20EnglishAuction.sol#142-170) uses timestamp for comparisons
 	Dangerous comparisons:
-	- settled || block.timestamp < startsAt || block.timestamp >= endsAt (src/auction/ERC20EnglishAuction.sol#138)
-	- extended > endsAt (src/auction/ERC20EnglishAuction.sol#152)
+	- settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt) (src/auction/ERC20EnglishAuction.sol#146)
+	- extended > endsAt (src/auction/ERC20EnglishAuction.sol#168)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
-. analyzed (27 contracts with 101 detectors), 4 result(s) found
+
+Detector: assembly
+Kilim.tokenURI(uint256) (src/Kilim.sol#358-378) uses assembly
+	- INLINE ASM (src/Kilim.sol#371-377)
+KilimRenderer.constructor(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#157-179) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#162-164)
+KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#193-196)
+	- INLINE ASM (src/render/KilimRenderer.sol#202-204)
+	- INLINE ASM (src/render/KilimRenderer.sol#210-213)
+	- INLINE ASM (src/render/KilimRenderer.sol#238-240)
+KilimRenderer._artworkBound(uint16[],uint256,uint256,bytes32,uint256) (src/render/KilimRenderer.sol#551-580) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#570-572)
+	- INLINE ASM (src/render/KilimRenderer.sol#574-576)
+KilimRenderer._artworkDefs(uint256,uint16[],uint256) (src/render/KilimRenderer.sol#583-604) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#592-594)
+	- INLINE ASM (src/render/KilimRenderer.sol#596-598)
+KilimRenderer._htmlDoc(uint256,uint256,uint256) (src/render/KilimRenderer.sol#714-739) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#725-727)
+KilimRenderer._read(uint256,uint256,uint256) (src/render/KilimRenderer.sol#750-764) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#756-758)
+KilimRenderer._readMem(uint256,uint256) (src/render/KilimRenderer.sol#766-773) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#769-771)
+KilimRenderer._rec(uint256,uint256) (src/render/KilimRenderer.sol#777-783) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#780-782)
+KilimRenderer._tables() (src/render/KilimRenderer.sol#805-817) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#810-816)
+KilimWriter.buf(uint256) (src/render/KilimWriter.sol#38-43) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#39-42)
+KilimWriter.str(uint256,uint256) (src/render/KilimWriter.sol#58-63) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#59-62)
+KilimWriter.ret(uint256,uint256) (src/render/KilimWriter.sol#69-77) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#70-76)
+KilimWriter.s(uint256,bytes) (src/render/KilimWriter.sol#82-88) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#83-86)
+KilimWriter.w(uint256,bytes32,uint256) (src/render/KilimWriter.sol#92-98) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#93-96)
+KilimWriter.u(uint256,uint256) (src/render/KilimWriter.sol#110-124) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#111-122)
+KilimWriter.i(uint256,int256) (src/render/KilimWriter.sol#127-135) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#129-131)
+KilimWriter.hex32(uint256,bytes32) (src/render/KilimWriter.sol#138-153) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#139-151)
+KilimWriter.b64(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#166-205) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#169-201)
+KilimWriter.path(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#217-300) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#220-297)
+KilimWriter.tables() (src/render/KilimWriter.sol#305-340) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#308-339)
+KilimWriter.path.asm_0.rv() (src/render/KilimWriter.sol#222-231) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#222-231)
+KilimWriter.path.asm_0.num() (src/render/KilimWriter.sol#233-263) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#233-263)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Detector: cyclomatic-complexity
+KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) has a high cyclomatic complexity (21).
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#cyclomatic-complexity
+
+Detector: naming-convention
+Variable KilimRenderer.TABLES (src/render/KilimRenderer.sol#130) is not in mixedCase
+Variable KilimRenderer.GEO_LEN (src/render/KilimRenderer.sol#135) is not in mixedCase
+Variable KilimRenderer.IDX_OFF (src/render/KilimRenderer.sol#136) is not in mixedCase
+Variable KilimRenderer.PAGE_OFF (src/render/KilimRenderer.sol#137) is not in mixedCase
+Variable KilimRenderer.PAGE_LEN (src/render/KilimRenderer.sol#138) is not in mixedCase
+Variable KilimRenderer.STILL_AT (src/render/KilimRenderer.sol#139) is not in mixedCase
+Variable KilimRenderer.SYMBOLS_AT (src/render/KilimRenderer.sol#140) is not in mixedCase
+Variable KilimRenderer.MAX_REC (src/render/KilimRenderer.sol#141) is not in mixedCase
+Variable KilimRenderer.STILL (src/render/KilimRenderer.sol#143) is not in mixedCase
+Parameter KilimWriter.path.asm_0.rv().q_path_asm_0_rv (src/render/KilimWriter.sol#222) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().q_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().pp_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().t_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+. analyzed (30 contracts with 101 detectors), 41 result(s) found
