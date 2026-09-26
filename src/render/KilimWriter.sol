@@ -161,8 +161,10 @@ library KilimWriter {
 
     /// @notice Standard padded base64 (RFC 4648) of [src, src + len), written at `o`. Returns the end,
     ///         always exactly o + b64len(len). `bt` is the pair table (rule 4 applies to the input).
-    /// @dev 24 input bytes become one 32-byte store through twelve 12-bit lookups. Overrun: <= 28 bytes.
+    /// @dev 24 input bytes become one 32-byte store through sixteen 12-bit lookups (two characters each).
+    ///      Overrun: <= 28 bytes.
     function b64(uint256 src, uint256 len, uint256 o, uint256 bt) internal pure returns (uint256 end) {
+        uint256 start = o;
         uint256 last;
         assembly ("memory-safe") {
             end := add(o, shl(2, div(add(len, 2), 3)))
@@ -198,7 +200,8 @@ library KilimWriter {
             last := o
         }
         // Postcondition: the loop wrote ceil(len / 24) words, so it stopped within one word after `end`.
-        if (last < end || last >= end + 32) revert LengthMismatch(end, last);
+        // On failure: the encoding's length, and the bytes the loop stored.
+        if (last < end || last >= end + 32) revert LengthMismatch(end - start, last - start);
     }
 
     // ------------------------------------------------------------------ geometry
