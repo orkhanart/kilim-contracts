@@ -44,21 +44,21 @@ contract RenderStoreTest is RenderBase {
 
     // ------------------------------------------------------------ helpers
 
-    function _u32(bytes memory s, uint256 at) internal pure returns (uint256 v) {
+    function _u32(bytes memory s, uint256 pos) internal pure returns (uint256 v) {
         for (uint256 i; i < 4; ++i) {
-            v = (v << 8) | uint8(s[at + i]);
+            v = (v << 8) | uint8(s[pos + i]);
         }
     }
 
-    function _setU32(bytes memory s, uint256 at, uint256 v) internal pure {
+    function _setU32(bytes memory s, uint256 pos, uint256 v) internal pure {
         for (uint256 i; i < 4; ++i) {
-            s[at + i] = bytes1(uint8(v >> (24 - 8 * i)));
+            s[pos + i] = bytes1(uint8(v >> (24 - 8 * i)));
         }
     }
 
-    function _setU16(bytes memory s, uint256 at, uint256 v) internal pure {
-        s[at] = bytes1(uint8(v >> 8));
-        s[at + 1] = bytes1(uint8(v));
+    function _setU16(bytes memory s, uint256 pos, uint256 v) internal pure {
+        s[pos] = bytes1(uint8(v >> 8));
+        s[pos + 1] = bytes1(uint8(v));
     }
 
     function _copy() internal view returns (bytes memory) {

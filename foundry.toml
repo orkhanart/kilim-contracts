@@ -13,8 +13,8 @@ via_ir = false
 bytecode_hash = "ipfs"
 fuzz = { runs = 512 }
 invariant = { runs = 128, depth = 64, fail_on_revert = true }
-# The renderer tests and the deploy script read the packed store, manifest and golden files.
-fs_permissions = [{ access = "read", path = "../onchain" }]
+# The renderer tests and the deploy script read the packed store, manifest, golden files and deploy configs.
+fs_permissions = [{ access = "read", path = "../onchain" }, { access = "read", path = "./deploy" }]
 
 [profile.ci]
 fuzz = { runs = 4096 }
