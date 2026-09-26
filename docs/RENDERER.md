@@ -89,10 +89,10 @@ forge simulates the whole script before it sends anything, so any refusal below 
 - the manifest's motif count or any section hash differs from the config;
 - a chunk file's size or keccak differs from the manifest, a chunk before the last is not full, or its CREATE2 address differs from the manifest;
 - the three hashes recomputed from the concatenated chunk files differ from the config;
-- a chunk or renderer address already holds different code;
+- a chunk address already holds code other than `0x00` followed by that chunk's bytes;
 - a dry run of any deployment needs more than 8M gas, or returns a different address;
-- the dry-run renderer's immutables, chunk list, 1/1 URI, first golden symbol URI or first golden artwork URI differ from `golden.json`;
-- the renderer's code hash differs from a published `rendererHash`;
+- the renderer's immutables, chunk list, 1/1 URI, first golden symbol URI or first golden artwork URI differ from the config and `golden.json`. A renderer already at its address is checked exactly like a fresh dry-run one; CREATE2 means code there can only have come from the same initcode;
+- the renderer's code hash, fresh or already deployed, differs from a published `rendererHash`;
 - in the auction phase: the renderer is missing or differs, the payment token has no code or other decimals, the reserve price is not whole units, `startsAt` falls inside the inspection window or more than a year out, an address is zero, the deployer's nonce is not the published one, or any read-back value of the deployed auction or collection differs.
 
 `test/DeployKilim.t.sol` runs both phases against the local chain and triggers each refusal.

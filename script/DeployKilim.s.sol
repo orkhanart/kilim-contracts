@@ -140,15 +140,14 @@ contract DeployKilim {
             missing[k] = s.addresses[k].code.length == 0;
             if (missing[k]) _create2(_sstore2(s.chunks[k]), s.addresses[k], "chunk");
         }
-        bytes32 codehash = predicted.code.length == 0
-            ? _create2(initcode, predicted, "renderer").codehash
-            : predicted.codehash;
+        // A renderer already at `predicted` came from this same initcode (CREATE2 commits to it), so it is
+        // not compared with anything here: it goes through the same immutables, chunk-list and golden checks
+        // as a fresh one, and below its code hash must equal a published rendererHash.
+        if (predicted.code.length == 0) _create2(initcode, predicted, "renderer");
+        bytes32 codehash = predicted.codehash;
         _checkRenderer(c, s, KilimRenderer(predicted));
         vm.revertToState(snap);
 
-        if (predicted.code.length != 0 && predicted.codehash != codehash) {
-            revert Refused("foreign code at the renderer address");
-        }
         if (c.rendererHash != bytes32(0) && c.rendererHash != codehash) {
             revert Refused("renderer code hash differs from the published rendererHash");
         }

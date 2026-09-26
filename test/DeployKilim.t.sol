@@ -161,4 +161,25 @@ contract DeployKilimTest is TestBase {
         // and with everything right, it deploys
         script.deployAuction(c, renderer);
     }
+
+    function testRefusesForeignCodeAtTheRendererAddress() public {
+        DeployKilim.Config memory c = _config();
+        KilimRenderer renderer = script.deployStore(c);
+        // Other code where the renderer lives: it is checked like a fresh renderer, and refused.
+        vmd.etch(address(renderer), address(mockRenderer).code);
+        _expectRefused("renderer immutables");
+        script.deployStore(c);
+    }
+
+    function testRefusesAnExistingRendererThatIsNotThePublishedOne() public {
+        DeployKilim.Config memory c = _config();
+        script.deployStore(c);
+        c.rendererHash = keccak256("the published renderer");
+        _expectRefused("renderer code hash differs from the published rendererHash");
+        script.deployStore(c);
+    }
+
+    function _expectRefused(string memory reason) internal {
+        vm.expectRevert(abi.encodeWithSelector(DeployKilim.Refused.selector, reason));
+    }
 }
