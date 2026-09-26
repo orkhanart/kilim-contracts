@@ -171,6 +171,39 @@ contract KilimAuctionTest is TestBase {
         assertEq(auction.refundLiability(), 0);
     }
 
+    /// @dev A token hook during a refund payout cannot reach another entry point that would succeed.
+    function testRefundTokenHookCannotSettle() public {
+        _bid(ALICE, 25);
+        _bid(BOB, 27);
+        vm.warp(auction.endsAt());
+        usd.setHook(address(auction), abi.encodeCall(auction.settle, ()));
+        vm.prank(ALICE);
+        auction.withdrawRefund(ALICE);
+        assertTrue(!usd.callbackSucceeded());
+        assertTrue(!auction.settled());
+        usd.setHook(address(0), "");
+        auction.settle();
+    }
+
+    /// @dev The winner's receiver also has a refund due; the prize callback still cannot withdraw it.
+    function testPrizeCallbackCannotWithdrawARefund() public {
+        Receiver receiver = new Receiver();
+        _fund(address(receiver));
+        _bid(address(receiver), 25);
+        _bid(BOB, 27);
+        _bid(address(receiver), 29);
+        vm.warp(auction.endsAt());
+        auction.settle();
+        receiver.configure(
+            false, address(auction), abi.encodeCall(auction.withdrawRefund, (address(receiver)))
+        );
+        vm.prank(address(receiver));
+        auction.claimPrize(address(receiver));
+        assertTrue(!receiver.callbackSucceeded());
+        assertEq(nft.ownerOf(1), address(receiver));
+        assertEq(auction.refunds(address(receiver)), 25 * UNIT);
+    }
+
     function testClockStartsAtFirstBidAndExtendsWithoutLimit() public {
         assertEq(auction.endsAt(), 0);
         vm.warp(auction.startsAt() + 5 days);
@@ -187,6 +220,28 @@ contract KilimAuctionTest is TestBase {
         }
         // No absolute end: extensions have pushed the close past the original duration.
         assertTrue(auction.endsAt() > firstBidAt + 22 hours);
+    }
+
+    function _bidMinimum(address user) private {
+        uint256 amount = auction.minimumBid();
+        vm.prank(user);
+        auction.bid(amount, 0, 0);
+    }
+
+    /// @dev A bid moves the close to one window after itself only when that is later: an early bid and a
+    ///      bid exactly one window before the close leave it alone; one second later moves it by one second.
+    function testBidsNeverBringTheCloseForward() public {
+        _bid(ALICE, 25);
+        uint256 close = auction.endsAt();
+        vm.warp(block.timestamp + 1 hours);
+        _bidMinimum(BOB);
+        assertEq(auction.endsAt(), close);
+        vm.warp(close - 10 minutes);
+        _bidMinimum(ALICE);
+        assertEq(auction.endsAt(), close);
+        vm.warp(close - 10 minutes + 1);
+        _bidMinimum(BOB);
+        assertEq(auction.endsAt(), close + 1);
     }
 
     function testNoBidsNeverEndsAndNeverSettles() public {
@@ -390,6 +445,10 @@ contract KilimAuctionTest is TestBase {
             vm.expectRevert(ERC20EnglishAuction.InvalidRecipient.selector);
             vm.prank(ALICE);
             auction.claimSymbols(1, bad[i]);
+            // The recipient is checked before the quantity.
+            vm.expectRevert(ERC20EnglishAuction.InvalidRecipient.selector);
+            vm.prank(ALICE);
+            auction.claimSymbols(0, bad[i]);
         }
         assertEq(auction.refunds(ALICE), 25 * UNIT);
         assertEq(auction.symbolCredits(ALICE), 25);
@@ -415,6 +474,21 @@ contract KilimAuctionTest is TestBase {
         c = config(address(new MockUSD(19)));
         vm.expectRevert(ERC20EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
+    }
+
+    /// @dev The collection's address is known before deployment (the auction's first CREATE), so a config
+    ///      can name it as the treasury by mistake. It could never withdraw the proceeds.
+    function testTreasuryCannotBeTheCollection() public {
+        address next = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+        KilimAuction.Config memory c = config(address(usd));
+        c.treasury = vm.computeCreateAddress(next, 1);
+        vm.expectRevert(ERC20EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
+        // The prediction is right: a valid deployment puts its collection exactly there.
+        next = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+        KilimAuction deployed = new KilimAuction(config(address(usd)));
+        assertEq(address(deployed), next);
+        assertEq(address(deployed.collection()), vm.computeCreateAddress(next, 1));
     }
 
     function testFuzzInvalidAuctionConfiguration(uint8 selector) public {

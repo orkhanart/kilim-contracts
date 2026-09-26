@@ -21,6 +21,8 @@ interface Vm {
     function parseJsonUint(string calldata, string calldata) external pure returns (uint256);
     function parseJsonString(string calldata, string calldata) external pure returns (string memory);
     function parseJsonBool(string calldata, string calldata) external pure returns (bool);
+    function getNonce(address) external view returns (uint64);
+    function computeCreateAddress(address, uint256) external pure returns (address);
 }
 
 abstract contract TestBase {
