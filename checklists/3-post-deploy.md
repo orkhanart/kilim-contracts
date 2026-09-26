@@ -26,6 +26,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
   - the trait preview matches `symbolTraits`;
   - bidding is disabled until `startsAt`.
 - [ ] Test the kill switch: disable the bid button, post a banner, then restore.
+- [ ] Check that `ethUsdRange` in `site/chains/1.json` still brackets the ETH price with room on both sides (README, "The ETH/USD sanity band"). Outside it the site turns pay-with-ETH off; move it, rebuild, republish.
 
 ## Monitoring on (before `startsAt`)
 

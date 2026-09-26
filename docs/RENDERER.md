@@ -149,12 +149,14 @@ After deploy nothing can change: the motif count and hashes are immutable, and e
 `tokenURI` returns `data:application/json;base64,...` for every kind; images are `data:image/svg+xml;base64,...`.
 
 - **Symbol**: name `Kilim Symbol #<tokenId>`; attributes Kind, Motif (`#<motif + 1>`, the site's numbering), Material (English) and Material (Azerbaijani); plus `seed` and `geometry_hash`. The image is the motif at 80% of a 1000 x 1000 frame on paper `#f7f6f2`, with a 2-3 stop gradient per material, or a blind emboss for cotton rag.
-- **Artwork**: name `Kilim Artwork #<n>`, numbered from 1 in minting order; attributes Kind, Appearance, Columns, Rows, Cells, Distinct motifs, Revision, Frozen. The image reproduces the site's flat merge view (`site/merge-render.js`) on a square canvas.
+- **Artwork**: name `Kilim Artwork #<n>`, numbered from 1 in minting order (`n = tokenId - FIRST_SYMBOL_ID - symbolCap + 1`, so token `symbolCap + 2` is `#1`); attributes Kind, Appearance, Columns, Rows, Cells, Distinct motifs, Revision, Frozen. The image reproduces the site's flat merge view (`site/merge-render.js`) on a square canvas.
 - **1/1**: name `Kilim 1/1`; attributes Kind and Motifs. `image` is the page's opening frame, the hero cell and its eight neighbours in the page's own ink on white, and the same SVG is the page's static fallback, visible until its script runs or when a host's CSP blocks scripts. `animation_url` is the page. Browsers block top-level navigation to `data:` URLs, so to open the page full-window or archive it, call `masterpieceHTML()` on the renderer and save the result as an `.html` file.
 
 Artwork appearance is `bytes32` left-aligned ASCII (what `ethers.encodeBytes32String` produces): `flat/ink`, `flat/indigo` or `flat/vermilion`. `weave` and `expand` reject anything else with `InvalidAppearance`.
 
 The names, descriptions, palette and trait labels are constants at the top of `KilimRenderer.sol` and `onchain/render_ref.py`. Change both, run `pnpm pack`, and the golden tests confirm they agree.
+
+The site uses the same names everywhere it mentions a token (`nameOf` in `site/chain.js`): `Kilim Symbol #<tokenId>`, `Kilim Artwork #<n>` and `Kilim 1/1`, so a holder quoting the site and a marketplace quoting `tokenURI` give the same name. `site/test/wallet-safety.test.mjs` compares them with `tokenURI` on a local deployment.
 
 ### Fidelity to the site
 
