@@ -76,6 +76,11 @@
             "name": "rendererHash",
             "type": "bytes32",
             "internalType": "bytes32"
+          },
+          {
+            "name": "renderer",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }

@@ -52,6 +52,8 @@ The collection uses the supplied geometry's 812 motifs; the landing page was cor
 
 **Status:** Open. Finalize the content set, availability mechanism, immutable renderer, appearance encoding, metadata media, and frontend calls. Substituting ABI names into the current prototype is insufficient: mint timing, reward caps, pull refunds, motif count, and canvas limits differ.
 
+**Update (renderer built, not yet reviewed):** geometry, index and the 1/1 page now live on-chain in SSTORE2 data contracts; `KilimRenderer` verifies them against `geometryHash`, `indexHash` and `pageHash` in its constructor and draws all metadata and media; `Kilim` checks the renderer's code hash, motif count and geometry hash and forwards its answers; `appearance` is an allow-list of three values. See [docs/RENDERER.md](docs/RENDERER.md). Still open: an independent review of `KilimWriter` and the renderer's assembly (buffer rules, base64, decoder, `_read`), the final symbol set and hashes, the artist's review of the rendered look, and marketplace confirmation of the media. The 1/1 costs ~22.4M gas to read; RPCs that cap `eth_call` below that would show it blank.
+
 ### K-04 — Launch blocker: stablecoin and deployment configuration are unselected
 
 The intended network is Robinhood Chain with an immutable USD ERC-20 token. No specific token address, issuer implementation, treasury, or economic launch configuration has been approved or tested here.

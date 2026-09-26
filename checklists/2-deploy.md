@@ -15,7 +15,7 @@ The deployment script must check all of these itself and **refuse to send** if a
 - [ ] `startsAt` is in Unix **seconds** (not milliseconds), at least the inspection window ahead, and not absurdly far out.
 - [ ] The treasury matches the config. If it's a Safe: it has code on **this** chain, and its owners and threshold are as expected.
 - [ ] `motifCount` equals the count in the published geometry file.
-- [ ] `geometryHash` and `rendererHash`, recomputed from the published files, match the config.
+- [ ] `geometryHash` and `rendererHash`, recomputed from the published files, match the config. `script/DeployKilim.s.sol` checks these, the chunk files, the CREATE2 addresses, the gas of every transaction and the renderer's golden answers itself, and refuses on any mismatch (docs/RENDERER.md). The data chunks and the renderer are deployed first, in a separate phase, and are already on-chain here.
 - [ ] An `eth_call` simulation of the exact deployment transaction succeeds.
 - [ ] The gas limit comes from Ethereum's own estimate plus margin, and every transaction stays under the 16,777,216 per-transaction cap. The deployer holds enough ETH.
 - [ ] The git tag is checked out, and `pnpm artifacts` matches the frozen `audit/build-manifest.json`.
@@ -33,7 +33,8 @@ The deployment script must check all of these itself and **refuse to send** if a
 ## Verify source
 
 - [ ] Verify `KilimAuction` on Etherscan, with its constructor config.
-- [ ] Verify `Kilim`. It was created inside the auction, so encode its constructor arguments by hand, in this order: `minter` = the **auction** address, `symbolCap`, `motifCount`, `maxCells`, `geometryHash`, `rendererHash`.
+- [ ] Verify `Kilim`. It was created inside the auction, so encode its constructor arguments by hand, in this order: `minter` = the **auction** address, `owner`, `royaltyReceiver`, `symbolCap`, `motifCount`, `maxCells`, `geometryHash`, `rendererHash`, `renderer`.
+- [ ] Verify `KilimRenderer` (constructor: the chunk addresses in order, `geometryHash`, `indexHash`, `pageHash`). The data chunks and `TABLES` are code-only and need no verification; publish their addresses.
 - [ ] Confirm the verifier supports solc 0.8.37 with optimizer 200, cancun, no via-IR, ipfs metadata. Keep Sourcify as a fallback.
 - [ ] Both contracts show as verified, and their source matches the tagged commit.
 
@@ -43,7 +44,8 @@ Check every value on-chain against the config **before any bid**.
 
 - [ ] **Auction:** `paymentToken`, `treasury`, `tokenUnit` (= 10^decimals), `reservePrice`, `incrementBps`, `startsAt`, `duration`, `extensionWindow`, `symbolCap`, `maxSymbolsPerBid`.
 - [ ] **Clock not started:** `endsAt == 0`. It is set only by the first bid, to that bid's time plus `duration`.
-- [ ] **Collection** (`collection()`): `minter == auction`, `symbolCap` equal to the auction's, `motifCount`, `maxCells`, `geometryHash`, `rendererHash`, `name()` "Kilim", `symbol()` "KILIM", `owner()` (the page-owner wallet), `royaltyReceiver()` (the treasury), `ROYALTY_BPS` = 500.
+- [ ] **Collection** (`collection()`): `minter == auction`, `symbolCap` equal to the auction's, `motifCount`, `maxCells`, `geometryHash`, `rendererHash`, `renderer()` (the published renderer), `name()` "Kilim", `symbol()` "KILIM", `owner()` (the page-owner wallet), `royaltyReceiver()` (the treasury), `ROYALTY_BPS` = 500.
+- [ ] **Renderer**: `motifCount()`, `geometryHash()`, `indexHash()`, `pageHash()` and `chunks()` match the published values; `masterpieceURI()` (with an explicit gas value, e.g. 50M) matches `onchain/build/golden.json`.
 - [ ] **Starting state:**
   - `highestBid == 0`, `highestBidder == 0x0`;
   - `symbolsAllocated == 0`, `settled == false`, `prizeClaimed == false`;

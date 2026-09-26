@@ -9,7 +9,9 @@ OpenZeppelin primitives are reused directly. The auction uses a limited adaptati
 - `src/auction/ERC20EnglishAuction.sol`: immutable stablecoin auction, thirdweb bid predicate, pull refunds, bounded late-bid extensions, permissionless settlement and treasury proceeds.
 - `src/KilimAuction.sol`: retained symbol credits and a separately claimed 1/1, added to the auction base.
 - `src/Kilim.sol`: one ERC-721 collection containing the 1/1, symbols, and compositions. Compositions burn source symbols atomically, can expand under the same token ID, and can be permanently frozen by their owner.
-- Unit, adversarial, fuzz, and stateful invariant tests; pinned dependencies; exported ABIs and a reproducible build manifest.
+- `src/render/KilimRenderer.sol` (with `KilimWriter.sol`): the immutable on-chain renderer. It draws every token's metadata, SVG images and the 1/1's interactive page from geometry stored in SSTORE2 data contracts. `onchain/pack_store.py` packs the store; [docs/RENDERER.md](docs/RENDERER.md) gives the hash recipe, the deploy order and the gas budget.
+- `script/DeployKilim.s.sol`: deploys the data chunks and the renderer, then the auction, refusing on any mismatch.
+- Unit, adversarial, fuzz, golden, differential and stateful invariant tests; pinned dependencies; exported ABIs and a reproducible build manifest.
 
 There are no upgrade keys, metadata setters, unrestricted mint endpoints, administrator asset seizures, or admin withdrawals. The auction creates its collection in its constructor and is its immutable mint authority. Deploying `Kilim` separately with an EOA minter changes that trust model and is not the intended setup.
 
@@ -26,6 +28,18 @@ pnpm test
 pnpm test:ci
 pnpm fmt
 pnpm artifacts
+```
+
+The renderer adds (Python 3.9+ and Node 22+, no extra packages):
+
+```sh
+pnpm pack:check              # onchain/build matches the geometry and page it was packed from
+pnpm test:pack               # packer invariants, scale band, determinism
+pnpm test:page               # the 1/1 page at 700, 812 and 900 motifs
+pnpm test:render-geometries  # the renderer suite on a 700- and a 912-motif store
+pnpm test:render-ffi         # differential fuzzing against onchain/render_ref.py
+pnpm gas:render              # writes audit/gas-render.txt
+pnpm deploy:dry              # simulates the store phase of the deployment
 ```
 
 Compilation pins Solidity **0.8.37**, OpenZeppelin **5.6.1**, Cancun EVM, optimizer 200 runs, and the legacy code-generation pipeline. Foundry downloads the pinned native compiler on first use. Build and test scripts verify the thirdweb source snapshot, license, denominator and retained function before running. `pnpm artifacts` rejects stale source/dependency inputs and non-production build settings before exporting. It records hashes for sources, tests, scripts and upstream evidence.
@@ -56,13 +70,13 @@ Symbols have zero-based motifs and six material codes with weights 44/24/14/9/5/
 
 `weave(cells, columns, rows, appearance)` requires ownership of every source and a fully filled rectangle with at least two rows and columns. Approved marketplace operators cannot call it on someone else's tokens. `expand(artworkId, expectedRevision, cells, columns, rows, appearance)` additionally requires ownership of the artwork, a strictly larger composition, and every previous source exactly once. Old sources may be reordered; new sources must be owned by the caller. Burned symbols retain their traits and composition provenance in `symbolData()`.
 
-This version has a hard limit of **256 cells**, with a lower immutable deployment limit allowed. It does not support an 812-cell merge. `appearance` is a 32-byte commitment; publishing its preimage and canonical interpretation is an outstanding renderer integration requirement. `freezeArtwork()` permanently disables expansion but leaves ordinary transfers available. Use `expectedRevision` to reject stale edits. Buyers must understand that unfrozen artwork can be changed by its owner before a sale; revision checks do not change external marketplace settlement rules.
+This version has a hard limit of **256 cells**, with a lower immutable deployment limit allowed. It does not support an 812-cell merge. `appearance` must be one of `bytes32("flat/ink")`, `bytes32("flat/indigo")` or `bytes32("flat/vermilion")` (left-aligned ASCII, as `ethers.encodeBytes32String` makes it); anything else reverts with `InvalidAppearance`. `freezeArtwork()` permanently disables expansion but leaves ordinary transfers available. Use `expectedRevision` to reject stale edits. Buyers must understand that unfrozen artwork can be changed by its owner before a sale; revision checks do not change external marketplace settlement rules.
 
-The 1/1 uses token ID 1. Symbols use IDs 2 through `symbolCap + 1`, reserved at bid time. Compositions use a separate checked counter starting at `symbolCap + 2`. IDs are never reused; a burned symbol ID can never be minted again. Metadata is JSON encoded on-chain and emits ERC-4906 updates, but **image/animation rendering and artwork bytes are not yet stored or served by these contracts**. `geometryHash` and `rendererHash` are immutable content commitments, not proof of data availability or valid artwork. No metadata claims a completed renderer.
+The 1/1 uses token ID 1. Symbols use IDs 2 through `symbolCap + 1`, reserved at bid time. Compositions use a separate checked counter starting at `symbolCap + 2`. IDs are never reused; a burned symbol ID can never be minted again. `tokenURI` is drawn entirely on-chain by the immutable renderer fixed at construction (base64 JSON with SVG images, and for the 1/1 an HTML `animation_url`); ERC-4906 updates are emitted on expand and freeze. The constructor checks that the renderer's code hash is `rendererHash` and that it reports the same `motifCount` and `geometryHash`. Rendering a large artwork or the 1/1 is an expensive view (up to ~31M gas); see [docs/RENDERER.md](docs/RENDERER.md).
 
 ## Integration and launch inputs
 
-The website is integrated with these contracts: see the root [README](../README.md#the-auction-and-weaving-pages) for the local dev chain, the per-chain config and the site tests (`pnpm test` runs them after the forge suite). The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes still need to be finalized.
+The website is integrated with these contracts: see the root [README](../README.md#the-auction-and-weaving-pages) for the local dev chain, the per-chain config and the site tests (`pnpm test` runs them after the forge suite). The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes are computed by `onchain/pack_store.py` and become final with the symbol set.
 
 > The site targets **Ethereum mainnet with USDC** (Sepolia for the rehearsal). The Robinhood Chain and USDG notes below predate that decision and need a separate docs pass.
 

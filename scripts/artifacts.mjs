@@ -54,7 +54,7 @@ function collectInputs(directory) {
     else if (entry.isFile()) inputs.push(path);
   }
 }
-for (const directory of ['src', 'test', 'scripts', 'vendor']) collectInputs(directory);
+for (const directory of ['src', 'test', 'scripts', 'script', 'deploy', 'vendor']) collectInputs(directory);
 for (const path of inputs.sort()) {
   manifest.sourceSha256[path] = sha256(readFileSync(resolve(root, path)));
 }

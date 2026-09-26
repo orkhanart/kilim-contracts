@@ -1,0 +1,26 @@
+# Renderer gas and sizes, from test/render/RenderGasLimits.t.sol (pnpm gas:render).
+# Gas is an eth_call estimate: callee gas through a staticcall that copies nothing back, plus 21,000
+# and 16 gas per calldata byte. Store: onchain/build. Ceilings: symbol 0.6M, artwork 36M, typical
+# artwork 24M, 1/1 24M, anything 45M, every deployment transaction 8M.
+
+gas  artworkURI 128x2, 256 heaviest                       30,145,602
+gas  artworkURI 16x16, 256 heaviest by path length        30,024,111
+gas  artworkURI 16x16, 256 heaviest by points             30,002,057
+gas  artworkURI 16x16, typical (random motifs)            17,284,714
+gas  artworkURI 2x128, 256 heaviest                       30,151,252
+gas  artworkURI 2x2, 4 heaviest                            1,251,917
+gas  deploy, all chunks                                   33,544,148
+gas  deploy, auction + collection                          5,465,303
+gas  deploy, largest chunk                                 5,402,435
+gas  deploy, renderer (includes TABLES)                    6,867,024
+gas  Kilim.tokenURI, 16x16 artwork of the 256 heaviest    30,399,082
+gas  Kilim.tokenURI, largest motif in cotton rag             482,203
+gas  Kilim.tokenURI(1), the 1/1                           22,436,671
+gas  masterpieceURI                                       22,167,979
+gas  symbolURI, largest motif, worst material                478,467
+gas  symbolURI, median motif, dyed wool                      175,629
+size Kilim runtime                                            15,274
+size KilimAuction initcode                                    27,626
+size KilimAuction runtime                                      8,424
+size KilimRenderer runtime                                    17,018
+size TABLES                                                    8,705

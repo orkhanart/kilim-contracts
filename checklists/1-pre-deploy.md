@@ -25,12 +25,12 @@ The contracts have **no admin, pause, upgrade or metadata setter**, and a deploy
 | Minimum raise | `incrementBps` | 10% = `1000` | Rounded up to whole dollars: 1, 2, 3 … 10, 11, 13, 15, 17 … |
 | Maximum symbols ever | `symbolCap` | No real limit: safety maximum 1,000,000 | Supply is about 11× the final price if bids climb in minimum steps. |
 | Maximum per bid | `maxSymbolsPerBid` | No cap (= `symbolCap`) | A bid of N symbols takes ceil(N / 64) claim transactions. |
-| Motifs | `motifCount` | **Open**: whatever set is final at deploy (812 today). No additions or edits after deploy. | Read from the final geometry file; must equal it exactly. |
+| Motifs | `motifCount` | **Open**: whatever set is final at deploy (812 today). No additions or edits after deploy. | Read from the final geometry file by `onchain/pack_store.py`; Kilim checks it against the renderer. |
 | Largest composition | `maxCells` | 256 | 4–256. |
-| Content hashes | `geometryHash`, `rendererHash` | **Open**: computed once the on-chain data is final | Nonzero; computed by the published recipe below. |
-| Images | — | **Fully on-chain** (**not built yet**) | Contract-drawn SVG for symbols, artworks and the 1/1. |
-| 1/1 media | — | Interactive page served from the chain (**not built yet**) | `animation_url` assembled on-chain; no hosting. |
-| On-chain data | — | Uncompressed geometry 105,377 B + 1/1 page 33,523 B | ~6 data contracts, ~28M gas once, deployed **before** the auction. |
+| Content hashes | `geometryHash`, `rendererHash` | **Open**: computed once the on-chain data is final | Nonzero; recipe in [docs/RENDERER.md](../docs/RENDERER.md). Kilim checks both against the renderer. |
+| Images | — | **Fully on-chain** (built: `KilimRenderer`) | Contract-drawn SVG for symbols, artworks and the 1/1. |
+| 1/1 media | — | Interactive page served from the chain (built) | `animation_url` assembled on-chain; no hosting. |
+| On-chain data | — | STORE: header 64 B + uncompressed geometry 105,377 B + index 12,992 B + 1/1 page 34,949 B = 153,382 B | 7 data contracts (33.5M gas) and the renderer (6.9M), deployed by CREATE2 **before** the auction. |
 | Royalties | — | 5% to the treasury (ERC-2981) (built) | Marketplaces may ignore royalty settings. |
 
 Decided: no real supply limit and no per-bid cap, so the pool cannot be farmed out; one wallet can only inflate supply by holding the top bid, and pays for the 1/1 if nobody outbids it (K-01). For reference, with a binding cap and $1 opening / +10% steps, farming a whole pool would cost:
@@ -62,23 +62,24 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
   | Claim 64 symbols | $1.64 | $16.43 | $164 |
   | Per symbol claimed | $0.03 | $0.26 | $2.56 |
   | Weave 256 cells (largest) | $2.88 | $28.81 | $288 |
-  | Store art data and deploy (once) | $9 | $92 | $916 |
+  | Store art data and deploy (once, ~45.9M gas) | $12 | $124 | $1,236 |
 
   At busy gas a $1 symbol costs more to claim than it is worth. Claims never expire, so bidders can wait for cheap gas; the site should say so.
 
 ## Artwork, metadata and marketplaces: code changes
 
-`tokenURI` is fixed forever. Today it still has **no image, no animation, no description and no marketplace traits**, so tokens would show blank. **Blocker.** Decided: fully on-chain (contract-drawn SVG, and the 1/1's interactive page served from the chain).
+`tokenURI` is fixed forever. Decided: fully on-chain (contract-drawn SVG, and the 1/1's interactive page served from the chain). Built: `KilimRenderer` draws every token from on-chain data, and `Kilim.tokenURI` forwards its answer. See [docs/RENDERER.md](../docs/RENDERER.md).
 
-- [ ] Build the on-chain renderer: `image` as contract-drawn SVG for symbols, artworks and the 1/1, and an `animation_url` for the 1/1 assembled from on-chain data.
-- [ ] Add a standard `attributes` array: readable material names, the motif number in the site's numbering, the kind, and for artworks `frozen` and `revision`. Also add a `description`. Marketplaces ignore the current custom top-level keys.
+- [x] Build the on-chain renderer: `image` as contract-drawn SVG for symbols, artworks and the 1/1, and an `animation_url` for the 1/1 assembled from on-chain data.
+- [x] Add a standard `attributes` array: readable material names, the motif number in the site's numbering, the kind, and for artworks `frozen` and `revision`. Also add a `description`. The old custom top-level keys are gone.
+- [ ] Artist review of the rendered look before freezing: symbol palette and cotton-rag emboss, the 1/1 still (the page's opening frame), token names and descriptions, the Azerbaijani material trait, and the 1/1 relief view's older material set. All are named constants in `KilimRenderer.sol` and `onchain/render_ref.py`.
 - [x] Marketplace hooks built: a page-only `owner()`, `contractURI()` for the collection page, and fixed 5% ERC-2981 royalties.
-- [ ] Confirm with the target marketplace that it accepts this contract and how its collection page is claimed (see the SuperRare questions for Jon).
-- [ ] **Finish collecting symbols** (decided September 25: build now, deploy only when the set is final; no symbol additions or drawing changes after deploy). Then regenerate the geometry file, set `motifCount` from it, recompute the content hashes, republish the trait layout, and update the site's motif count (812 today).
-- [ ] Publish a **hash recipe**: the algorithm (for example keccak256 of raw bytes) and the exact file. For example `onchain/symbols.bin` (not `.b64`), and the renderer as one bundled file.
-- [ ] Store the geometry and the 1/1 page on-chain in data contracts deployed before the auction: uncompressed geometry is 105,377 bytes (5 contracts) and the 1/1 page source 33,523 bytes. Compute both hashes from those exact bytes. This changes the deployment order and the nonce plan.
-- [ ] Publish the `appearance` encoding (ink on paper, indigo textile, vermilion print) and how the six material codes render.
-- [ ] After the renderer is built, check sizes. The `Kilim` runtime must stay ≤ 24,576 bytes (now 15,066). The `KilimAuction` initcode must stay ≤ 49,152 bytes (now 26,984). An oversized `Kilim` reverts the whole deployment.
+- [ ] Confirm with the target marketplace that it accepts this contract and how its collection page is claimed (see the SuperRare questions for Jon). Get written confirmation that it renders a `data:text/html` `animation_url` and ~330 KB base64 `tokenURI`s.
+- [ ] **Finish collecting symbols** (decided September 25: build now, deploy only when the set is final; no symbol additions or drawing changes after deploy). Then run `pnpm pack` (it sets `motifCount`, the hashes and the 1/1's opening frame from the geometry, and prints the gas budget left), republish the trait layout, and update the site's motif count (812 today). About 90 more symbols of median size fit before the 1/1 reaches its 24M target.
+- [x] Publish a **hash recipe**: [docs/RENDERER.md](../docs/RENDERER.md). `geometryHash` is keccak256 of the stored uncompressed geometry, not of `symbols.bin`; `rendererHash` is the renderer's EXTCODEHASH, predictable because it is deployed by CREATE2.
+- [x] Store the geometry and the 1/1 page on-chain in data contracts deployed before the auction (`script/DeployKilim.s.sol`, store phase). This changes the deployment order and the nonce plan: see docs/RENDERER.md.
+- [x] Publish the `appearance` encoding: `bytes32` `flat/ink`, `flat/indigo`, `flat/vermilion`; anything else reverts. Symbol materials render as documented in docs/RENDERER.md.
+- [x] After the renderer is built, check sizes (`test/render/RenderGasLimits.t.sol`). The `Kilim` runtime must stay ≤ 24,576 bytes (now 15,274). The `KilimAuction` initcode must stay ≤ 49,152 bytes (now 27,626). The renderer runtime is 17,018 bytes.
 
 ## Code freeze and verification
 
@@ -96,13 +97,16 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
 - [ ] Confirm each heavy transaction fits the **per-transaction gas cap**, not just the block limit. On Ethereum that cap is 16,777,216 (EIP-7825). With margin for receiver callbacks, check:
   - the 256-cell weave (~10.7M);
   - the 4→256 expand (~10.4M);
-  - a claim of 64 one-symbol ranges into a contract wallet (~6.75M).
+  - a claim of 64 one-symbol ranges into a contract wallet (~6.75M);
+  - each data chunk (≤5.4M), the renderer (~6.9M) and the auction with its collection (~5.5M).
+
+  `tokenURI` is an `eth_call`, not a transaction: the heaviest artwork needs ~30.4M and the 1/1 ~22.4M. Some RPC backends cap `eth_call` at 25M, so the 1/1 is kept under 24M; see docs/RENDERER.md.
 - [ ] **Independent human audit** of the frozen commit. Fix the findings, then repeat this section.
 - [ ] On freeze day, recheck the Solidity 0.8.37 bug list and OpenZeppelin 5.6.1 advisories.
 
 ## Deployment tooling and key
 
-- [ ] Write a deployment script (none exists). It reads the signed-off config and **refuses to send** unless every check in [2-deploy.md](2-deploy.md) "Pre-flight" passes.
+- [x] Write a deployment script: `script/DeployKilim.s.sol`. It reads the signed-off config (`deploy/sepolia.example.json`) and **refuses to send** on any mismatch (chain, hashes, chunk files, CREATE2 addresses, gas, golden answers, renderer hash, token, schedule, nonce, read-back). Still to check by hand: the [2-deploy.md](2-deploy.md) "Pre-flight" items it cannot see (Safe owners, signed-off config, git tag).
 - [ ] Use a dedicated deployer key, ideally a hardware wallet, and fund it for gas.
 - [ ] Choose the inspection window between deployment and `startsAt`, for example 24 hours.
 - [ ] Publish before deploy day:
@@ -128,6 +132,8 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
 - [ ] The site's JavaScript trait calculation matches on-chain `symbolTraits` for sample IDs.
 - [ ] Measure real gas on the chain for the heavy transactions listed above.
 - [ ] Check how tokens display on at least one marketplace or indexer for the chain.
+- [ ] Media: fetch a worst-case 16x16 artwork, the largest cotton-rag symbol and the 1/1 through the target marketplaces, MetaMask/Rainbow, Etherscan and one indexer; record response times. Open the 1/1 in a sandboxed iframe, under a parent CSP with `script-src 'self'` (the static still must show), and on a phone.
+- [ ] Probe the `eth_call` gas cap of the RPC providers those marketplaces use (a gas-burner call with and without a gas field); anything below 25M would blank the 1/1.
 
 ## Website
 
