@@ -9,7 +9,7 @@ Don't start unless the pre-deploy go/no-go is signed off. A deployed auction **c
 `script/DeployKilim.s.sol` checks the items marked **(script)** itself and **refuses to send** if any fail (the full list is in [docs/RENDERER.md](../docs/RENDERER.md#what-the-script-refuses)). Confirm every item by hand as well.
 
 - [ ] Compare the script's config with the signed-off config line by line. A second person does the same. Start from `deploy/mainnet.example.json`. The auction phase prints every setting it deploys with and flags any that differs from the launch value; on chain 1 there must be no flag.
-- [ ] **(script)** Right network: `block.chainid` is 1 for Ethereum mainnet, or 11155111 for the Sepolia rehearsal, and equals the config's `chainId`.
+- [ ] **(script)** `block.chainid` equals the config's `chainId`. **By hand:** that `chainId` is 1 for Ethereum mainnet, or 11155111 for the Sepolia rehearsal. On mainnet the script also refuses the one-shot `run()`: use `runStore`, publish `rendererHash`, then `runAuction`.
 - [ ] **(script)** The deployer's pending nonce equals the published `deployerNonce`. On chain 1 the check cannot be skipped. No other transaction from this key since publishing.
 - [ ] **(script)** The stablecoin has code and its `decimals()` matches `tokenDecimals`. On chain 1 it must be USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` with 6 decimals.
 - [ ] **(script)** `reservePrice` is a whole number of token units. On chain 1 it must be `1 × 10^decimals` = `1000000` ($1).

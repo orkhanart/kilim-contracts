@@ -111,7 +111,12 @@ contract DeployKilim {
 
     // ------------------------------------------------------------ entry points
 
+    /// @notice One-shot deploy for local and Sepolia. Refused on mainnet, where rendererHash must be
+    ///         published before the auction is deployed: use runStore, publish, then runAuction.
     function run() external {
+        if (block.chainid == MAINNET_CHAIN_ID) {
+            revert Refused("run() is not for mainnet: use runStore then runAuction");
+        }
         Config memory c = loadConfig(vm.envString("KILIM_DEPLOY_CONFIG"));
         KilimRenderer renderer = deployStore(c);
         if (c.rendererHash == bytes32(0)) c.rendererHash = address(renderer).codehash;

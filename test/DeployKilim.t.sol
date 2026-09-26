@@ -208,6 +208,12 @@ contract DeployKilimTest is TestBase {
         c.auction.collectionOwner = ARTIST;
     }
 
+    function testMainnetRefusesTheOneShotRun() public {
+        vmd.chainId(1);
+        _expectRefused("run() is not for mainnet: use runStore then runAuction");
+        script.run();
+    }
+
     function testMainnetDeploysTheExactLaunchSettings() public {
         KilimRenderer renderer = _onMainnet();
         DeployKilim.Config memory c = _mainnetConfig(renderer);
