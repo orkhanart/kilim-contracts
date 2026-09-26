@@ -1,5 +1,8 @@
 // Deploy the Kilim auction (and, locally, a 6-decimal MockUSD plus the DevUniswap stand-ins)
 // to a local anvil through plain JSON-RPC from anvil's unlocked accounts. Local chains only.
+// The renderer is the real one: the packed store's chunks (onchain/build) and KilimRenderer are
+// deployed first, as script/DeployKilim.s.sol does for a live chain (here by plain CREATE, not the
+// CREATE2 deployer), so tokenURI answers are the production ones.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -21,7 +24,8 @@ export const LAUNCH = {
   reservePrice: 1_000_000n,          // $1 in 6-decimal USDC
   symbolCap: 1_000_000n,
   maxSymbolsPerBid: 1_000_000n,
-  motifCount: 812,
+  // motifCount is the packed store's (onchain/build/manifest.json), never a literal: Kilim's
+  // constructor rejects any other value. Pass { renderer: 'mock', motifCount } to try another.
   maxCells: 256,
   openDelay: 120n,                   // startsAt = latest block + 120 s
   usdPerEth: 3000n,
@@ -110,7 +114,54 @@ async function create(rpc, from, bytecode, argTypes = [], args = []) {
   return r.contractAddress.toLowerCase();
 }
 
-const AUCTION_CONFIG = '(address,address,address,uint64,uint64,uint64,uint16,uint256,uint256,uint256,uint16,uint16,bytes32,bytes32)';
+const AUCTION_CONFIG = '(address,address,address,uint64,uint64,uint64,uint16,uint256,uint256,uint256,uint16,uint16,bytes32,bytes32,address)';
+
+export const STORE_DIR = resolve(CONTRACTS, '../onchain/build');
+
+/**
+ * The packed store as the renderer takes it: chunk bytes and the committed hashes from manifest.json.
+ * Each chunk file is checked against the manifest's size and keccak, so a stale build fails here.
+ */
+export function packedStore(dir = STORE_DIR) {
+  const manifest = JSON.parse(readFileSync(resolve(dir, 'manifest.json'), 'utf8'));
+  const chunks = manifest.chunks.map((c) => {
+    const hex = '0x' + readFileSync(resolve(dir, c.file)).toString('hex');
+    if ((hex.length - 2) / 2 !== c.size || A.keccak(hex) !== c.keccak.toLowerCase()) {
+      throw new Error(`${c.file} does not match ${dir}/manifest.json: rerun "pnpm pack"`);
+    }
+    return hex;
+  });
+  const { geometryHash, indexHash, pageHash } = manifest.hashes;
+  return { motifCount: manifest.motifCount, geometryHash, indexHash, pageHash, chunks };
+}
+
+/** SSTORE2 initcode: the runtime is a STOP byte followed by `data` (KilimRenderer reads from offset 1). */
+function sstore2Initcode(data) {
+  const n = (data.length - 2) / 2 + 1;
+  if (n > 0xffff) throw new Error('chunk too large');
+  return '0x61' + n.toString(16).padStart(4, '0') + '80600a3d393df300' + data.slice(2);
+}
+
+/**
+ * Deploy the store's chunks and a KilimRenderer over them. With `mock`, deploy test/mocks/MockRenderer
+ * instead (any motif count; tokenURI answers are ABI-encoded inputs, not metadata).
+ * Returns the renderer, its code hash (the auction's rendererHash) and what it reports.
+ */
+export async function deployRenderer(rpc, from, { mock = null, store = null } = {}) {
+  let renderer, chunks = [], motifCount, geometryHash;
+  if (mock) {
+    ({ motifCount, geometryHash } = mock);
+    renderer = await create(rpc, from, artifact('MockRenderer').bytecode, ['uint256', 'bytes32'], [BigInt(motifCount), geometryHash]);
+  } else {
+    const s = store ?? packedStore();
+    for (const data of s.chunks) chunks.push(await create(rpc, from, sstore2Initcode(data)));
+    renderer = await create(rpc, from, artifact('KilimRenderer').bytecode, ['address[]', 'bytes32', 'bytes32', 'bytes32'],
+                            [chunks, s.geometryHash, s.indexHash, s.pageHash]);
+    ({ motifCount, geometryHash } = s);
+  }
+  const rendererHash = A.keccak(await rpc.call('eth_getCode', [renderer, 'latest']));
+  return { renderer, rendererHash, chunks, motifCount: Number(motifCount), geometryHash: geometryHash.toLowerCase() };
+}
 
 /**
  * Deploy a fresh auction. With `fork`, use that chain's real USDC and Uniswap contracts and buy
@@ -145,13 +196,27 @@ export async function deployLocal(rpcUrl, overrides = {}) {
     feeTiers = [3000];
   }
 
+  // The renderer before the auction: Kilim's constructor checks its code hash, motif count and geometry.
+  let r;
+  if (cfg.renderer === 'mock') {
+    const mockCount = cfg.motifCount ?? packedStore().motifCount;
+    r = await deployRenderer(rpc, deployer, { mock: { motifCount: mockCount, geometryHash: A.keccakText('kilim dev geometry') } });
+  } else if (cfg.renderer === undefined || cfg.renderer === 'store') {
+    r = await deployRenderer(rpc, deployer);
+    if (cfg.motifCount !== undefined && Number(cfg.motifCount) !== r.motifCount) {
+      throw new Error(`motifCount ${cfg.motifCount} is not the packed store's ${r.motifCount}; pass renderer: 'mock' to use another count`);
+    }
+  } else {
+    throw new Error(`renderer must be 'store' or 'mock', not ${cfg.renderer}`);
+  }
+
   const latest = await rpc.call('eth_getBlockByNumber', ['latest', false]);
   const startsAt = cfg.startsAt ?? BigInt(latest.timestamp) + cfg.openDelay;
   const auctionArgs = [[
     usdc, treasury, overrides.collectionOwner ?? treasury,
     startsAt, cfg.duration, cfg.extensionWindow, cfg.incrementBps, cfg.reservePrice,
-    cfg.symbolCap, cfg.maxSymbolsPerBid, cfg.motifCount, cfg.maxCells,
-    A.keccakText('kilim dev geometry'), A.keccakText('kilim dev renderer'),
+    cfg.symbolCap, cfg.maxSymbolsPerBid, r.motifCount, cfg.maxCells,
+    r.geometryHash, r.rendererHash, r.renderer,
   ]];
   const receipt = await rpc.send({
     from: deployer, gas: '0x1c9c380',
@@ -177,7 +242,8 @@ export async function deployLocal(rpcUrl, overrides = {}) {
     }
   }
   return { chainId, usdc, weth, swapRouter02, quoterV2, feeTiers, auction, collection: collection.toLowerCase(),
-           deployBlock, startsAt: Number(startsAt), accounts, treasury, deployer };
+           deployBlock, startsAt: Number(startsAt), accounts, treasury, deployer,
+           renderer: r.renderer, rendererHash: r.rendererHash, chunks: r.chunks, motifCount: r.motifCount };
 }
 
 /** The per-chain site config the pages read (site/chains/<id>.json shape). */

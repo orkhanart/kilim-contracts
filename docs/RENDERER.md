@@ -138,6 +138,10 @@ Artwork appearance is `bytes32` left-aligned ASCII (what `ethers.encodeBytes32St
 
 The names, descriptions, palette and trait labels are constants at the top of `KilimRenderer.sol` and `onchain/render_ref.py`. Change both, run `pnpm pack`, and the golden tests confirm they agree.
 
+## Local dev chain
+
+`scripts/dev/deploy.mjs` (used by `pnpm dev:chain`, `pnpm walkthrough` and the site tests) deploys the same chunks and the real `KilimRenderer` before the auction, by plain CREATE from anvil's first account rather than through the CREATE2 deployer, and passes the renderer, its code hash, the store's motif count and `geometryHash` in `Config`. A local `tokenURI` is therefore the production answer. `deployLocal(url, { renderer: 'mock', motifCount })` deploys `test/mocks/MockRenderer` instead, for a count other than the store's. Its `packedStore()` checks every chunk file against `manifest.json` first.
+
 ## Reviewing the assembly
 
 The memory-unsafe writers live in `src/render/KilimWriter.sol`. Its header states the four rules they follow, and each writer's NatSpec states how far past its cursor it may write (always under 32 bytes, inside a buffer's slack). Every document ends with a length check: an upper bound for SVG, an exact length for every JSON, wrapper, HTML and base64 run. The geometry decoder proves that each record is consumed exactly. `_read` in the renderer never uses Solidity storage indexing, because its hashing uses the scratch space; that once corrupted index records that straddle a chunk boundary, and `testReadsAcrossEveryChunkBoundary` guards it.

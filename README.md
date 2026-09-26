@@ -76,7 +76,7 @@ The 1/1 uses token ID 1. Symbols use IDs 2 through `symbolCap + 1`, reserved at 
 
 ## Integration and launch inputs
 
-The website is integrated with these contracts: see the root [README](../README.md#the-auction-and-weaving-pages) for the local dev chain, the per-chain config and the site tests (`pnpm test` runs them after the forge suite). The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes are computed by `onchain/pack_store.py` and become final with the symbol set.
+The website is integrated with these contracts: see the root [README](../README.md#the-auction-and-weaving-pages) for the local dev chain, the per-chain config and the site tests (`pnpm test` runs them after the forge suite). The collection uses the geometry's **812** motifs (`motifCount = 812`); the content hashes are computed by `onchain/pack_store.py` and become final with the symbol set. The local dev chain (`scripts/dev/deploy.mjs`) deploys the packed store and the real renderer, so its `tokenURI` answers are the production ones. Until the site sends the renderer's appearance encoding (`ethers.encodeBytes32String('flat/' + id)`, not a keccak commitment) and registers the new errors from `abi/*.json` in `site/abi.js`, its weave and expand calls revert and two site tests fail (`the loom` and `ABI sync`).
 
 > The site targets **Ethereum mainnet with USDC** (Sepolia for the rehearsal). The Robinhood Chain and USDG notes below predate that decision and need a separate docs pass.
 
