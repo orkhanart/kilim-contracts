@@ -146,7 +146,9 @@ try {
   await carol.freeze(w.artworkId);
   const g = carol.grids()[0];
   assert.equal(g.revision, 2); assert.equal(g.frozen, true);
-  console.log('    ', `Kilim #${g.id} · ${g.cols} × ${g.rows} · revision ${g.revision} · ${g.frozen ? 'frozen' : 'editable'}`);
+  // The site names it as tokenURI does: the first artwork is Kilim Artwork #1, whatever its token ID.
+  assert.equal(carol.nameOf(g.id), 'Kilim Artwork #1');
+  console.log('    ', `${carol.nameOf(g.id)} (token ${g.id}) · ${g.cols} × ${g.rows} · revision ${g.revision} · ${g.frozen ? 'frozen' : 'editable'}`);
 
   step('The close passes: anyone settles, the winner claims the 1/1, the treasury withdraws');
   await alice.refresh();
