@@ -6,6 +6,9 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MockUSD is ERC20 {
     uint8 private immutable _decimals;
     uint16 public feeBps;
+    /// @dev A fee on transfer() only (payouts), leaving deposits through transferFrom whole.
+    uint16 public transferFeeBps;
+    bool private _inTransfer;
     bool public returnsFalse;
     address public blockedRecipient;
     address public hookTarget;
@@ -28,6 +31,10 @@ contract MockUSD is ERC20 {
         feeBps = bps;
     }
 
+    function setFeeOnTransferOnly(uint16 bps) external {
+        transferFeeBps = bps;
+    }
+
     function setReturnsFalse(bool flag) external {
         returnsFalse = flag;
     }
@@ -43,7 +50,9 @@ contract MockUSD is ERC20 {
 
     function transfer(address to, uint256 amount) public override returns (bool) {
         if (returnsFalse) return false;
+        _inTransfer = true;
         bool result = super.transfer(to, amount);
+        _inTransfer = false;
         _callback();
         return result;
     }
@@ -63,8 +72,9 @@ contract MockUSD is ERC20 {
 
     function _update(address from, address to, uint256 amount) internal override {
         require(to != blockedRecipient || to == address(0), "recipient blocked");
-        if (from != address(0) && to != address(0) && feeBps != 0) {
-            uint256 fee = amount * feeBps / 10000;
+        uint256 bps = feeBps != 0 ? feeBps : (_inTransfer ? transferFeeBps : 0);
+        if (from != address(0) && to != address(0) && bps != 0) {
+            uint256 fee = amount * bps / 10000;
             super._update(from, address(0), fee);
             super._update(from, to, amount - fee);
         } else {

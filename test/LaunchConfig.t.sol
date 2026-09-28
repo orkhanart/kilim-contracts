@@ -92,9 +92,9 @@ contract LaunchConfigTest is TestBase {
         _bid(BOB, 5000);
         assertEq(auction.symbolCredits(BOB), 5000);
         assertEq(auction.symbolsAllocated(), 5001);
-        // Alice was outbid: full refund, symbol kept.
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
+        // Alice was outbid: refunded in full inside Bob's bid, symbol kept.
+        assertEq(usdc.balanceOf(ALICE), 1e30);
+        assertEq(auction.refunds(ALICE), 0);
         assertEq(auction.symbolCredits(ALICE), 1);
         // Claims run 64 at a time; 5,000 symbols take 79 claims.
         for (uint256 i; i < 78; ++i) {

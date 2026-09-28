@@ -33,18 +33,23 @@ contract AuctionHandler is TestBase {
         uint64 closesAt = auction.endsAt();
         if (auction.settled() || (closesAt != 0 && block.timestamp >= closesAt)) return;
         uint256 amount = auction.minimumBid() + uint256(uplift) % 50 * UNIT;
+        uint256 outbid = auction.highestBid();
+        uint256 owedBefore = auction.refundLiability();
         vm.prank(actors[actorSeed % 3]);
         auction.bid(amount, 0, 0);
         deposited += amount;
+        // Whatever of the outbid amount did not become a pull refund was paid back automatically.
+        refunded += outbid - (auction.refundLiability() - owedBefore);
         ++bidCalls;
     }
 
     function refund(uint8 actorSeed, uint8 destination) external {
         address actor = actors[actorSeed % 3];
         uint256 amount = auction.refunds(actor);
-        if (amount == 0) return;
+        address to = actors[destination % 3];
+        if (amount == 0 || to == usd.blockedRecipient()) return;
         vm.prank(actor);
-        auction.withdrawRefund(actors[destination % 3]);
+        auction.withdrawRefund(to);
         refunded += amount;
         ++refundCalls;
     }
@@ -58,6 +63,15 @@ contract AuctionHandler is TestBase {
         vm.prank(actor);
         auction.claimSymbols(quantity, actors[destination % 3]);
         ++claimCalls;
+    }
+
+    /// @dev A blacklist that comes and goes: automatic refunds to it defer to pull refunds.
+    function blockRecipient(uint8 seed) external {
+        usd.setBlockedRecipient(seed % 4 == 3 ? address(0) : actors[seed % 4]);
+    }
+
+    function deliver(uint8 quantitySeed) external {
+        auction.deliverSymbols(1 + uint256(quantitySeed) % 64);
     }
 
     function donate(uint32 amount) external {
@@ -80,8 +94,10 @@ contract AuctionHandler is TestBase {
     function proceeds(uint8 destination) external {
         uint256 amount = auction.proceedsDue();
         if (!auction.settled() || amount == 0) return;
+        address to = actors[destination % 3];
+        if (to == usd.blockedRecipient()) return;
         vm.prank(TREASURY);
-        auction.withdrawProceeds(actors[destination % 3]);
+        auction.withdrawProceeds(to);
         paidProceeds += amount;
     }
 

@@ -75,29 +75,36 @@ contract KilimAuctionTest is TestBase {
     }
 
     function testOutbidRefundAndCreditsRemain() public {
+        uint256 before = usd.balanceOf(ALICE);
         _bid(ALICE, 25);
+        vm.expectEmit();
+        emit ERC20EnglishAuction.RefundPaid(ALICE, 25 * UNIT);
         _bid(BOB, 27);
-        assertEq(auction.refunds(ALICE), 25 * UNIT);
-        uint256 before = usd.balanceOf(CAROL);
-        vm.prank(ALICE);
-        auction.withdrawRefund(CAROL);
-        assertEq(usd.balanceOf(CAROL), before + 25 * UNIT);
-        assertEq(auction.symbolCredits(ALICE), 25);
+        // Paid back inside Bob's bid: nothing waits, nothing to withdraw, the symbols stay.
+        assertEq(usd.balanceOf(ALICE), before);
         assertEq(auction.refunds(ALICE), 0);
         assertEq(auction.refundLiability(), 0);
+        assertEq(auction.symbolCredits(ALICE), 25);
         assertEq(usd.balanceOf(address(auction)), auction.liabilities());
         vm.expectRevert(ERC20EnglishAuction.NothingToWithdraw.selector);
         vm.prank(ALICE);
         auction.withdrawRefund(ALICE);
     }
 
+    function testOnlyTheAuctionCanPayARefund() public {
+        _bid(ALICE, 25);
+        vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
+        vm.prank(ALICE);
+        auction.payOutbidRefund(ALICE, 25 * UNIT);
+    }
+
     function testSelfOutbidFullyFundedAndLiabilitiesConserved() public {
         _bid(ALICE, 25);
         _bid(ALICE, 27);
-        assertEq(auction.refunds(ALICE), 25 * UNIT);
+        assertEq(auction.refunds(ALICE), 0);
         assertEq(auction.symbolCredits(ALICE), 52);
-        assertEq(usd.balanceOf(address(auction)), 52 * UNIT);
-        assertEq(auction.liabilities(), 52 * UNIT);
+        assertEq(usd.balanceOf(address(auction)), 27 * UNIT);
+        assertEq(auction.liabilities(), 27 * UNIT);
     }
 
     function testRejectedDepositRollsBackStandingBidAndRewards() public {
@@ -126,27 +133,46 @@ contract KilimAuctionTest is TestBase {
         assertEq(auction.symbolsAllocated(), 0);
     }
 
+    /// @dev An outbid address that cannot receive the token (a blacklist) never blocks the next bid:
+    ///      its refund waits as a pull refund, which it can send to another address.
     function testRejectedRefundPreservesEntitlement() public {
         _bid(ALICE, 25);
-        _bid(BOB, 27);
         usd.setBlockedRecipient(ALICE);
+        vm.expectEmit();
+        emit ERC20EnglishAuction.RefundDeferred(ALICE, 25 * UNIT);
+        _bid(BOB, 27);
+        assertEq(auction.highestBidder(), BOB);
+        assertEq(auction.refunds(ALICE), 25 * UNIT);
+        assertEq(auction.liabilities(), 52 * UNIT);
+        assertEq(usd.balanceOf(address(auction)), 52 * UNIT);
         vm.expectRevert();
         vm.prank(ALICE);
         auction.withdrawRefund(ALICE);
         assertEq(auction.refunds(ALICE), 25 * UNIT);
-        // The same claimant can choose a working recipient.
         vm.prank(ALICE);
         auction.withdrawRefund(CAROL);
         assertEq(auction.refunds(ALICE), 0);
+        assertEq(usd.balanceOf(address(auction)), auction.liabilities());
     }
 
     function testFeeOnWithdrawalRevertsWithoutLosingRefund() public {
         _bid(ALICE, 25);
+        usd.setBlockedRecipient(ALICE);
         _bid(BOB, 27);
+        usd.setBlockedRecipient(address(0));
         usd.setFee(100);
         vm.expectRevert(ERC20EnglishAuction.UnsupportedTokenBehavior.selector);
         vm.prank(ALICE);
         auction.withdrawRefund(ALICE);
+        assertEq(auction.refunds(ALICE), 25 * UNIT);
+        assertEq(usd.balanceOf(address(auction)), 52 * UNIT);
+    }
+
+    /// @dev A token that skims the automatic refund fails its balance check, so the refund waits in full.
+    function testFeeOnAutomaticRefundDefersInFull() public {
+        _bid(ALICE, 25);
+        usd.setFeeOnTransferOnly(100);
+        _bid(BOB, 27);
         assertEq(auction.refunds(ALICE), 25 * UNIT);
         assertEq(usd.balanceOf(address(auction)), 52 * UNIT);
     }
@@ -163,10 +189,19 @@ contract KilimAuctionTest is TestBase {
         usd.setHook(address(auction), abi.encodeCall(auction.bid, (27 * UNIT, 0, 0)));
         _bid(ALICE, 25);
         assertTrue(!usd.callbackSucceeded());
+        // The automatic refund's transfer fires the hook inside Bob's bid: it cannot bid again.
+        usd.setHook(address(auction), abi.encodeCall(auction.bid, (40 * UNIT, 0, 0)));
         _bid(BOB, 27);
+        assertTrue(!usd.callbackSucceeded());
+        assertEq(auction.highestBid(), 27 * UNIT);
+        // A deferred refund's withdrawal cannot re-enter either.
+        usd.setHook(address(0), "");
+        usd.setBlockedRecipient(BOB);
+        _bid(CAROL, 30);
+        usd.setBlockedRecipient(address(0));
         usd.setHook(address(auction), abi.encodeCall(auction.withdrawRefund, (CAROL)));
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
+        vm.prank(BOB);
+        auction.withdrawRefund(BOB);
         assertTrue(!usd.callbackSucceeded());
         assertEq(auction.refundLiability(), 0);
     }
@@ -174,7 +209,9 @@ contract KilimAuctionTest is TestBase {
     /// @dev A token hook during a refund payout cannot reach another entry point that would succeed.
     function testRefundTokenHookCannotSettle() public {
         _bid(ALICE, 25);
+        usd.setBlockedRecipient(ALICE);
         _bid(BOB, 27);
+        usd.setBlockedRecipient(address(0));
         vm.warp(auction.endsAt());
         usd.setHook(address(auction), abi.encodeCall(auction.settle, ()));
         vm.prank(ALICE);
@@ -185,12 +222,14 @@ contract KilimAuctionTest is TestBase {
         auction.settle();
     }
 
-    /// @dev The winner's receiver also has a refund due; the prize callback still cannot withdraw it.
+    /// @dev The winner's receiver also has a deferred refund; the prize callback still cannot withdraw it.
     function testPrizeCallbackCannotWithdrawARefund() public {
         Receiver receiver = new Receiver();
         _fund(address(receiver));
         _bid(address(receiver), 25);
+        usd.setBlockedRecipient(address(receiver));
         _bid(BOB, 27);
+        usd.setBlockedRecipient(address(0));
         _bid(address(receiver), 29);
         vm.warp(auction.endsAt());
         auction.settle();
@@ -260,7 +299,9 @@ contract KilimAuctionTest is TestBase {
 
     function testSettlementAndProceedsLeaveRefundsSolvent() public {
         _bid(ALICE, 25);
+        usd.setBlockedRecipient(ALICE);
         _bid(BOB, 27);
+        usd.setBlockedRecipient(address(0));
         vm.warp(auction.endsAt());
         vm.prank(CAROL);
         auction.settle();
@@ -349,8 +390,6 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 100);
         _bid(BOB, 105);
         vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
-        vm.prank(ALICE);
         auction.claimSymbols(64, CAROL);
         vm.prank(ALICE);
         auction.claimSymbols(36, ALICE);
@@ -436,7 +475,9 @@ contract KilimAuctionTest is TestBase {
 
     function testInvalidRecipientsDoNotDestroyClaims() public {
         _bid(ALICE, 25);
+        usd.setBlockedRecipient(ALICE);
         _bid(BOB, 27);
+        usd.setBlockedRecipient(address(0));
         address[3] memory bad = [address(0), address(auction), address(nft)];
         for (uint256 i; i < bad.length; ++i) {
             vm.expectRevert(ERC20EnglishAuction.InvalidRecipient.selector);
@@ -783,14 +824,8 @@ contract KilimAuctionTest is TestBase {
         uint256 aliceBefore = usd.balanceOf(ALICE);
         _bid(ALICE, 25);
         _bid(BOB, 27);
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
         _bid(ALICE, 29);
-        vm.prank(BOB);
-        auction.withdrawRefund(BOB);
         _bid(BOB, 31);
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
         assertEq(usd.balanceOf(ALICE), aliceBefore);
         assertEq(auction.symbolCredits(ALICE), 54);
         assertEq(auction.symbolsAllocated(), 112);
@@ -799,15 +834,14 @@ contract KilimAuctionTest is TestBase {
 
     function testFuzzBidAccounting(uint96 dollars, uint8 uplift) public {
         uint256 first = 25 + uint256(dollars) % 1e12;
+        uint256 aliceBefore = usd.balanceOf(ALICE);
         _bid(ALICE, first);
         uint256 next = auction.minimumBid() + uint256(uplift) * UNIT;
         vm.prank(BOB);
         auction.bid(next, 0, 0);
-        assertEq(auction.refunds(ALICE), first * UNIT);
-        assertEq(usd.balanceOf(address(auction)), first * UNIT + next);
-        assertEq(auction.liabilities(), usd.balanceOf(address(auction)));
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
+        assertEq(auction.refunds(ALICE), 0);
+        assertEq(usd.balanceOf(ALICE), aliceBefore);
+        assertEq(usd.balanceOf(address(auction)), next);
         assertEq(auction.liabilities(), next);
         assertTrue(auction.symbolsAllocated() <= auction.symbolCap());
     }

@@ -59,7 +59,7 @@ contract ReuseRegressionTest is TestBase {
     function testBlockedOutbidRecipientCannotStopNextBid() public {
         vm.prank(ALICE);
         auction.bid(25 * UNIT, 25, 0);
-        // Unlike the upstream immediate refund, bidding never transfers to the old bidder.
+        // The automatic refund to a blocked old bidder fails quietly and becomes a pull refund.
         usd.setBlockedRecipient(ALICE);
         vm.prank(BOB);
         auction.bid(27 * UNIT, 27, 0);
@@ -157,11 +157,9 @@ contract ReuseRegressionTest is TestBase {
         vm.prank(BOB);
         auction.bid(amount, 0, 0);
         assertEq(auction.highestBid(), amount);
-        assertEq(auction.refunds(ALICE), 25 * UNIT);
-        assertEq(usd.balanceOf(address(auction)), amount + 25 * UNIT);
+        assertEq(auction.refunds(ALICE), 0);
+        assertEq(usd.balanceOf(address(auction)), amount);
         assertEq(auction.liabilities(), usd.balanceOf(address(auction)));
-        vm.prank(ALICE);
-        auction.withdrawRefund(ALICE);
         vm.warp(auction.endsAt());
         auction.settle();
         vm.prank(TREASURY);

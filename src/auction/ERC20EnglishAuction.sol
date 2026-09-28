@@ -19,6 +19,9 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     uint64 private constant MAX_BPS = 10_000;
+    /// @dev Gas forwarded to an automatic refund. A plain stablecoin transfer plus the balance checks
+    ///      uses well under this; the cap stops a hostile token path from eating the bidder's gas.
+    uint256 private constant REFUND_GAS = 150_000;
 
     struct AuctionConfig {
         address paymentToken;
@@ -61,6 +64,10 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
     error TreasuryCannotBid();
 
     event RefundWithdrawn(address indexed bidder, address indexed recipient, uint256 amount);
+    /// @notice The outbid amount went straight back to the outbid bidder.
+    event RefundPaid(address indexed bidder, uint256 amount);
+    /// @notice The automatic refund failed (for example a blacklisted address); it waits in `refunds`.
+    event RefundDeferred(address indexed bidder, uint256 amount);
     event AuctionStarted(address indexed firstBidder, uint64 endsAt);
     event AuctionSettled(address indexed winner, uint256 amount);
     event ProceedsWithdrawn(address indexed recipient, uint256 amount);
@@ -97,6 +104,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
         return Math.ceilDiv(next, tokenUnit) * tokenUnit;
     }
 
+    /// @notice Only a refund the automatic payment could not make waits here to be withdrawn.
     function withdrawRefund(address to) external nonReentrant {
         _validateRecipient(to);
         uint256 amount = refunds[msg.sender];
@@ -135,11 +143,11 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
     }
 
     /// @dev Adaptation of thirdweb _handleBid's ascending-bid branch. Called only inside Kilim's
-    ///      nonReentrant bid entry point, which allocates rewards and MUST call _collectBid atomically.
-    ///      Replaces immediate outgoing transfers with pull credits and an unbounded extension.
+    ///      nonReentrant bid entry point, which allocates rewards and MUST call _collectBid and then
+    ///      _refundOutbid(previous bidder, previous bid) atomically. Returns the outbid bid, if any.
     ///      The seller's treasury cannot bid. Other wallets it controls are not detectable.
     ///      The first accepted bid starts the clock; later bids inside the window extend it, forever.
-    function _handleBid(uint256 amount) internal {
+    function _handleBid(uint256 amount) internal returns (address outbid, uint256 outbidAmount) {
         if (msg.sender == treasury) revert TreasuryCannotBid();
         // No highest bidder means the clock has not started, so there is no close to be past.
         bool started = highestBidder != address(0);
@@ -152,10 +160,8 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
         }
         if (amount % tokenUnit != 0) revert NonWholeUnitBid();
 
-        if (highestBidder != address(0)) {
-            refunds[highestBidder] += highestBid;
-            refundLiability += highestBid;
-        }
+        outbid = highestBidder;
+        outbidAmount = highestBid;
         highestBidder = msg.sender;
         highestBid = amount;
         if (!started) {
@@ -177,6 +183,26 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
         if (afterBalance < beforeBalance || afterBalance - beforeBalance != amount) {
             revert UnsupportedTokenBehavior();
         }
+    }
+
+    /// @dev Push the outbid amount back; on any failure keep it as a pull refund instead, so an
+    ///      address that cannot receive the token never blocks later bids. State is final before this.
+    function _refundOutbid(address bidder, uint256 amount) internal {
+        if (bidder == address(0)) return;
+        try this.payOutbidRefund{gas: REFUND_GAS}(bidder, amount) {
+            emit RefundPaid(bidder, amount);
+        } catch {
+            refunds[bidder] += amount;
+            refundLiability += amount;
+            emit RefundDeferred(bidder, amount);
+        }
+    }
+
+    /// @notice Internal use only: the automatic refund, as a call this contract makes to itself so
+    ///         a failure can be caught. Anyone else calling it reverts.
+    function payOutbidRefund(address bidder, uint256 amount) external {
+        if (msg.sender != address(this)) revert Unauthorized();
+        _pay(bidder, amount);
     }
 
     /// @dev Unchanged thirdweb bid predicate. Caller bounds amounts to uint128 and bps to 1..10000.
