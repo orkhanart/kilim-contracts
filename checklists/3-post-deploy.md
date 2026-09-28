@@ -45,14 +45,14 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 ## Opening
 
 - [ ] At `startsAt`, confirm the first bid lands, and that the site shows the new high bid, reward count and deadline correctly.
-- [ ] Check that claims work: a bidder can claim symbols straight away, before the auction ends, and sees which ones they are only then.
+- [ ] Check delivery: Deliver symbols from the treasury sends the first bids' symbols to the bidders' wallets, and the outbid first bidder got their USDC back in the same transaction.
 
 ## During the auction
 
 - [ ] Watch bids, extensions and alerts. No one can pause or restart the auction; follow the runbook if something goes wrong.
 - [ ] Remind bidders:
-  - outbid funds must be **withdrawn** with `withdrawRefund`;
-  - symbols are **claimed** separately and never expire;
+  - outbid funds come back automatically; only a refund that could not be sent (a blacklisted address) waits for `withdrawRefund`;
+  - symbols are **delivered** by the artist in batches; nobody needs to claim;
   - any bid in the last 10 minutes extends the close, with no limit.
 - [ ] If the symbol pool runs out, announce that bids still count for the 1/1 but earn no symbols.
 
@@ -65,7 +65,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 
 ## After the auction
 
-- [ ] Keep reminding outbid bidders to withdraw refunds and claim symbols. Neither expires.
+- [ ] Keep delivering: run Deliver symbols from the treasury wallet until nothing is pending, at cheap gas. Contact any bidder whose delivery failed (`DeliveryFailed`) and any with a deferred refund (`RefundDeferred`); neither expires.
 - [ ] Keep the stablecoin alerts on until `liabilities()` is 0 and every refund is withdrawn.
 - [ ] Switch the site to its post-auction state, keeping the claim, refund, weave, expand and freeze pages working.
 - [ ] Archive the evidence: final `audit/` outputs, the deployment record, the audit report, and the published content files.

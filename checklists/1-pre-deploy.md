@@ -102,6 +102,7 @@ If bidding never reaches the "last bid" figure, the rest of the pool is never mi
   - each data chunk (≤5.4M), the renderer (~6.9M) and the auction with its collection (~5.5M).
 
   `tokenURI` is an `eth_call`, not a transaction: the heaviest artwork needs ~30.4M and the 1/1 ~22.4M. Some RPC backends cap `eth_call` at 25M, so the 1/1 is kept under 24M; see docs/RENDERER.md.
+- [ ] Repeat the internal review round and mutation testing for the September 28 automatic refunds and delivery (AUDIT K-09).
 - [ ] **Independent human audit** of the frozen commit. Fix the findings, then repeat this section.
 - [ ] On freeze day, recheck the Solidity 0.8.37 bug list and OpenZeppelin 5.6.1 advisories.
 
@@ -124,7 +125,7 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
 
 - [ ] Walk the full flow **through the website**, with several wallets including a Safe:
   1. approve, then bid;
-  2. get outbid, then `withdrawRefund`;
+  2. get outbid and see the USDC come back automatically; force one deferred refund (a Safe owner cannot blacklist, so use the local blacklist test) and `withdrawRefund` it;
   3. claim across several bids;
   4. `weave`, `expand`, `freezeArtwork`, transfer;
   5. after the end: `settle`, `withdrawProceeds` from the treasury, and `claimPrize` by the winner.
@@ -152,7 +153,7 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
   - Start the countdown from `AuctionStarted`, and update `endsAt` from each `BidPlaced`. There is no latest possible close.
   - After `endsAt`, show "Ended, awaiting settlement" with a `settle()` button.
   - Remove the mock's hard-coded open time and 22-hour fixed run.
-- [x] **Claims.** Loop `claimSymbols(min(64, credits), to)` until credits reach 0, showing progress from `unclaimedSymbolRanges`.
+- [x] **Delivery.** Symbols are delivered, not claimed: the treasury's Deliver symbols button sends `deliverSymbols(64)` with a fixed 11M gas limit until nothing is pending. Manual claiming stays behind a fold as the fallback: loop `claimSymbols(min(64, credits), to)` until credits reach 0.
   - Take minted IDs from the collection's `SymbolsMinted` event, one per range. Ranges aren't contiguous, and `SymbolsClaimed.firstTokenId` is only the first ID.
   - Treat `BidPlaced.firstSymbolId == 0` as "no IDs reserved".
   - Refresh metadata on `MetadataUpdate`.
@@ -177,7 +178,7 @@ Use the exact launch config except the times. On Ethereum's Sepolia testnet (111
 - [x] **Copy that contradicts the contracts:**
   - "Receive randomly assigned symbols" and the FAQ's "randomly assigned" → traits are deterministic and public before bidding.
   - "Every dollar you bid sends you a symbol" and "Mints 250 symbols … in the same transaction" → rewards are capped, can be 0, and are claimed separately, up to 64 at a time.
-  - "If outbid · Refunded" → refunds must be withdrawn.
+  - "If outbid · Refunded" → now true: refunds are automatic (September 28), with a pull fallback.
   - Gold listed as a symbol material → gold is only the 1/1.
   - Opening date, time zone and duration → the real schedule.
 - [x] Delete or rewrite the unused drafts `site/head.html` and `site/stages.html`. They claim wallet-seeded traits, mint-on-bid, 29 × 28 grids and a 1/1 "stored whole on-chain".

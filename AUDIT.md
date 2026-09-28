@@ -32,9 +32,19 @@ Ethereum mainnet (chain 1). Payment in USDC (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE
 
 Location: `KilimAuction.bid()` and `rewardForBid()`.
 
-A bidder keeps symbol credits after withdrawing all of their losing principal. Cooperating wallets can alternate increasing bids and recycle refunds, and a single wallet can outbid itself. With the launch settings there is no binding cap, so this cannot exhaust a pool; it inflates supply instead. One wallet adds symbols only by holding the top bid, which it pays for if nobody outbids it. When bids climb in minimum steps, total supply ends up about 11 times the final price.
+A bidder keeps symbol credits after getting all of their losing principal back. Cooperating wallets can alternate increasing bids and recycle refunds, and a single wallet can outbid itself. With the launch settings there is no binding cap, so this cannot exhaust a pool; it inflates supply instead. One wallet adds symbols only by holding the top bid, which it pays for if nobody outbids it. When bids climb in minimum steps, total supply ends up about 11 times the final price.
 
 **Status:** Accepted by the owner (September 18 and 25, 2026) as the intended incentive. Nonrefundable purchases, increment-only rewards and winner-only rewards were offered and declined. Disclose the mechanism plainly; do not advertise $1 of net revenue per symbol.
+
+### K-09 — Launch blocker: automatic refunds and symbol delivery are new and unreviewed
+
+Location: `ERC20EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction.deliverSymbols()` / `deliverTo()`.
+
+Added September 28 at the artist's request, so no bidder needs to claim or withdraw. An outbid bid is paid back inside the bid that beats it, through a gas-capped (150k) call the auction makes to itself; any failure (blacklist, a token that skims payouts, a hook) is caught and the amount becomes a pull refund as before, so an address that cannot receive never blocks bidding. `deliverSymbols(max)` walks a queue of bidders in bid order and mints each one's pending symbols through a self-call capped at 150k gas per symbol; a wallet that rejects the tokens or burns its allowance is skipped (`DeliveryFailed`) and keeps its credits for `claimSymbols`. With too little gas left for the next wallet's full allowance the call stops without skipping, so a low gas limit cannot be used to skip wallets. Anyone may call it; the treasury pays the gas (about 1.93M for 64 symbols).
+
+Residual risks: a caller who under-funds the outer call stops the run early (no harm); the per-symbol gas cap could skip a legitimate contract wallet with an expensive receiver hook, which then claims by hand; the queue grows with every rewarded bid (walking empty entries is bounded at 256 per call). Both self-calls are external functions callable only by the auction (`Unauthorized` otherwise), and every state-changing entry point stays `nonReentrant`.
+
+**Status:** 213 contract tests pass, including new delivery tests and invariants that fuzz deferred refunds and deliveries; Slither has no medium or high findings, with one documented suppression for the delivery cursor written after the guarded self-calls. The September 26 review rounds and mutation testing do **not** cover this code: repeat them before freezing.
 
 ### K-02 — Medium, reduced: symbol traits are public and deterministic
 
