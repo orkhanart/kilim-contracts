@@ -113,27 +113,31 @@ try {
     show(who);
   }
 
-  step('Bob, outbid, withdraws his refund in USDC; his symbols stay');
+  step('Bob, outbid, was refunded in USDC inside the bid that beat him; his symbols stay');
   await bob.refresh();
-  const refund = bob.account().refund;
-  assert.ok(refund > 0n);
-  await bob.withdrawRefund();
-  assert.equal(bob.account().refund, 0n);
+  assert.equal(bob.account().refund, 0n, 'nothing waits to be withdrawn');
   assert.equal(bob.account().credits, 2);
-  show(bob, { withdrew: KILIM_CHAIN.fmtUsd(refund) });
+  show(bob);
 
-  step('Alice claims everything her bids reserved, up to 64 per claim, from non-contiguous ranges');
-  await alice.refresh();
-  console.log('     ranges:', alice.account().ranges.map((r) => `#${r.firstId}–#${r.firstId + r.count - 1}`).join(', '));
-  const claimed = await alice.claimAll({ onProgress: (p) => console.log(`     claimed ${p.claimed} of ${p.total}`) });
-  assert.equal(alice.account().credits, 0);
-  assert.equal(alice.holdings().length, claimed.count);
-  show(alice);
-
-  step('Carol tries to claim to a contract that cannot hold NFTs: caught before signing');
+  step('Carol tries to claim by hand to a contract that cannot hold NFTs: caught before signing');
   const bad = await expectName(carol.claim({ to: d.usdc }), 'ERC721InvalidReceiver');
   console.log('    ', carol.explain(bad).message);
-  await carol.claimAll();
+
+  step('The artist delivers every reserved symbol to its bidder, up to 64 per transaction');
+  await treasury.refresh();
+  let sent = 0;
+  for (;;) {
+    const a = treasury.auction();
+    if (a.symbolsReserved - a.symbolsClaimed <= 0) break;
+    const r = await treasury.deliver();
+    console.log(`     delivered ${r.delivered}`);
+    sent += r.delivered;
+    if (!r.delivered) break;
+  }
+  for (const who of [alice, bob, carol]) { await who.refresh(); assert.equal(who.account().credits, 0); }
+  assert.equal(treasury.auction().symbolsReserved, treasury.auction().symbolsClaimed);
+  assert.equal(alice.holdings().length + bob.holdings().length + carol.holdings().length, sent);
+  show(alice);
   show(carol);
 
   step('Carol weaves 2 × 2, expands it to 2 × 3, then freezes it');
