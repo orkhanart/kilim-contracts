@@ -231,13 +231,12 @@ contract KilimAuctionTest is TestBase {
         _bid(BOB, 27);
         usd.setBlockedRecipient(address(0));
         _bid(address(receiver), 29);
-        vm.warp(auction.endsAt());
-        auction.settle();
         receiver.configure(
             false, address(auction), abi.encodeCall(auction.withdrawRefund, (address(receiver)))
         );
-        vm.prank(address(receiver));
-        auction.claimPrize(address(receiver));
+        vm.warp(auction.endsAt());
+        // The 1/1 arrives inside settle(); the receiver's callback cannot withdraw from there.
+        auction.settle();
         assertTrue(!receiver.callbackSucceeded());
         assertEq(nft.ownerOf(1), address(receiver));
         assertEq(auction.refunds(address(receiver)), 25 * UNIT);
@@ -344,13 +343,15 @@ contract KilimAuctionTest is TestBase {
         vm.prank(ALICE);
         auction.claimPrize(ALICE);
         vm.warp(auction.endsAt());
+        vm.expectEmit();
+        emit KilimAuction.PrizeClaimed(ALICE, ALICE);
         auction.settle();
+        // Settlement sent it: the winner never has to claim.
+        assertEq(nft.ownerOf(1), ALICE);
+        assertTrue(auction.prizeClaimed());
         vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
         vm.prank(BOB);
         auction.claimPrize(BOB);
-        vm.prank(ALICE);
-        auction.claimPrize(CAROL);
-        assertEq(nft.ownerOf(1), CAROL);
         vm.expectRevert(KilimAuction.PrizeAlreadyClaimed.selector);
         vm.prank(ALICE);
         auction.claimPrize(ALICE);
@@ -363,9 +364,7 @@ contract KilimAuctionTest is TestBase {
         vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
         vm.prank(TREASURY);
         auction.claimPrize(TREASURY);
-        vm.prank(ALICE);
-        auction.claimPrize(CAROL);
-        assertEq(nft.ownerOf(1), CAROL);
+        assertEq(nft.ownerOf(1), ALICE);
     }
 
     function testRejectingWinnerCannotBlockSettlementOrProceeds() public {
@@ -570,13 +569,37 @@ contract KilimAuctionTest is TestBase {
         Receiver receiver = new Receiver();
         _fund(address(receiver));
         _bid(address(receiver), 25);
+        receiver.configure(false, address(auction), abi.encodeCall(auction.claimPrize, (CAROL)));
         vm.warp(auction.endsAt());
         auction.settle();
-        receiver.configure(false, address(auction), abi.encodeCall(auction.claimPrize, (CAROL)));
-        vm.prank(address(receiver));
-        auction.claimPrize(address(receiver));
         assertTrue(!receiver.callbackSucceeded());
         assertEq(nft.ownerOf(1), address(receiver));
+        vm.expectRevert(KilimAuction.PrizeAlreadyClaimed.selector);
+        vm.prank(address(receiver));
+        auction.claimPrize(CAROL);
+    }
+
+    function testRejectingWinnerFallsBackToClaim() public {
+        Receiver receiver = new Receiver();
+        _fund(address(receiver));
+        _bid(address(receiver), 25);
+        receiver.configure(true, address(0), "");
+        vm.warp(auction.endsAt());
+        vm.expectEmit();
+        emit KilimAuction.PrizeDeliveryFailed(address(receiver));
+        auction.settle();
+        assertTrue(auction.settled());
+        assertTrue(!auction.prizeClaimed());
+        vm.prank(address(receiver));
+        auction.claimPrize(CAROL);
+        assertEq(nft.ownerOf(1), CAROL);
+    }
+
+    function testOnlyTheAuctionCanDeliverThePrize() public {
+        _bid(ALICE, 25);
+        vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
+        vm.prank(ALICE);
+        auction.deliverPrize();
     }
 
     function testExactLastSecondBidAndClose() public {

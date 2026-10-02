@@ -45,8 +45,7 @@ contract LifecycleTest is TestBase {
         auction.settle();
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
-        vm.prank(BOB);
-        auction.claimPrize(BOB);
+        assertEq(auction.collection().ownerOf(1), BOB);
         // Both bidders keep and can claim remaining credits after all cash has been paid out.
         vm.prank(ALICE);
         auction.claimSymbols(19, ALICE);

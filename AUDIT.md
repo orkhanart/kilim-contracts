@@ -38,7 +38,9 @@ A bidder keeps symbol credits after getting all of their losing principal back. 
 
 ### K-09 — Launch blocker: automatic refunds and symbol delivery are new and unreviewed
 
-Location: `ERC20EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction.deliverSymbols()` / `deliverTo()`.
+Location: `ERC20EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction.deliverSymbols()` / `deliverTo()`, `KilimAuction._afterSettle()` / `deliverPrize()`.
+
+Settlement also sends the 1/1 to the winner (a self-call capped at 500k gas); if the winner's wallet rejects it, settle still succeeds (`PrizeDeliveryFailed`) and the winner uses `claimPrize(to)`.
 
 Added September 28 at the artist's request, so no bidder needs to claim or withdraw. An outbid bid is paid back inside the bid that beats it, through a gas-capped (150k) call the auction makes to itself; any failure (blacklist, a token that skims payouts, a hook) is caught and the amount becomes a pull refund as before, so an address that cannot receive never blocks bidding. `deliverSymbols(max)` walks a queue of bidders in bid order and mints each one's pending symbols through a self-call capped at 150k gas per symbol; a wallet that rejects the tokens or burns its allowance is skipped (`DeliveryFailed`) and keeps its credits for `claimSymbols`. With too little gas left for the next wallet's full allowance the call stops without skipping, so a low gas limit cannot be used to skip wallets. Anyone may call it; the treasury pays the gas (about 1.93M for 64 symbols).
 

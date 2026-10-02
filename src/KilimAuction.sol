@@ -58,6 +58,8 @@ contract KilimAuction is ERC20EnglishAuction {
     /// @dev Gas allowed per symbol for one bidder's mint, receiver callbacks included. A wallet that
     ///      needs more, or rejects the tokens, is skipped and claims by hand instead.
     uint256 private constant DELIVERY_GAS_PER_SYMBOL = 150_000;
+    /// @dev Gas allowed for sending the 1/1 to the winner at settlement, receiver callback included.
+    uint256 private constant PRIZE_GAS = 500_000;
 
     error RewardSlippage();
     error InvalidQuantity();
@@ -73,6 +75,8 @@ contract KilimAuction is ERC20EnglishAuction {
     event PrizeClaimed(address indexed winner, address indexed recipient);
     /// @notice A delivery to this bidder failed; their symbols stay claimable with claimSymbols.
     event DeliveryFailed(address indexed bidder, uint256 count);
+    /// @notice Settlement could not send the 1/1 to the winner; they claim it with claimPrize.
+    event PrizeDeliveryFailed(address indexed winner);
 
     constructor(Config memory config)
         ERC20EnglishAuction(AuctionConfig({
@@ -239,7 +243,25 @@ contract KilimAuction is ERC20EnglishAuction {
         }
     }
 
-    /// @notice The winner claims the masterpiece. Settlement is impossible without a bid, so
+    /// @dev Settlement sends the 1/1 straight to the winner. A wallet that rejects it, or needs more
+    ///      than PRIZE_GAS, leaves settlement intact and the winner claims it with claimPrize.
+    function _afterSettle() internal override {
+        try this.deliverPrize{gas: PRIZE_GAS}() {}
+        catch {
+            emit PrizeDeliveryFailed(highestBidder);
+        }
+    }
+
+    /// @notice Internal use only: the 1/1 to the winner at settlement, as a call to itself.
+    function deliverPrize() external {
+        if (msg.sender != address(this)) revert Unauthorized();
+        address winner = highestBidder;
+        prizeClaimed = true;
+        collection.mintMasterpiece(winner);
+        emit PrizeClaimed(winner, winner);
+    }
+
+    /// @notice Only needed if settlement could not send it: the winner claims the masterpiece. Settlement is impossible without a bid, so
     ///         there is no unsold branch: with no bids the auction simply never ends.
     function claimPrize(address to) external nonReentrant {
         if (!settled) revert NotSettled();

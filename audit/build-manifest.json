@@ -22,10 +22,10 @@
         "runs": 200
       },
       "viaIR": false,
-      "creationBytecodeBytes": 28840,
-      "runtimeTemplateBytes": 9598,
-      "creationBytecodeSha256": "c1d1d5955010152179be04192d22cb16ca808ac3ead649a547814fdf2fe169a6",
-      "abiSha256": "af400bf55f11515be396071e630f3cf010845b2628b545af327a4a2234bc055b"
+      "creationBytecodeBytes": 29237,
+      "runtimeTemplateBytes": 9988,
+      "creationBytecodeSha256": "f70ca2025bd43fd671361bcdc1b8147868a1ca4a469266ef04a13c3633dee2ef",
+      "abiSha256": "0d765959b5552b92f2293b4c3844b611fdae49c7f69152e383bcdcf4bca2b3ec"
     }
   },
   "compiledSourceKeccak256": {
@@ -55,8 +55,8 @@
     "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
     "node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": "0xd6fa4088198f04eef10c5bce8a2f4d60554b7ec4b987f684393c01bf79b94d9f",
     "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": "0x304d732678032a9781ae85c8f204c8fba3d3a5e31c02616964e75cfdc5049098",
-    "src/KilimAuction.sol": "0xa1abe6970b6ad2a51e8dc2dab9361ad7344bfa64bf58af665ee9f64bbbc93693",
-    "src/auction/ERC20EnglishAuction.sol": "0x65c70fb972097b06226b532653c65429c218fb504a3aa658e75aa3f97c690d41"
+    "src/KilimAuction.sol": "0x8dc670cea94c9db17f5858065007eecb83f12c7ff80bd40bab6d5efa301dd138",
+    "src/auction/ERC20EnglishAuction.sol": "0xd376556786242630e7cc8fc190cf32b59c6b6410dcd117f2da6844aff3a12e4c"
   },
   "sourceSha256": {
     "audit/requirements.txt": "6604a6ff4d6bcc72c7a7e445d1a86e89a823d73cfb61d11ac027cca912eaccd4",
@@ -82,10 +82,10 @@
     "scripts/site-config.mjs": "2a7d8a1bb35931b780090ae3ed730ee041736889ad1537685b188eeb3acd80f5",
     "scripts/slither.mjs": "f401853496db300378bfd3901a73dcd4f42ee0e4dd411eea21c92bbfa66309ad",
     "scripts/verify-upstream.mjs": "2e40068aedd87491d4f51456a346d544a2b141e6a442c52b90891f1f67a54884",
-    "scripts/walkthrough.mjs": "25d4c3b7d5378d8c6ebdabac47097d37d2b67385bd8d0a6bd84625b19e48ddfb",
+    "scripts/walkthrough.mjs": "d10f85592bd6f25b802c8a4beaa5eecbf5eec2751263079c7be946af77164fa9",
     "src/Kilim.sol": "588abe64bac5291423f454bb4829377f01be7d788ed646e8545f18698cf0d60a",
-    "src/KilimAuction.sol": "0f23d158c373ff13212149dab3d8885a3b15ea0ab3a9a47c3198e27aeb9a70b2",
-    "src/auction/ERC20EnglishAuction.sol": "e6714b3955fa6b6979bdcb7904579816c9a1fb5b59e71b490f43c723b66947be",
+    "src/KilimAuction.sol": "fd5e72c22432c9281414fe41c8a843312b06bbc4925b2bb2aa6cdb608de1b48f",
+    "src/auction/ERC20EnglishAuction.sol": "162de56022ff9b95e8731dd0b0b6bd5eea5418eefaecb9cab886b7192fba31f9",
     "src/render/IKilimRenderer.sol": "798edb58e0933976b9a72982fa031e4f2ee3ab41ed6524c07801447acefc3519",
     "src/render/KilimRenderer.sol": "625499e540c099be86161e0a1a73f89472ed60265021fbb7905f1cc78e1ed226",
     "src/render/KilimWriter.sol": "203ae3457a2a1f3cfa0514c166d7eb3d8038c20d050511bac422882a762146a4",
@@ -95,9 +95,9 @@
     "test/DeployKilim.t.sol": "b992791e02e8016c3c372337a73094aa394f18839d94f1778042035e9ef2ba4c",
     "test/GasLimits.t.sol": "b62716a29e3cea38f851f4fa1d520c61a3f395ed056ebe4fb2a165a88a8a05ae",
     "test/Kilim.t.sol": "99ae554f121670b111f069dcb164ea109536ea32a3b1e7a43f30f959c83b5a12",
-    "test/KilimAuction.t.sol": "a5c3ef6edd4db82ae73fc5c1318367b9d7511877fe7d6dd00a8d370c1e06c83f",
-    "test/LaunchConfig.t.sol": "caf5c69313e1484583ff94d834cbebae752d1ce0a2f9bc2214531adab6e27afd",
-    "test/Lifecycle.t.sol": "44ebae9a9f77d78ea6f8185f2dccd53c72f8a71e999c7b517199bc8944524509",
+    "test/KilimAuction.t.sol": "1889f8613956f4feba475912d7f2bf908d1fbe73b86192abdeb8a56324c6606e",
+    "test/LaunchConfig.t.sol": "911faefb7ce465a3cb8652f4d8ef07da400999103d1993e1b14672a1a1982c07",
+    "test/Lifecycle.t.sol": "fe9e730d3fed864d64150b58d418c40dfa7688bbcbf3612d5f41ac29ba8767d1",
     "test/ReuseRegression.t.sol": "2a79de382f810d5f4687cfd049a8ba3f768a6776bd2c70a4bcdecc8367a80bd7",
     "test/TestBase.sol": "f0e016fdd6377e327e5ea3a21953e98fc74a70f57eabed4caef9f11ecdad2c2a",
     "test/mocks/GasBurner.sol": "9b73b6a331642a0bbffba872ed0c3412a1508b20d087bde065f33c4780b7e4c3",

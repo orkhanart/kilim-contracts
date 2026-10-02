@@ -115,7 +115,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
         emit RefundWithdrawn(msg.sender, to, amount);
     }
 
-    /// @notice Settlement records the outcome without calling the winner or transferring assets.
+    /// @notice Settlement records the outcome, then hands the extension a chance to deliver the prize.
     /// @dev Impossible until a first bid starts the clock; with no bids there is nothing to settle.
     function settle() external nonReentrant {
         if (settled) revert AlreadySettled();
@@ -124,7 +124,11 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard {
         settled = true;
         proceedsDue = highestBid;
         emit AuctionSettled(highestBidder, highestBid);
+        _afterSettle();
     }
+
+    /// @dev Runs at the end of settle(), after the outcome is recorded. Must never revert.
+    function _afterSettle() internal virtual {}
 
     function withdrawProceeds(address to) external nonReentrant {
         if (msg.sender != treasury) revert Unauthorized();

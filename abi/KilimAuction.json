@@ -169,6 +169,13 @@
   },
   {
     "type": "function",
+    "name": "deliverPrize",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "deliverSymbols",
     "inputs": [
       {
@@ -748,6 +755,19 @@
       },
       {
         "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PrizeDeliveryFailed",
+    "inputs": [
+      {
+        "name": "winner",
         "type": "address",
         "indexed": true,
         "internalType": "address"

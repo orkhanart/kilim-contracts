@@ -122,8 +122,7 @@ contract LaunchConfigTest is TestBase {
         vm.prank(ARTIST);
         auction.withdrawProceeds(ARTIST);
         assertEq(usdc.balanceOf(ARTIST), 1e30 + 2 * UNIT);
-        vm.prank(BOB);
-        auction.claimPrize(BOB);
+        // Settlement sent the 1/1 to the winner: nothing to claim.
         assertEq(nft.ownerOf(1), BOB);
     }
 

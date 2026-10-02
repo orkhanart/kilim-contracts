@@ -154,7 +154,7 @@ try {
   assert.equal(carol.nameOf(g.id), 'Kilim Artwork #1');
   console.log('    ', `${carol.nameOf(g.id)} (token ${g.id}) · ${g.cols} × ${g.rows} · revision ${g.revision} · ${g.frozen ? 'frozen' : 'editable'}`);
 
-  step('The close passes: anyone settles, the winner claims the 1/1, the treasury withdraws');
+  step('The close passes: settling sends the 1/1 to the winner; the treasury withdraws');
   await alice.refresh();
   await W.warp(alice.auction().endsAt);
   await bob.refresh();
@@ -162,7 +162,7 @@ try {
   await bob.settle();
   const winner = [alice, carol].find((c) => c.auction().youWin);
   await winner.refresh();
-  await winner.claimPrize();
+  assert.equal(winner.phase(), 'settled');
   assert.ok(winner.account().hasMasterpiece);
   await treasury.refresh();
   const due = treasury.auction().proceedsDue;
