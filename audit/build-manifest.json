@@ -92,6 +92,7 @@
     "src/render/IKilimRenderer.sol": "798edb58e0933976b9a72982fa031e4f2ee3ab41ed6524c07801447acefc3519",
     "src/render/KilimRenderer.sol": "625499e540c099be86161e0a1a73f89472ed60265021fbb7905f1cc78e1ed226",
     "src/render/KilimWriter.sol": "203ae3457a2a1f3cfa0514c166d7eb3d8038c20d050511bac422882a762146a4",
+    "test/AttackPatterns.t.sol": "a81eaa8137381494c0b780e36faa0ced22cac334fd8a583293dc1ee41b169f39",
     "test/AuctionInvariants.t.sol": "c319b41f7ab4d9bb4fd6cda6b83c69715b42878ea69bf19131be2e32e5469bbd",
     "test/AuditGaps.t.sol": "dc6709a2ef016459ba26f52a825acebcf6530db7d9d500a38c5fefae17670c03",
     "test/CompositionInvariants.t.sol": "a25b616805d83f6196589d839e8c22b8ebc85a5cdbeec44dc9b89530359d2854",

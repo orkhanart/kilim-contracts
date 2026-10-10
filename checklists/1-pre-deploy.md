@@ -211,6 +211,21 @@ The pages inline their scripts, so after editing rebuild with `python3 site/buil
   - `PrizeDeliveryFailed`: the winner must call `claimPrize`;
   - every `Registered`, `AuctionStarted` and `BidPlaced`.
 
+## From the October 2026 attack research
+
+Source: `reports/Auction contract attack patterns 2026.md` (67 items). The contract items are tested in `test/AttackPatterns.t.sol`; these are the decisions and steps that remain.
+
+- [ ] **Decide `tokenURI` and the 16,777,216-gas line.** The 1/1 reads at 22.4M gas and the largest artworks at 17.3M to 30.4M. After Glamsterdam some nodes (Reth, Nethermind as of 2026-10-10) refuse reads above 16,777,216. Either bring every token under it (a lighter 1/1 render and a smaller `maxCells`, about 100) or accept in writing that the heaviest tokens depend on RPC policy. This cannot be changed after deployment.
+- [ ] **After 2026-11-01** (EIP-8037 leaves Last Call): re-run the Glamsterdam projections in `test/AttackPatterns.t.sol` with the final prices, then run the whole lifecycle on Sepolia, which already runs Glamsterdam: register, bid, outbid an EOA, a Safe and a refusing wallet, settle to a first-time holder, claim 64, weave. Re-measure the page's bid and settle gas limits and the relayer's `gasLimit` and budget (a registration writes one new slot).
+- [ ] **Deploy the data store before Glamsterdam reaches mainnet.** Code deposit rises from 200 to 1,530 gas per byte.
+- [ ] **Separate the keys.** The deploy script pins the treasury and the collection-page owner to one address. Decide whether the page role moves to a low-value key or is renounced after launch. No key used for the launch may carry an EIP-7702 delegation.
+- [ ] **Domain.** Registrar with no account recovery by support, registry lock on, DNSSEC validating, CAA records set; monitor NS, A and DS records and certificate-transparency logs; announce a fallback (direct contract instructions) beforehand. Every 2025 and 2026 front-end theft in the report began with a persuaded support agent.
+- [ ] **Site hardening not built yet:** a scheduled check that each served page hashes to the tagged build; a check after sending that the mined transaction's `to`, `value` and `data` are what the page built; two independent RPC providers that must agree before the bid button is live; a raised priority fee and a high max fee for bids in the last ten minutes, sent to the public mempool.
+- [ ] **Real smart wallets on a fork:** `registerFor` with a Safe (with and without its fallback handler) and a Coinbase Smart Wallet. OpenZeppelin 5.6.1 sends ERC-1271 calldata without zero padding (5.7.0 pads it).
+- [ ] **Marketplaces on a testnet:** mint throwaway tokens and check how OpenSea, Etherscan and the main wallets show the SVG image and the `data:text/html` animation.
+- [ ] **Say it plainly on the site and in the terms:** registration is a counter of 100 wallets, not a list of who may bid; one wallet outbidding itself earns about eleven times the symbols of one bid; refunds and the 1/1 are sent automatically when the receiving wallet allows it and are otherwise withdrawn or claimed; the site never asks for a token approval, a permit or a wallet delegation.
+- [ ] **The weeks before the launch:** no remote control in calls, no scripts or repositories from new contacts, review the apps connected to the X account, freeze wallet-extension updates, and verify the payout address on the device against a written copy.
+
 ## Go / no-go
 
 - [ ] Every item above is checked. The frozen tag, audit report, config file and published predictions all refer to the same commit and values. Two people sign off.

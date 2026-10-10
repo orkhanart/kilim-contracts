@@ -256,3 +256,37 @@ After the token mode was removed, three reviewers re-read the contracts: one com
 - **R-13 (low), fixed.** `testProceedsCannotGoToAnInvalidRecipient`.
 
 Test gaps closed on October 10 in `test/AuditGaps.t.sol` (13 tests): upper and lower bounds on both gas constants and the settle floor (F-05, R-11, R-12), re-entry through `withdrawProceeds` and `claimPrize` (R-14), the EIP-712 domain and type string rebuilt independently (F-18, R-15), the self-call entry points against every caller (R-16), the `Registered`, `AuctionStarted` and `AuctionSettled` events and a first bid that refunds nobody (R-17), constructor and deadline edges (R-18), and registration before the start or by the treasury (F-16). Twenty-five single-line mutants of those checks were applied one at a time; the suite fails on every one. Leftover code removed the same day, with no change in behaviour (all suites and the 25 mutants re-run): the unreachable `startsAt` clause and the implied `settled` clause in `_handleBid` (R-03), the `duration == 0`, `symbolCap == 0` and `symbolCap > uint64 max` clauses that other checks already cover, the unused `bidder` argument of `_claim`, and four stale comments (R-04). Kept on purpose as a second line of defence, although other checks imply them today: the zero-address test in `registerFor` (it relies on the zero address having no code), `_validateRecipient` in `claimPrize` (the collection checks the same, later), and `nonReentrant` on `register` and `registerFor`. `reservePrice` stays a constructor value that accepts only 0.01 ETH, because the site and the deploy script read it. None of this code has had an independent human review; that remains a launch blocker.
+
+## October 2026 attack research
+
+A web research pass on exploits and audit findings from 2024 to October 2026 against contracts of this shape, with a 67-item checklist: `../reports/Auction contract attack patterns 2026.md` (notes in `../research_notes/`). No live mainnet NFT English auction was found exploited in that period. The contract was then tested against the checklist's contract items.
+
+**Result: no new vulnerability.** `test/AttackPatterns.t.sol` (15 tests) adds the patterns that had no test:
+
+- a deferred refund can be withdrawn only by its owner, once (the Bid Beasts 2025 drain);
+- a return-data bomb from the outbid wallet or from the winner's NFT hook cannot make a bid or a settlement fail, even at a gas limit estimated with no margin. `settle` does not copy a hostile winner's revert data: a variant that does is caught by the test;
+- an ordinary wallet's refund is never pushed to the pull path by a rival's choice of gas limit;
+- nothing in the auction can be entered from the refund callback;
+- a wallet that gains code after bidding (EIP-7702) cannot block bids or settlement, and still withdraws and claims;
+- fifty bids in the closing window each move the close to exactly ten minutes after the bid; at the closing second only settlement is possible;
+- malleable (high-s), compact and padded signatures are refused; a wallet with code cannot use the sponsored signature and registers directly (the site now routes such wallets to `register()`); hostile ERC-1271 wallets never register on a bad answer and cost the sponsor at most its gas limit;
+- recorded, accepted behaviour: one transaction can fill all 100 registrations (7.8M gas) and anyone can then bid; a self-outbid ladder to a 1.06 ETH top bid earns 11,351 symbols against 1,060 for one honest bid.
+
+`site/test/contract-static.test.mjs` pins that no contract logic depends on `tx.origin` or on a bidder's code, that nothing uses `delegatecall`, `selfdestruct`, `transfer`/`send` or forwards calldata, and the compiler and library versions.
+
+**The fixed gas numbers at Glamsterdam prices** (scheduled, on Sepolia since 2026-10-06, no mainnet date; EIP-8037 values not final until its Last Call ends on 2026-11-01). Measured by counting the storage slots each path writes and re-pricing them (new slot 22,100 to 110,020 gas):
+
+| Path | Today | At Glamsterdam prices | Fixed number |
+|---|---|---|---|
+| Recording a refund that could not be paid (two new slots) | about 50,000 | about 226,000 | 300,000 kept back |
+| Prize delivery before the winner's hook (three new slots, one update) | 86,719 | 357,579 | 500,000 allowance |
+| Gas left for a winner's `onERC721Received` | 413,281 | 142,421 | |
+
+Both still work after the repricing; the delivery keeps enough for a Safe-style hook, not for one that writes two new slots. A further rise of about 40% in the price of a new slot would exhaust either. The failure mode is the fallback (pull refund, `claimPrize`), not loss, and a bidder can always send more gas than the minimum. The site now sends bids with 1,500,000 gas and settlement with 1,200,000.
+
+**Open decisions from the research** (also in `checklists/1-pre-deploy.md`):
+
+1. **`tokenURI` above 16,777,216 gas.** The 1/1 needs 22.4M gas and a 256-cell artwork 17.3M (typical) to 30.4M (heaviest). Reads work today. Under Glamsterdam rules Reth and Nethermind stop `eth_call` at 16,777,216 while geth and Erigon lifted the cap in the second week of October 2026; nothing binds the outcome. A token above the cap would show no metadata through those nodes, permanently, because the renderer is immutable. Keeping every token under the cap means a lighter 1/1 render and a smaller largest canvas (about 100 cells with today's symbols, which would also keep the largest weave inside one ordinary transaction after the repricing).
+2. **Re-measure after EIP-8037 is final**, on Sepolia, before the auction is deployed; deploy the data store before Glamsterdam reaches mainnet (code deposit rises 7.65 times).
+3. **One key holds the treasury and the collection page.** A compromise would take the proceeds and rewrite the collection's description and link together.
+4. **Not built yet on the site:** a scheduled check that the served pages hash to the tagged build, a post-send check that the mined transaction is the one the page built, agreement between two RPC providers, and a raised priority fee for bids in the closing window.
