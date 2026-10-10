@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kilim auction test</title>
+<style>
+  :root { --text: #1b1d21; --soft: #5f6570; --line: #e3e5ea; --bg: #f5f6f8; --card: #fff; --accent: #1f5fd0; --accent-soft: #e8f0fd; --good: #17834a; --good-soft: #e6f5ec; --bad: #c8321f; --bad-soft: #fdecea; --warn: #8a6100; --warn-soft: #fff5d6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--text); background: var(--bg); }
+  .page { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; }
+  .lede { margin: 6px 0 0; color: var(--soft); }
+  .badge { display: inline-block; margin-left: 10px; padding: 2px 10px; font-size: 13px; font-weight: 600; vertical-align: 4px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; }
+
+  /* The four stages, with the current one marked. */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+  .steps li { padding: 12px 14px; font-size: 14px; color: var(--soft); background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .steps li b { display: block; font-size: 15px; color: var(--text); }
+  .steps li.done { color: var(--good); border-color: #bfe3cd; background: var(--good-soft); }
+  .steps li.done b { color: var(--good); }
+  .steps li.now { border: 2px solid var(--accent); background: var(--accent-soft); padding: 11px 13px; }
+  .steps li.now b { color: var(--accent); }
+
+  .now-box { margin: 16px 0 0; padding: 20px 22px; background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--accent); border-radius: 10px; }
+  .now-box h2 { margin: 0 0 4px; font-size: 21px; }
+  .now-box p { margin: 0; color: var(--soft); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; margin-top: 20px; align-items: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card + .card { margin-top: 20px; }
+  .card h3 { margin: 0 0 4px; font-size: 18px; }
+  .card > p { margin: 0 0 16px; color: var(--soft); font-size: 15px; }
+  .card.off { opacity: .55; }
+  .card .lock { display: none; margin: 0 0 14px; padding: 8px 12px; font-size: 14px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; }
+  .card.off .lock { display: block; }
+
+  .meter { height: 14px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 999px; transition: width .3s; }
+  .big { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .big small { font-size: 16px; font-weight: 400; color: var(--soft); }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 18px; }
+  .facts div { padding: 12px 14px; background: var(--bg); border-radius: 10px; }
+  .facts span { display: block; font-size: 13px; color: var(--soft); }
+  .facts b { font-size: 20px; }
+
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+  button { font: inherit; font-weight: 600; padding: 10px 18px; color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer; }
+  button:hover { filter: brightness(1.08); }
+  button.plain { color: var(--text); background: var(--card); border: 1px solid #c9cdd6; font-weight: 500; }
+  button.plain:hover { background: var(--bg); filter: none; }
+  button.link { padding: 0; color: var(--soft); background: none; font-weight: 400; text-decoration: underline; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  label { font-size: 14px; color: var(--soft); }
+  select, input { font: inherit; padding: 9px 12px; border: 1px solid #c9cdd6; border-radius: 8px; background: #fff; }
+  input { width: 120px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  details { margin-top: 16px; font-size: 15px; }
+  summary { cursor: pointer; color: var(--soft); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+  th { font-size: 13px; font-weight: 500; color: var(--soft); }
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  .tag { display: inline-block; margin-left: 6px; padding: 1px 8px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; }
+  .yes { color: var(--good); font-weight: 600; } .no { color: var(--soft); }
+
+  #log { margin: 0; padding: 0; list-style: none; max-height: 560px; overflow: auto; }
+  #log li { display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 15px; border-radius: 8px; background: var(--good-soft); }
+  #log li.no { background: var(--bad-soft); }
+  #log li::before { content: "✓"; font-weight: 700; color: var(--good); }
+  #log li.no::before { content: "✕"; color: var(--bad); }
+  #log .empty { background: var(--bg); color: var(--soft); }
+  #log .empty::before { content: ""; }
+  footer { margin-top: 24px; font-size: 13px; color: var(--soft); }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr 1fr; } .facts { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Kilim auction test <span class="badge">Practice only</span></h1>
+  <p class="lede">Try the auction from start to finish. This runs on a private copy on your computer with pretend wallets and pretend ETH. Nothing here is real or public.</p>
+
+  <ol class="steps" id="steps">
+    <li data-step="checkin"><b>1. Check-in</b>100 wallets sign up</li>
+    <li data-step="bidding"><b>2. Bidding</b>24 hours from the first bid</li>
+    <li data-step="ended"><b>3. Ended</b>Waiting to be settled</li>
+    <li data-step="settled"><b>4. Settled</b>Winner has the 1/1</li>
+  </ol>
+
+  <div class="now-box"><h2 id="now-title">Loading…</h2><p id="now-text"></p></div>
+
+  <div class="grid">
+    <div>
+      <section class="card" id="card-checkin">
+        <h3>Check-in</h3>
+        <p>The auction cannot start until 100 different wallets have checked in. Checking in costs nothing, but the wallet must hold at least 0.01 ETH.</p>
+        <p class="lock">Check-in is closed: 100 wallets are in.</p>
+        <div class="big"><span id="count">0</span> <small>of 100 wallets checked in</small></div>
+        <div class="meter" style="margin-top:12px"><i id="meter"></i></div>
+        <div class="buttons">
+          <button data-do="checkin" data-count="1">Check in 1 wallet</button>
+          <button data-do="checkin" data-count="10" class="plain">Check in 10</button>
+          <button data-do="checkin" data-count="100" class="plain">Fill up to 100</button>
+        </div>
+        <details><summary>Try things that should be refused</summary>
+          <div class="buttons">
+            <button data-do="checkin" data-poor="1" class="plain">A wallet with only 0.005 ETH</button>
+            <button data-do="again" data-n="1" class="plain">Aylin checks in a second time</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="card" id="card-bid">
+        <h3>Bidding</h3>
+        <p>Anyone can bid once check-in is complete. Every 0.001 ETH of a bid earns one symbol, even if you are outbid later.</p>
+        <p class="lock" id="bid-lock">Bidding is locked until 100 wallets have checked in.</p>
+        <div class="facts">
+          <div><span>Highest bid</span><b id="highest">none yet</b></div>
+          <div><span>Leading</span><b id="leader">nobody</b></div>
+          <div><span>Time left</span><b id="left">not started</b></div>
+        </div>
+        <div class="buttons" style="margin-top:0">
+          <div class="field"><label for="bid-n">Who bids</label><select id="bid-n"></select></div>
+          <div class="field"><label for="bid-amount">Amount in ETH</label><input id="bid-amount" inputmode="decimal"></div>
+          <button id="bid" style="align-self:flex-end">Place bid</button>
+        </div>
+        <p style="margin:10px 0 0;font-size:14px">The next bid must be at least <b id="minimum">0.01</b> ETH. <button class="link" id="use-min">Use that amount</button></p>
+      </section>
+
+      <section class="card" id="card-time">
+        <h3>Skip time</h3>
+        <p>The real auction runs for 24 hours. Here you can jump ahead. A bid in the last 10 minutes pushes the end out by 10 minutes.</p>
+        <p class="lock">The clock starts with the first bid.</p>
+        <div class="buttons" style="margin-top:0">
+          <button data-do="time" data-seconds="3600" class="plain">Forward 1 hour</button>
+          <button data-do="time" data-to="beforeEnd" class="plain">To the last minute</button>
+          <button data-do="time" data-to="afterEnd">To the end</button>
+        </div>
+      </section>
+
+      <section class="card" id="card-after">
+        <h3>After the auction</h3>
+        <p>Settling hands the 1/1 to the winner. After that, bidders claim their symbols and the artist withdraws the winning bid.</p>
+        <p class="lock">Available once the time has run out.</p>
+        <div class="buttons" style="margin-top:0">
+          <button data-do="settle" id="settle">Settle the auction</button>
+          <button data-do="proceeds" class="plain">Artist withdraws the winning bid</button>
+        </div>
+        <div class="buttons">
+          <div class="field"><label for="after-n">Bidder</label><select id="after-n"></select></div>
+          <button id="claim" class="plain" style="align-self:flex-end">Claim 10 symbols</button>
+          <button id="refund" class="plain" style="align-self:flex-end">Withdraw refund</button>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="card">
+        <h3>Bidders</h3>
+        <p>Five pretend people you can bid with.</p>
+        <table><thead><tr><th>Name</th><th>Checked in</th><th>Symbols to claim</th><th>Symbols owned</th></tr></thead><tbody id="wallets"></tbody></table>
+        <p style="margin:14px 0 0;font-size:14px">Symbols given out so far: <b id="allocated">0</b>. Claimed: <b id="claimed">0</b>. Owed to the artist: <b id="proceeds">0</b> ETH.</p>
+      </section>
+      <section class="card">
+        <h3>What happened</h3>
+        <p>Newest first. Red means the contract refused, with the reason.</p>
+        <ul id="log"></ul>
+      </section>
+      <div class="buttons"><button data-do="reset" class="plain">Start over from the beginning</button></div>
+    </div>
+  </div>
+  <footer>Test time: <span id="time"></span> · Contract on the private chain: <span id="auction"></span></footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const span = (s) => s <= 0 ? 'time is up' : s >= 3600 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s';
+const STEP = { checkin: 0, ready: 1, running: 1, ended: 2, settled: 3 };
+const NOW = {
+  checkin: (s) => ['Check-in is open', `${100 - s.count} more wallet${100 - s.count === 1 ? '' : 's'} needed before anyone can bid. Use "Check in" below.`],
+  ready: () => ['Ready to start', '100 wallets are in. The auction starts, and its 24-hour clock with it, as soon as someone places the first bid.'],
+  running: (s) => ['The auction is running', `${s.leader} leads with ${s.highest} ETH. ${span(s.left)} left. Place more bids, or skip time to reach the end.`],
+  ended: (s) => ['Time is up', `${s.leader} won with ${s.highest} ETH. Press "Settle the auction" to hand over the 1/1.`],
+  settled: (s) => ['Settled', `${s.leader} has the 1/1. Bidders can now claim their symbols.`],
+};
+let names = [], typed = false;
+
+function show(s) {
+  const at = STEP[s.phase];
+  [...$('steps').children].forEach((li, i) => { li.className = i < at ? 'done' : i === at ? 'now' : ''; });
+  const [title, text] = NOW[s.phase](s); $('now-title').textContent = title; $('now-text').textContent = text;
+  $('count').textContent = s.count; $('meter').style.width = s.count + '%';
+  $('highest').textContent = s.leader ? s.highest + ' ETH' : 'none yet'; $('leader').textContent = s.leader || 'nobody';
+  $('left').textContent = s.left === null ? 'not started' : span(s.left); $('minimum').textContent = s.minimum;
+  $('allocated').textContent = s.allocated; $('claimed').textContent = s.claimed; $('proceeds').textContent = s.proceeds;
+  $('time').textContent = new Date(s.time * 1000).toISOString().slice(0, 16).replace('T', ' '); $('auction').textContent = s.auction;
+  if (!typed) $('bid-amount').value = s.minimum;
+  // What each stage allows.
+  const off = (id, is) => $(id).classList.toggle('off', is);
+  off('card-checkin', s.phase !== 'checkin'); off('card-bid', !(s.phase === 'ready' || s.phase === 'running'));
+  $('bid-lock').textContent = s.phase === 'checkin' ? 'Bidding is locked until 100 wallets have checked in.' : 'Bidding is over.';
+  off('card-time', s.phase !== 'running'); off('card-after', !(s.phase === 'ended' || s.phase === 'settled'));
+  $('settle').disabled = s.phase !== 'ended';
+  if (names.join() !== s.wallets.slice(0, 5).map((w) => w.name).join()) {
+    names = s.wallets.slice(0, 5).map((w) => w.name);
+    for (const id of ['bid-n', 'after-n']) $(id).replaceChildren(...names.map((name, i) => new Option(name, i + 1)));
+  }
+  $('wallets').replaceChildren(...s.wallets.map((w) => {
+    const row = document.createElement('tr'), cell = (text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; row.append(td); return td; };
+    const name = cell(w.name); if (w.leading) { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = s.phase === 'settled' || s.phase === 'ended' ? 'winner' : 'leading'; name.append(tag); }
+    cell(w.registered ? 'Yes' : 'No', w.registered ? 'yes' : 'no'); cell(w.credits); cell(w.owned);
+    return row;
+  }));
+  $('log').replaceChildren(...(s.log.length ? s.log.map((entry) => { const item = document.createElement('li'); if (!entry.ok) item.className = 'no'; item.append(entry.text); return item; })
+    : [Object.assign(document.createElement('li'), { className: 'empty', textContent: 'Nothing yet. Start by checking in a wallet.' })]));
+}
+
+async function act(body) {
+  const buttons = [...document.querySelectorAll('button')], was = buttons.map((b) => b.disabled); buttons.forEach((b) => b.disabled = true);
+  try { const s = await (await fetch('/do', { method: 'POST', body: JSON.stringify(body) })).json(); buttons.forEach((b, i) => b.disabled = was[i]); typed = false; show(s); }
+  catch { buttons.forEach((b, i) => b.disabled = was[i]); }
+}
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-do]'); if (!button) return;
+  const { do: action, ...rest } = button.dataset; if (rest.poor) rest.poor = true;
+  act({ action, ...rest });
+});
+$('bid-amount').addEventListener('input', () => { typed = true; });
+$('use-min').onclick = () => { typed = false; $('bid-amount').value = $('minimum').textContent; };
+$('bid').onclick = () => act({ action: 'bid', n: Number($('bid-n').value), amount: $('bid-amount').value.trim() });
+for (const what of ['claim', 'refund']) $(what).onclick = () => act({ action: what, n: Number($('after-n').value) });
+
+const refresh = async () => { try { show(await (await fetch('/state')).json()); } catch { /* the test was stopped */ } };
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+No files changed, compilation skipped
+
+╭------------------+------------------+-------------------+--------------------+---------------------╮
+| Contract         | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
++====================================================================================================+
+| Base64           | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Bytes            | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| ECDSA            | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| ERC721Utils      | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| GasBurner        | 350              | 378               | 24,226             | 48,774              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Kilim            | 15,314           | 17,031            | 9,262              | 32,121              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| KilimAuction     | 13,567           | 33,861            | 11,009             | 15,291              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| KilimRenderer    | 17,007           | 20,585            | 7,569              | 28,567              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| KilimWriter      | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Math             | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| MessageHashUtils | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| MockRenderer     | 1,346            | 1,468             | 23,230             | 47,684              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| MockUSD          | 3,857            | 4,423             | 20,719             | 44,729              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Panic            | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| RangeInspector   | 1,698            | 1,836             | 22,878             | 47,316              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Receiver         | 3,092            | 3,120             | 21,484             | 46,032              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| SafeCast         | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| SafeERC20        | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| ShortStrings     | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| SignatureChecker | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| SignedMath       | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| StorageSlot      | 85               | 135               | 24,491             | 49,017              |
+|------------------+------------------+-------------------+--------------------+---------------------|
+| Strings          | 85               | 135               | 24,491             | 49,017              |
+╰------------------+------------------+-------------------+--------------------+---------------------╯
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/auction/ERC20EnglishAuction.sol:98:20
+   │
+98 │                 || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 30 days
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimWriter.sol:132:29
+    │
+132 │             return u(o + 1, uint256(-v));
+    │                             ━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/auction/ERC20EnglishAuction.sol:133:13
+    │
+133 │         if (block.timestamp > deadline) revert RegistrationSignatureExpired();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/auction/ERC20EnglishAuction.sol:149:52
+    │
+149 │             address(paymentToken) != address(0) || block.timestamp < startsAt
+    │                                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/auction/ERC20EnglishAuction.sol:184:13
+    │
+184 │         if (block.timestamp < endsAt) revert AuctionNotEnded();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/auction/ERC20EnglishAuction.sol:222:24
+    │
+222 │         if (settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt)) {
+    │                        ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/auction/ERC20EnglishAuction.sol:222:66
+    │
+222 │         if (settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt)) {
+    │                                                                  ━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#block-timestamp
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/KilimAuction.sol:141:56
+    │
+141 │             _creditRanges[msg.sender].push(CreditRange(uint128(firstSymbolId), uint128(reward)));
+    │                                                        ━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/KilimAuction.sol:141:80
+    │
+141 │             _creditRanges[msg.sender].push(CreditRange(uint128(firstSymbolId), uint128(reward)));
+    │                                                                                ━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/KilimAuction.sol:234:29
+    │
+234 │             range.nextId += uint128(take);
+    │                             ━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/KilimAuction.sol:235:32
+    │
+235 │             range.remaining -= uint128(take);
+    │                                ━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/Kilim.sol:152:26
+    │
+152 │         _nextArtworkId = uint128(FIRST_SYMBOL_ID + symbolCap_);
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimWriter.sol:134:21
+    │
+134 │         return u(o, uint256(v));
+    │                     ━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:275:22
+    │
+275 │             out[k] = uint16(STILL >> (16 * (8 - k)));
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:281:16
+    │
+281 │         return uint16(STILL >> 64);
+    │                ━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ test/render/RenderBase.sol:150:35
+    │
+150 │                 out[o++] = bytes1(uint8(v >> (16 - 8 * k)));
+    │                                   ━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/Kilim.sol:389:46
+    │
+389 │             motifs[i] = uint16(uint256(_seed(uint32(word >> ((i % 8) * 32)))) % motifCount);
+    │                                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint32' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:668:20
+    │
+668 │         o = W.i(o, int16(uint16(r >> 176)));
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/Kilim.sol:461:37
+    │
+461 │                 symbol.consumedBy = uint128(artworkId);
+    │                                     ━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint128' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/Kilim.sol:499:24
+    │
+499 │             cells[i] = uint32(word >> ((i % 8) * 32));
+    │                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint32' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:668:26
+    │
+668 │         o = W.i(o, int16(uint16(r >> 176)));
+    │                          ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:670:20
+    │
+670 │         o = W.i(o, int16(uint16(r >> 160)));
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:670:26
+    │
+670 │         o = W.i(o, int16(uint16(r >> 160)));
+    │                          ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:686:25
+    │
+686 │             uint256 m = uint16(STILL >> (16 * (8 - k)));
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:699:25
+    │
+699 │             uint256 m = uint16(STILL >> (16 * (8 - k)));
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint16' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:702:25
+    │
+702 │             o = W.i(o, (int256(k % 3) - 1) * int256(STILL_PX));
+    │                         ━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:702:46
+    │
+702 │             o = W.i(o, (int256(k % 3) - 1) * int256(STILL_PX));
+    │                                              ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:704:25
+    │
+704 │             o = W.i(o, (int256(k / 3) - 1) * int256(STILL_PY));
+    │                         ━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+    ╭▸ src/render/KilimRenderer.sol:704:46
+    │
+704 │             o = W.i(o, (int256(k / 3) - 1) * int256(STILL_PY));
+    │                                              ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'int256' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+

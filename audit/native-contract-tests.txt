@@ -1,0 +1,1108 @@
+Compiling 24 files with Solc 0.8.37
+Solc 0.8.37 finished in 3.23s
+Compiler run successful with warnings:
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> test/render/RenderGolden.t.sol:237:9:
+    |
+237 |         uint256 at = stillAt + still.length + (symbolsAt - stillAt);
+    |         ^^^^^^^^^^
+
+
+Ran 3 tests for test/GasLimits.t.sol:GasLimitsTest
+[PASS] testGas256CellWeave() (gas: 8594014)
+Logs:
+  256-cell weave execution gas (before refunds): 9771795
+
+[PASS] testGas64SymbolClaim() (gas: 1845571)
+Logs:
+  64-symbol mint execution gas (before refunds): 1837603
+
+[PASS] testGasExpandToMaximumCanvas() (gas: 8612181)
+Logs:
+  4-to-256-cell expansion execution gas (before refunds): 9469352
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 5.75ms (4.13ms CPU time)
+
+Ran 5 tests for test/LaunchConfig.t.sol:LaunchConfigTest
+[PASS] testArtistWalletCannotBidButManagesThePage() (gas: 71882)
+[PASS] testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes() (gas: 483427)
+[PASS] testDeployedValuesMatchTheDecisions() (gas: 28041)
+[PASS] testMinimumBidLadder() (gas: 1210520)
+[PASS] testOneDollarIsOneSymbolWithNoPerBidCap() (gas: 142300759)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 33.99ms (33.29ms CPU time)
+
+Ran 1 test for test/Lifecycle.t.sol:LifecycleTest
+[PASS] testRefundedSymbolsComposeExpandAndTransferThenAllClaimsSettle() (gas: 8983929)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.05ms (811.21µs CPU time)
+
+Ran 18 tests for test/render/RenderStore.t.sol:RenderStoreTest
+[PASS] testAcceptsSplicePointsAtThePageEnd() (gas: 48592185)
+[PASS] testReadsAcrossEveryChunkBoundary() (gas: 21996169)
+[PASS] testRejectsABadMotifCount() (gas: 117854741)
+[PASS] testRejectsANonZeroPrefixByte() (gas: 49783254)
+[PASS] testRejectsAWrongGeometryHashOrChunkOrder() (gas: 77510474)
+[PASS] testRejectsAWrongIndexHash() (gas: 43671865)
+[PASS] testRejectsAWrongPageHash() (gas: 43994488)
+[PASS] testRejectsAZeroBboxSide() (gas: 77112785)
+[PASS] testRejectsAnIndexOfTheWrongLength() (gas: 42618228)
+[PASS] testRejectsAnIndexThatDoesNotEndWithTheGeometry() (gas: 42922246)
+[PASS] testRejectsBadMagicAndPadding() (gas: 112745703)
+[PASS] testRejectsLengthsThatDoNotAddUp() (gas: 76282170)
+[PASS] testRejectsNoChunks() (gas: 10647450)
+[PASS] testRejectsNonContiguousIndexRecords() (gas: 150400439)
+[PASS] testRejectsSpliceOffsets() (gas: 76928028)
+[PASS] testRejectsStillMotifsOutOfRange() (gas: 77079393)
+[PASS] testRejectsWrongChunkSizes() (gas: 125005208)
+[PASS] testTheGoodStoreDeploysWithItsFacts() (gas: 11823754)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 109.52ms (102.76ms CPU time)
+
+Ran 6 tests for test/render/KilimRender.t.sol:KilimRenderTest
+[PASS] testArtworkTokenURIFollowsExpandAndFreeze() (gas: 25593993)
+[PASS] testAuctionCreatesACollectionWiredToTheRenderer() (gas: 7458795)
+[PASS] testBurnedSymbolsHaveNoTokenURI() (gas: 321724)
+[PASS] testMasterpieceTokenURIIsTheRenderersAnswer() (gas: 45144043)
+[PASS] testSymbolTokenURIIsTheRenderersAnswerForItsTraits() (gas: 6902710)
+[PASS] testWiringChecksTheRendererAgainstEveryPublishedValue() (gas: 443753)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 153.05ms (146.83ms CPU time)
+
+Ran 1 test for test/render/RenderCalibrate.t.sol:RenderCalibrateTest
+[PASS] testCalibrationData() (gas: 3136)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 6.15ms (12.54µs CPU time)
+
+Ran 8 tests for test/ReuseRegression.t.sol:ReuseRegressionTest
+[PASS] testAccidentalNativeValueRevertsWithoutTakingBid() (gas: 240722)
+[PASS] testBlockedOutbidRecipientCannotStopNextBid() (gas: 449259)
+[PASS] testDirectNativePaymentRejected() (gas: 15301)
+[PASS] testFuzzLargeOverbidIsCollectedInFull(uint128) (runs: 512, μ: 499983, ~: 499983)
+[PASS] testFuzzWholeUnitQuoteIsSmallestUpstreamAcceptedBid(uint128,uint16,uint8) (runs: 512, μ: 1898667, ~: 1898752)
+[PASS] testLargestWholeBidRemainsSolventAndCanSettle() (gas: 375065)
+[PASS] testOversizedBidRejectedBeforeUpstreamMultiplication() (gas: 272395)
+[PASS] testSlippageRevertRestoresRefundsDeadlineAndLeader() (gas: 287353)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 178.23ms (177.74ms CPU time)
+
+Ran 57 tests for test/KilimAuction.t.sol:KilimAuctionTest
+[PASS] testBidEscrowsFundsAndAllocatesCredits() (gas: 276492)
+[PASS] testBidEventReportsReservedIds() (gas: 388437)
+[PASS] testBidsNeverBringTheCloseForward() (gas: 538283)
+[PASS] testCannotStealAnotherBiddersRefund() (gas: 389182)
+[PASS] testClaimAboveBatchCapAcrossRangesRejected() (gas: 2524224)
+[PASS] testClaimCallbackCannotReenterBid() (gas: 1327590)
+[PASS] testClaimsSpanBidRangesOldestFirst() (gas: 2141441)
+[PASS] testClockStartsAtFirstBidAndExtendsWithoutLimit() (gas: 1038164)
+[PASS] testConstructorRejectsInvalidConfiguration() (gas: 1201211)
+[PASS] testCreditRangesAreFinalBeforeReceiverCallbacks() (gas: 2028106)
+[PASS] testDonationsDoNotAlterLiabilitiesOrRewards() (gas: 402297)
+[PASS] testExactLastSecondBidAndClose() (gas: 498483)
+[PASS] testExhaustedRewardsReserveNoIds() (gas: 6416321)
+[PASS] testExpectedFirstSymbolIdRejectsExhaustedRewards() (gas: 6064381)
+[PASS] testExpectedFirstSymbolIdRejectsMovedRange() (gas: 602210)
+[PASS] testFalseReturnTokenRejected() (gas: 254776)
+[PASS] testFeeOnAutomaticRefundDefersInFull() (gas: 462385)
+[PASS] testFeeOnWithdrawalRevertsWithoutLosingRefund() (gas: 433935)
+[PASS] testFuzzBidAccounting(uint96,uint8) (runs: 512, μ: 397911, ~: 397911)
+[PASS] testFuzzDecimalsAndWholeUnitRounding(uint8) (runs: 512, μ: 6876545, ~: 6876599)
+[PASS] testFuzzInvalidAuctionConfiguration(uint8) (runs: 512, μ: 82389, ~: 81918)
+[PASS] testGas64SymbolClaimAcrossBids() (gas: 2522842)
+Logs:
+  64-symbol claim across 3 bids, execution gas (before refunds): 1929569
+
+[PASS] testInvalidClaimQuantities() (gas: 272841)
+[PASS] testInvalidRecipientsDoNotDestroyClaims() (gas: 478178)
+[PASS] testMinimumBidRoundsUpToWholeDollar() (gas: 393686)
+[PASS] testMultiRangeClaimEvents() (gas: 1418589)
+[PASS] testNftCallbackCannotDoubleClaim() (gas: 1322978)
+[PASS] testNftReceiverCannotDoubleClaimPrize() (gas: 1202979)
+[PASS] testNoBidsNeverEndsAndNeverSettles() (gas: 287914)
+[PASS] testOnlyTheAuctionCanDeliverThePrize() (gas: 263479)
+[PASS] testOnlyTheAuctionCanPayARefund() (gas: 263862)
+[PASS] testOnlyTreasuryCanWithdrawOnlyAfterSettlement() (gas: 271902)
+[PASS] testOutbidRefundAndCreditsRemain() (gas: 403048)
+[PASS] testPerBidRewardCap() (gas: 263088)
+[PASS] testPrizeCallbackCannotWithdrawARefund() (gas: 1432217)
+[PASS] testRefundCyclingAccumulatesRewardsForFreeLosingBids() (gas: 534000)
+[PASS] testRefundTokenHookCannotSettle() (gas: 518828)
+[PASS] testRejectedDepositRollsBackStandingBidAndRewards() (gas: 372906)
+[PASS] testRejectedRefundPreservesEntitlement() (gas: 406427)
+[PASS] testRejectingReceiverDoesNotConsumeSymbolCredits() (gas: 1060016)
+[PASS] testRejectingWinnerCannotBlockSettlementOrProceeds() (gas: 1274209)
+[PASS] testRejectingWinnerFallsBackToClaim() (gas: 1193862)
+[PASS] testRejectsFeeOnTransferDeposit() (gas: 299240)
+[PASS] testRejectsFractionalDollarBid() (gas: 18988)
+[PASS] testRepeatedProceedsWithdrawalAndFailedPayment() (gas: 367756)
+[PASS] testRewardCapDoesNotBlockCompetitiveBids() (gas: 6182200)
+[PASS] testSelfOutbidFullyFundedAndLiabilitiesConserved() (gas: 345080)
+[PASS] testSettlementAndProceedsLeaveRefundsSolvent() (gas: 529368)
+[PASS] testSettlementTimingAndIdempotence() (gas: 386744)
+[PASS] testSymbolClaimsBoundedAndNeverForfeitWithRefund() (gas: 3331736)
+[PASS] testSymbolIdsAndTraitsAreFixedAtBidTime() (gas: 2431547)
+[PASS] testTimeBoundaries() (gas: 385652)
+[PASS] testTokenCallbackCannotReenterBidOrRefund() (gas: 661777)
+[PASS] testTreasuryCannotBeTheCollection() (gas: 9027624)
+[PASS] testTreasuryCannotBid() (gas: 336915)
+[PASS] testTreasuryCannotClaimPrizeAfterSomeoneBids() (gas: 377412)
+[PASS] testWinnerClaimsExactlyOnePrizeToChosenRecipient() (gas: 390420)
+Suite result: ok. 57 passed; 0 failed; 0 skipped; finished in 300.43ms (306.39ms CPU time)
+
+Ran 42 tests for test/Kilim.t.sol:KilimTest
+[PASS] testApprovedOperatorCannotBurnOrMutate() (gas: 400315)
+[PASS] testArtworkCallbackCannotWeaveOtherSymbols() (gas: 1424774)
+[PASS] testArtworkCallbackSeesFinalStateAndCannotReenter() (gas: 1343967)
+[PASS] testBadMintRecipientsAndSeedOwnerRejected() (gas: 76286)
+[PASS] testCannotBurnAnotherHoldersSymbol() (gas: 171433)
+[PASS] testCannotExpandOrFreezeASymbol() (gas: 28481)
+[PASS] testCannotReuseSourcesFromAnotherArtwork() (gas: 595531)
+[PASS] testCodelessRendererRejectedEvenWithTheEmptyCodeHash() (gas: 115003)
+[PASS] testContractUriBytesAreExact() (gas: 178704)
+[PASS] testContractUriCarriesEscapedTextAndRoyalty() (gas: 240163)
+[PASS] testDuplicateInputsRevertEveryBurn() (gas: 173541)
+[PASS] testExpandPreservesTokenAndEveryExistingSource() (gas: 419853)
+[PASS] testExpansionCannotOmitExistingSourceEvenWithEnoughNewOnes() (gas: 417197)
+[PASS] testExpansionRejectsDuplicateOldAndNewSources() (gas: 399186)
+[PASS] testFuzzDuplicatePositionAlwaysReverts(uint8) (runs: 512, μ: 140320, ~: 135082)
+[PASS] testFuzzInvalidCollectionConfiguration(uint8) (runs: 512, μ: 115066, ~: 114871)
+[PASS] testFuzzTraitsAreFixedBeforeClaimAndIgnoreBidder(address,uint8,uint16) (runs: 512, μ: 824146, ~: 538160)
+[PASS] testInvalidDimensionsAndMissingTokensRejected() (gas: 78853)
+[PASS] testKindOfBeforeAndAfterEachMint() (gas: 353632)
+[PASS] testLayoutsBeyondOneWordKeepAndForwardEveryCell() (gas: 16644290)
+[PASS] testMasterpieceCannotBeBurnedAndOnlyMintsOnce() (gas: 85816)
+[PASS] testMaximumCanvasGasAndLimit() (gas: 15069412)
+[PASS] testMetadataForwardsOnchainStateToTheRenderer() (gas: 399876)
+[PASS] testOnlyMinterCanCreateSymbolsOrMasterpiece() (gas: 10987)
+[PASS] testOnlyPageOwnerEditsPageAndCannotTouchTokens() (gas: 73284)
+[PASS] testOnlyTheThreeCanonicalAppearancesAreAccepted() (gas: 1925278)
+[PASS] testOwnershipTransferAndRenounce() (gas: 69334)
+[PASS] testPermanentFreezeSurvivesTransfer() (gas: 342221)
+[PASS] testRejectingArtworkReceiverRollsBackAllBurns() (gas: 1075263)
+[PASS] testRendererRevertsBubbleUpUnchanged() (gas: 89166)
+[PASS] testRoyaltyIsFivePercentToTheReceiver() (gas: 21821)
+[PASS] testRoyaltyReceiverChangeAnnouncesTheNewContractUri() (gas: 118003)
+[PASS] testStaleRevisionAndSameSizeExpansionRejected() (gas: 321315)
+[PASS] testSupplyAndBatchCapsCannotBeBypassedByBurning() (gas: 3640430)
+[PASS] testSymbolMintCallbackCannotWeave() (gas: 1134245)
+[PASS] testSymbolRangeBoundariesAndArtworkIds() (gas: 408653)
+[PASS] testTokenKindsAndInterfaces() (gas: 32794)
+[PASS] testTraitsAndMetadataStayUnchangedOnTransfer() (gas: 51365)
+[PASS] testTransferredArtworkCanUseSecondaryMarketSymbols() (gas: 405503)
+[PASS] testUnsafeTransfersToProtocolContractsAreRejected() (gas: 11537)
+[PASS] testWeaveBurnsExactlyOnceAndPreservesTraits() (gas: 357291)
+[PASS] testZeroAddressIsNeitherRoyaltyReceiverNorOwner() (gas: 21340)
+Suite result: ok. 42 passed; 0 failed; 0 skipped; finished in 388.64ms (401.08ms CPU time)
+
+Ran 15 tests for test/render/RenderGasLimits.t.sol:RenderGasLimitsTest
+[PASS] testContractSizes() (gas: 3270058)
+[PASS] testGasArtwork128x2Heaviest() (gas: 30779987)
+Logs:
+  gas: artworkURI 128x2, 256 heaviest: 30145626
+
+[PASS] testGasArtwork16x16HeaviestByChars() (gas: 30658514)
+Logs:
+  gas: artworkURI 16x16, 256 heaviest by path length: 30024135
+
+[PASS] testGasArtwork16x16HeaviestByPoints() (gas: 30636453)
+Logs:
+  gas: artworkURI 16x16, 256 heaviest by points: 30002081
+
+[PASS] testGasArtwork16x16Typical() (gas: 17919088)
+Logs:
+  gas: artworkURI 16x16, typical (random motifs): 17284738
+
+[PASS] testGasArtwork2x128Heaviest() (gas: 30785616)
+Logs:
+  gas: artworkURI 2x128, 256 heaviest: 30151276
+
+[PASS] testGasArtwork2x2Heaviest() (gas: 1991738)
+Logs:
+  gas: artworkURI 2x2, 4 heaviest: 1251941
+
+[PASS] testGasDeployAuctionAndCollection() (gas: 13837431)
+Logs:
+  gas: deploy, auction + collection: 6229665
+  size: Kilim runtime: 15314
+  size: KilimAuction runtime: 11914
+  size: KilimAuction initcode: 31361
+
+[PASS] testGasDeployEveryChunkAndTheRenderer() (gas: 78491362)
+Logs:
+  gas: deploy, all chunks: 33544148
+  gas: deploy, largest chunk: 5402435
+  gas: deploy, renderer (includes TABLES): 6864648
+  size: KilimRenderer runtime: 17007
+  size: TABLES: 8705
+
+[PASS] testGasKilimArtworkWorst() (gas: 49270812)
+Logs:
+  gas: Kilim.tokenURI, 16x16 artwork of the 256 heaviest: 30399106
+
+[PASS] testGasKilimMasterpiece() (gas: 25721066)
+Logs:
+  gas: Kilim.tokenURI(1), the 1/1: 22436767
+
+[PASS] testGasKilimSymbolWorst() (gas: 30180981)
+Logs:
+  gas: Kilim.tokenURI, largest motif in cotton rag: 482227
+
+[PASS] testGasMasterpiece() (gas: 22152642)
+Logs:
+  gas: masterpieceURI: 22168075
+
+[PASS] testGasSymbolMedian() (gas: 13162681)
+Logs:
+  gas: symbolURI, median motif, dyed wool: 175653
+
+[PASS] testGasSymbolWorst() (gas: 3378553)
+Logs:
+  gas: symbolURI, largest motif, worst material: 478491
+
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 709.94ms (559.92ms CPU time)
+
+Ran 9 tests for test/Delivery.t.sol:DeliveryTest
+[PASS] testBatchLimitsAndInternalEntry() (gas: 304226)
+[PASS] testDeliversEveryBidderOldestFirstWithNoActionFromThem() (gas: 4103088)
+[PASS] testExhaustedPoolBidsQueueNothing() (gas: 6306146)
+[PASS] testGas64SymbolDelivery() (gas: 2202222)
+Logs:
+  gas: deliver 64 symbols to one wallet: 1933800
+
+[PASS] testGasBurningWalletCannotStallTheQueue() (gas: 5081714)
+[PASS] testManualClaimsAreSkippedNotDoubleMinted() (gas: 2120295)
+[PASS] testNewBidsAfterADeliveryAreDeliveredToo() (gas: 2080884)
+[PASS] testRejectingWalletIsSkippedAndClaimsByHand() (gas: 2896855)
+[PASS] testTooLittleGasStopsWithoutSkippingAnyone() (gas: 2205145)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 725.05ms (24.88ms CPU time)
+
+Ran 10 tests for test/NativeRegistration.t.sol:NativeRegistrationTest
+[PASS] testCannotBypassThresholdOrPayByMessageSignature() (gas: 2719510)
+[PASS] testEthRefundProceedsAndManualClaims() (gas: 3532990)
+[PASS] testFuzzNativeBidFullyFunded(uint64) (runs: 512, μ: 3036652, ~: 3036652)
+[PASS] testHundredthRequiresSeparatePaidEntryAndRaceReverts() (gas: 2939586)
+[PASS] testNativePayoutAuthorizationAndReentrancy() (gas: 3212192)
+[PASS] testPoorAndDuplicateRegistration() (gas: 75317)
+[PASS] testPreviouslyRegisteredWalletCannotCountTwiceToStart() (gas: 2691836)
+[PASS] testRegistrationAndOpeningBid() (gas: 2932400)
+[PASS] testRejectingReceiverDoesNotBlockBidsOrLoseRefund() (gas: 3110643)
+[PASS] testSlippageAndWrongValueRollBackRegistration() (gas: 2803520)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 724.95ms (727.92ms CPU time)
+
+Ran 13 tests for test/render/RenderGolden.t.sol:RenderGoldenTest
+[PASS] testArtworkMetadataDecodesToTraitsAndColours() (gas: 27791567)
+[PASS] testCountAndOpeningFrameComeFromTheStore() (gas: 15411201)
+[PASS] testGoldenArtworkURIs() (gas: 115872972)
+[PASS] testGoldenArtworksInEveryAppearanceAndSize() (gas: 699070873)
+[PASS] testGoldenMotifPathsForEveryMotif() (gas: 38176827)
+[PASS] testGoldenStillPageAndMasterpiece() (gas: 42687915)
+[PASS] testGoldenSymbolURIs() (gas: 116313455)
+[PASS] testGoldenSymbolsInEveryMaterial() (gas: 107328425)
+[PASS] testGoldenSymbolsInWoolForEveryMotif() (gas: 43024406)
+[PASS] testMasterpieceAnimationIsThePageWithTheGeometrySpliced() (gas: 544506237)
+[PASS] testReturnedAbiPaddingIsZero() (gas: 4448258)
+[PASS] testSymbolMetadataDecodesToTraitsAndImage() (gas: 60962042)
+[PASS] testViewsRejectTheFirstValueOutOfRange() (gas: 205381)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 1.25s (2.58s CPU time)
+
+Ran 14 tests for test/DeployKilim.t.sol:DeployKilimTest
+[PASS] testAuctionPhaseRefusals() (gas: 254332466)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     0 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0x0000000000000000000000000000000000000000000000000000000000000000
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     0 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xcc491d50458cb9693eeb2e60e43f6414a9a830c89b53dec8b4637898c2940953
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     9 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800003600 (in 3600 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000001   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  KilimAuction  0xE80ddEae218BB885de05a3C5f3d9a8843015070C
+  Kilim         0x61853a56401287Ba9D6BA553Fc0ED2d1AdDe5224
+  deploy gas    6231389
+
+[PASS] testDeploysChunksRendererAndAuctionInOrder() (gas: 254358935)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 31337
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      1000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  KilimAuction  0xE80ddEae218BB885de05a3C5f3d9a8843015070C
+  Kilim         0x61853a56401287Ba9D6BA553Fc0ED2d1AdDe5224
+  deploy gas    6231389
+
+[PASS] testMainnetDeploysTheExactLaunchSettings() (gas: 254169043)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  KilimAuction  0xE80ddEae218BB885de05a3C5f3d9a8843015070C
+  Kilim         0x61853a56401287Ba9D6BA553Fc0ED2d1AdDe5224
+  deploy gas    6230365
+
+[PASS] testMainnetRefusesEverySettingOtherThanTheLaunchValues() (gas: 238413031)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a   <- launch value 0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     6   <- launch value 18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000   <- launch value 10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      100   <- launch value 1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          8640   <- launch value 86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   60   <- launch value 600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         10000   <- launch value 1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  250   <- launch value 1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          255   <- launch value 256
+
+[PASS] testMainnetRefusesTheOneShotRun() (gas: 9522)
+[PASS] testMainnetRequiresThePublishedNonceAndAnInspectionWindow() (gas: 236048667)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     not checked (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     8 (pending: 8)
+    minLeadSeconds    0
+    startsAt          1800000120 (in 120 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+  auction settings for chain 1
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     9 (pending: 8)
+    minLeadSeconds    86400
+    startsAt          1800172800 (in 172800 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0x0000000000000000000000000000000000000000
+    tokenDecimals     18
+    treasury          0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000000000000
+    incrementBps      1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         1000000
+    maxSymbolsPerBid  1000000
+    maxCells          256
+
+[PASS] testOtherChainsAcceptSettingsThatDifferFromTheLaunch() (gas: 254169407)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  auction settings for chain 11155111
+    deployer          0x00000000000000000000000000000000000D3910
+    deployerNonce     not checked (pending: 8)
+    minLeadSeconds    0
+    startsAt          1800000120 (in 120 s)
+    renderer          0xff6627584b4EED63d61B941b034A177B3A80BB3a
+    rendererHash      0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+    motifCount        812
+    geometryHash      0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1
+    paymentToken      0xF62849F9A0B5Bf2913b396098F7c7019b51A820a
+    tokenDecimals     6   <- launch value 18
+    treasury          0x0000000000000000000000000000000000007777   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    collectionOwner   0x0000000000000000000000000000000000009999   <- launch value 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    reservePrice      10000000   <- launch value 10000000000000000
+    incrementBps      500   <- launch value 1000
+    duration          86400
+    extensionWindow   600
+    symbolCap         10000   <- launch value 1000000
+    maxSymbolsPerBid  250   <- launch value 1000000
+    maxCells          256
+  KilimAuction  0xE80ddEae218BB885de05a3C5f3d9a8843015070C
+  Kilim         0x61853a56401287Ba9D6BA553Fc0ED2d1AdDe5224
+  deploy gas    6231454
+
+[PASS] testRefusesAnExistingRendererThatIsNotThePublishedOne() (gas: 277358228)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+
+[PASS] testRefusesForeignCodeAtAChunkAddress() (gas: 2170451)
+[PASS] testRefusesForeignCodeAtTheRendererAddress() (gas: 243763976)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+
+[PASS] testRefusesHashesOrCountsThatDifferFromTheConfig() (gas: 122192253)
+[PASS] testRefusesTheWrongChain() (gas: 890674)
+[PASS] testTemplatesCarryTheLaunchValuesAndFailClosed() (gas: 71083)
+[PASS] testTheStorePhaseIsIdempotent() (gas: 310302433)
+Logs:
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+  KilimRenderer 0xff6627584b4EED63d61B941b034A177B3A80BB3a
+  rendererHash  0xd848899472cb98ac26c262f2f282ba92185b0c047c4fc4c03e59a9ff7513cabf
+  chunk 0       0x9253d27Ad732d4B614D83e2a9832baaa4908f1D1
+  chunk 1       0xC128b9D6a5Ee3740A6f38E7Bf055dA11102871Ff
+  chunk 2       0xb4d910A849dceEa8362b8FA4CE7eb74bd28eD728
+  chunk 3       0x5D1f0809d8d66A9f602f64C2b75e1A025369a2C1
+  chunk 4       0xdF7479d1Ef20BC49fa8269AB71ae4BA0F9F8AB82
+  chunk 5       0x2960A509dca656A6aBB941697D046ba4c0f847D7
+  chunk 6       0xDDAB064a877C2F69835bB2Ad6e90FbbF3985d797
+
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 1.25s (2.79s CPU time)
+
+Ran 12 tests for test/render/KilimWriter.t.sol:KilimWriterTest
+[PASS] testBase64MatchesOpenZeppelinForEveryShortLength() (gas: 47838864)
+[PASS] testBase64OfLongInputs() (gas: 42424362)
+[PASS] testBufferSlackAbsorbsTheLargestOverrun() (gas: 236593)
+[PASS] testDecodesASinglePointRing() (gas: 897126)
+[PASS] testDecodesMultiByteVarintsAndLargeCoordinates() (gas: 459738)
+[PASS] testDecodesTheSmallestMotifExample() (gas: 451710)
+[PASS] testFuzzBase64MatchesOpenZeppelin(bytes) (runs: 512, μ: 456325, ~: 455407)
+[PASS] testFuzzDecoderMatchesAReferenceEncoding(uint256) (runs: 512, μ: 561334, ~: 554492)
+[PASS] testMalformedRecordsRevert() (gas: 3590105)
+[PASS] testNumberTable() (gas: 2219484)
+[PASS] testNumbersAndHex() (gas: 1425573)
+[PASS] testPostconditionsRevert() (gas: 11628)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 1.79s (865.82ms CPU time)
+
+Ran 4 tests for test/AuctionInvariants.t.sol:AuctionInvariants
+[PASS] invariantClosingAndPrizeAreBounded() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------------+----------------+-------+---------+----------╮
+| Contract       | Selector       | Calls | Reverts | Discards |
++==============================================================+
+| AuctionHandler | blockRecipient | 901   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | claim          | 836   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | deliver        | 772   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | donate         | 841   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | finish         | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | passTime       | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | placeBid       | 815   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | prize          | 800   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | proceeds       | 826   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | refund         | 793   | 0       | 0        |
+╰----------------+----------------+-------+---------+----------╯
+
+[PASS] invariantCreditsCannotBeCreatedTwiceOrOverCap() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------------+----------------+-------+---------+----------╮
+| Contract       | Selector       | Calls | Reverts | Discards |
++==============================================================+
+| AuctionHandler | blockRecipient | 901   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | claim          | 836   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | deliver        | 772   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | donate         | 841   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | finish         | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | passTime       | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | placeBid       | 815   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | prize          | 800   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | proceeds       | 826   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | refund         | 793   | 0       | 0        |
+╰----------------+----------------+-------+---------+----------╯
+
+[PASS] invariantEscrowAlwaysCoversExactLiabilities() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------------+----------------+-------+---------+----------╮
+| Contract       | Selector       | Calls | Reverts | Discards |
++==============================================================+
+| AuctionHandler | blockRecipient | 901   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | claim          | 836   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | deliver        | 772   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | donate         | 841   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | finish         | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | passTime       | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | placeBid       | 815   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | prize          | 800   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | proceeds       | 826   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | refund         | 793   | 0       | 0        |
+╰----------------+----------------+-------+---------+----------╯
+
+[PASS] invariantReservedIdsMatchCreditsAndAreUnminted() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------------+----------------+-------+---------+----------╮
+| Contract       | Selector       | Calls | Reverts | Discards |
++==============================================================+
+| AuctionHandler | blockRecipient | 901   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | claim          | 836   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | deliver        | 772   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | donate         | 841   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | finish         | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | passTime       | 804   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | placeBid       | 815   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | prize          | 800   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | proceeds       | 826   | 0       | 0        |
+|----------------+----------------+-------+---------+----------|
+| AuctionHandler | refund         | 793   | 0       | 0        |
+╰----------------+----------------+-------+---------+----------╯
+
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.79s (4.17s CPU time)
+
+Ran 5 tests for test/render/RenderFuzz.t.sol:RenderFuzzTest
+[PASS] testDensestPathsFitTheArtworkBuffer() (gas: 110816296)
+[PASS] testFuzzArtworkHasOneUsePerCellAndOneSymbolPerMotif(uint256) (runs: 96, μ: 26173191, ~: 28023861)
+[PASS] testFuzzArtworkMatchesTheReference(uint256) (runs: 512, μ: 3299, ~: 3299)
+[PASS] testFuzzLayoutsOutsideTheRulesRevert(uint16,uint16) (runs: 512, μ: 41050, ~: 46772)
+[PASS] testFuzzSymbolMatchesTheReference(uint256,uint8) (runs: 512, μ: 3387, ~: 3387)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 3.52s (3.60s CPU time)
+
+Ran 2 tests for test/CompositionInvariants.t.sol:CompositionInvariants
+[PASS] invariantAllSourcesAreConservedAndLayoutsAreValid() (runs: 128, calls: 8192, reverts: 0)
+
+╭--------------------+-----------------+-------+---------+----------╮
+| Contract           | Selector        | Calls | Reverts | Discards |
++===================================================================+
+| CompositionHandler | expand          | 1356  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | freeze          | 1403  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | mint            | 1330  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferArtwork | 1407  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferSymbol  | 1366  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | weave           | 1330  | 0       | 0        |
+╰--------------------+-----------------+-------+---------+----------╯
+
+[PASS] invariantEveryBurnedSymbolOccursExactlyOnceInItsArtwork() (runs: 128, calls: 8192, reverts: 0)
+
+╭--------------------+-----------------+-------+---------+----------╮
+| Contract           | Selector        | Calls | Reverts | Discards |
++===================================================================+
+| CompositionHandler | expand          | 1356  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | freeze          | 1403  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | mint            | 1330  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferArtwork | 1407  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | transferSymbol  | 1366  | 0       | 0        |
+|--------------------+-----------------+-------+---------+----------|
+| CompositionHandler | weave           | 1330  | 0       | 0        |
+╰--------------------+-----------------+-------+---------+----------╯
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 13.96s (19.78s CPU time)
+
+Ran 18 test suites in 13.96s (26.91s CPU time): 225 tests passed, 0 failed, 0 skipped (225 total tests)

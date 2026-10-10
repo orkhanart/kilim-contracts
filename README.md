@@ -1,5 +1,7 @@
 # Kilim contracts
 
+> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
+
 An implementation for Ethereum mainnet (Sepolia for the rehearsal) using an immutable ERC-20 auction paid in USDC. This is a **development release with an internal security review**, not a certification or a production deployment. Read [AUDIT.md](AUDIT.md) before using real funds.
 
 OpenZeppelin primitives are reused directly. The auction uses a limited adaptation of thirdweb's English auction flow and its unchanged winning-bid predicate. [REUSE.md](REUSE.md) records the exact audit-reference commit, source hashes, licenses and modifications. The custom escrow and rewards require their own review; the upstream audit does not certify this adaptation.

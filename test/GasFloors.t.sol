@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.37;
+
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {TestBase} from "./TestBase.sol";
+import {KilimAuction} from "../src/KilimAuction.sol";
+import {ERC20EnglishAuction} from "../src/auction/ERC20EnglishAuction.sol";
+
+/// @dev A leader whose refund receiver is cheap until armed, then burns every unit of gas it is given.
+contract SwitchingLeader {
+    bool public armed;
+
+    function arm(bool on) external {
+        armed = on;
+    }
+
+    function bid(KilimAuction auction, uint256 amount) external payable {
+        auction.bid{value: amount}(amount, 0, 0);
+    }
+
+    receive() external payable {
+        if (armed) while (gasleft() > 0) {}
+    }
+}
+
+/// @dev A pool that wins and can hold the 1/1, but has no way to call claimPrize.
+contract PoolWinner is IERC721Receiver {
+    uint256 public received;
+
+    function bid(KilimAuction auction, uint256 amount) external payable {
+        auction.bid{value: amount}(amount, 0, 0);
+    }
+
+    mapping(uint256 => uint256) public ledger;
+
+    function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
+        ++received;
+        // A pool's own bookkeeping, about 110k gas.
+        for (uint256 i; i < 5; ++i) {
+            ledger[i] = block.number + 1;
+        }
+        return IERC721Receiver.onERC721Received.selector;
+    }
+}
+
+/// @notice The October 9 audit's two gas findings, as attacks that must fail.
+///         F-01: the leader cannot make a rival's bid run out of gas by changing what its refund
+///         receiver costs. F-02: a low-gas settle() cannot skip sending the 1/1.
+contract GasFloorsTest is TestBase {
+    KilimAuction auction;
+
+    function setUp() public {
+        KilimAuction.Config memory c = config(address(0));
+        c.reservePrice = 0.01 ether;
+        c.duration = 1 days;
+        c.incrementBps = 1000;
+        auction = new KilimAuction(c);
+        vm.warp(c.startsAt);
+        for (uint160 i = 1000; i < 1100; ++i) {
+            vm.deal(address(i), 0.01 ether);
+            vm.prank(address(i));
+            auction.register();
+        }
+        vm.deal(ALICE, 10 ether);
+    }
+
+    function _aliceBids(uint256 amount, uint256 gasLimit) private returns (bool ok, bytes memory data) {
+        vm.prank(ALICE);
+        (ok, data) =
+            address(auction).call{value: amount, gas: gasLimit}(abi.encodeCall(auction.bid, (amount, 0, 0)));
+    }
+
+    /// @dev What a wallet's eth_estimateGas returns: the smallest limit with which the bid succeeds now.
+    function _estimate(uint256 amount) private returns (uint256 lo) {
+        uint256 hi = 2_000_000;
+        lo = 21_000;
+        while (hi - lo > 500) {
+            uint256 mid = (lo + hi) / 2;
+            uint256 snap = vm.snapshotState();
+            (bool ok,) = _aliceBids(amount, mid);
+            vm.revertToState(snap);
+            if (ok) hi = mid;
+            else lo = mid;
+        }
+        lo = hi;
+    }
+
+    function testLeaderCannotMakeARivalsBidRunOutOfGas() public {
+        SwitchingLeader mallory = new SwitchingLeader();
+        vm.deal(address(mallory), 1 ether);
+        mallory.bid(auction, 0.01 ether);
+
+        // Alice's wallet estimates while the leader's receiver is cheap, with no safety margin at all.
+        uint256 limit = _estimate(0.011 ether);
+
+        // The leader arms the receiver before Alice's bid lands. The bid still lands; the refund waits.
+        mallory.arm(true);
+        (bool ok,) = _aliceBids(0.011 ether, limit);
+        assertTrue(ok);
+        assertEq(auction.highestBidder(), ALICE);
+        assertEq(auction.refunds(address(mallory)), 0.01 ether);
+        assertEq(address(auction).balance, auction.liabilities());
+    }
+
+    function testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes() public {
+        SwitchingLeader mallory = new SwitchingLeader();
+        vm.deal(address(mallory), 1 ether);
+        mallory.bid(auction, 0.01 ether);
+        for (uint256 i; i < 2; ++i) {
+            mallory.arm(i == 1);
+            (bool ok, bytes memory data) = _aliceBids(0.011 ether, 200_000);
+            assertTrue(!ok);
+            assertEq(bytes32(data), bytes32(ERC20EnglishAuction.InsufficientGas.selector));
+            assertEq(auction.highestBidder(), address(mallory));
+        }
+    }
+
+    function testLowGasSettleCannotSkipThePrize() public {
+        PoolWinner pool = new PoolWinner();
+        vm.deal(address(pool), 1 ether);
+        pool.bid(auction, 0.01 ether);
+        vm.warp(auction.endsAt());
+
+        // Every gas limit a griefer could pick either reverts (nothing settled) or delivers the 1/1.
+        for (uint256 gasLimit = 60_000; gasLimit <= 700_000; gasLimit += 4_000) {
+            uint256 snap = vm.snapshotState();
+            (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
+            if (ok) {
+                assertTrue(auction.prizeClaimed());
+                assertEq(auction.collection().ownerOf(1), address(pool));
+            } else {
+                assertTrue(!auction.settled());
+            }
+            vm.revertToState(snap);
+        }
+        auction.settle();
+        assertEq(auction.collection().ownerOf(1), address(pool));
+        assertEq(pool.received(), 1);
+    }
+}

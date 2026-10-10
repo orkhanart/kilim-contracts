@@ -1,0 +1,48 @@
+✔ selectors and topics match the values computed from the compiled contracts (0.38675ms)
+✔ encodes and decodes static and dynamic types, including nested tuples (0.69ms)
+✔ decoding is strict about lengths, offsets and dirty bits (0.238125ms)
+✔ decodes USDC Error(string) reverts, Panic and custom errors (0.135791ms)
+✔ EIP-55 checksums and typed-in address validation (0.185708ms)
+✔ decodes events with indexed and data fields (0.125375ms)
+✔ finds revert data in the error shapes wallets and nodes use (0.151958ms)
+✔ ABI sync: every contract error is registered, every site signature exists in the ABIs (0.862417ms)
+✔ startup, phases, and the opening clock (287.481541ms)
+✔ without eth_simulateV1, the prefix simulation still decodes auction errors and lets valid bids through (294.860458ms)
+✔ USDC bids: sequential approve + bid, then a batched EIP-5792 bid, then the minimum ladder (834.042875ms)
+✔ pay with ETH: exact-output swap into the bidder’s own wallet, sequential and batched (445.027792ms)
+✔ bid guards: BidTooLow, SymbolRangeMoved, TreasuryCannotBid, NonWholeUnitBid (551.358542ms)
+✔ a small pool: RewardSlippage, then bids that earn no symbols pass 0 and 0 (379.65875ms)
+✔ late bids extend the close by 10 minutes, with no limit (465.89525ms)
+✔ refunds come back automatically in USDC; one that cannot be sent waits to be withdrawn, once (456.201208ms)
+✔ claims: 64 per transaction, non-contiguous ranges, holdings from Transfer logs, bad receivers (655.899542ms)
+✔ the loom: weave, expand, freeze, grid limits, transfers (830.024083ms)
+✔ settlement: anyone settles after the close, which sends the 1/1 to the winner; the treasury withdraws (435.522625ms)
+✔ no bids: nothing to settle, ever (233.313083ms)
+✔ operator levers and startup checks: void addresses, writesDisabled, wrong network, wrong token (249.535417ms)
+✔ cached logs are dropped when the chain they came from is gone (same addresses, new chain) (554.990958ms)
+✔ site-config verifies a deployment and writes it into the chain config (362.846959ms)
+✔ the published pages build, say nothing the contracts contradict, and carry no dev code (438.168625ms)
+✔ the unused drafts are gone (0.074ms)
+✔ the dev build carries the dev wallet; the published build does not (95.474ms)
+✔ chain configs: Ethereum and Sepolia use native ETH, with legacy addresses retained and no deployment (0.455709ms)
+✔ build.py refuses Ethereum without an ETH/USD band, and any malformed band (901.399166ms)
+✔ native registration, paid 100th start and direct ETH bid through the real site adapter (1063.979208ms)
+✔ claim all stays with the account that started it: a switch stops it before the next claim (484.924333ms)
+✔ a sequential send asks the wallet for its network before every step, and each transaction names the chain (274.57175ms)
+✔ a rejected batch that falls back to sequential still checks the network before the value-bearing swap (257.377166ms)
+✔ an account switch between the approval and the bid stops the bid (274.298708ms)
+✔ a read node that answers a lower block keeps everything and rescans nothing (348.108167ms)
+✔ after each receipt, the next step reads at or after its block, even through a node that lags (1535.755333ms)
+✔ weave and claim results are this account’s own, even when the receipt carries other logs (421.697833ms)
+✔ a batch that fails in the wallet spent nothing; one that landed and reverted spent its gas (370.871209ms)
+✔ the ETH/USD sanity band refuses a swap quote outside it (372.585041ms)
+✔ several wallets in one browser: the person chooses, and the choice is remembered (295.867167ms)
+✔ tokens are named as tokenURI names them: Kilim Symbol #id, Kilim Artwork #n, Kilim 1/1 (364.793375ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14758.381167

@@ -1,0 +1,136 @@
+TAP version 13
+# Subtest: startup, phases, and the opening clock
+ok 1 - startup, phases, and the opening clock
+  ---
+  duration_ms: 281.071583
+  type: 'test'
+  ...
+# Subtest: without eth_simulateV1, the prefix simulation still decodes auction errors and lets valid bids through
+ok 2 - without eth_simulateV1, the prefix simulation still decodes auction errors and lets valid bids through
+  ---
+  duration_ms: 293.8405
+  type: 'test'
+  ...
+# Subtest: USDC bids: sequential approve + bid, then a batched EIP-5792 bid, then the minimum ladder
+ok 3 - USDC bids: sequential approve + bid, then a batched EIP-5792 bid, then the minimum ladder
+  ---
+  duration_ms: 405.836167
+  type: 'test'
+  ...
+# Subtest: pay with ETH: exact-output swap into the bidder’s own wallet, sequential and batched
+ok 4 - pay with ETH: exact-output swap into the bidder’s own wallet, sequential and batched
+  ---
+  duration_ms: 354.674834
+  type: 'test'
+  ...
+# Subtest: bid guards: BidTooLow, SymbolRangeMoved, TreasuryCannotBid, NonWholeUnitBid
+ok 5 - bid guards: BidTooLow, SymbolRangeMoved, TreasuryCannotBid, NonWholeUnitBid
+  ---
+  duration_ms: 379.090958
+  type: 'test'
+  ...
+# Subtest: a small pool: RewardSlippage, then bids that earn no symbols pass 0 and 0
+ok 6 - a small pool: RewardSlippage, then bids that earn no symbols pass 0 and 0
+  ---
+  duration_ms: 358.232666
+  type: 'test'
+  ...
+# Subtest: late bids extend the close by 10 minutes, with no limit
+ok 7 - late bids extend the close by 10 minutes, with no limit
+  ---
+  duration_ms: 328.752791
+  type: 'test'
+  ...
+# Subtest: refunds come back automatically in USDC; one that cannot be sent waits to be withdrawn, once
+ok 8 - refunds come back automatically in USDC; one that cannot be sent waits to be withdrawn, once
+  ---
+  duration_ms: 416.0295
+  type: 'test'
+  ...
+# Subtest: claims: 64 per transaction, non-contiguous ranges, holdings from Transfer logs, bad receivers
+ok 9 - claims: 64 per transaction, non-contiguous ranges, holdings from Transfer logs, bad receivers
+  ---
+  duration_ms: 447.071208
+  type: 'test'
+  ...
+# Subtest: the loom: weave, expand, freeze, grid limits, transfers
+ok 10 - the loom: weave, expand, freeze, grid limits, transfers
+  ---
+  duration_ms: 944.963375
+  type: 'test'
+  ...
+# Subtest: settlement: anyone settles after the close, which sends the 1/1 to the winner; the treasury withdraws
+ok 11 - settlement: anyone settles after the close, which sends the 1/1 to the winner; the treasury withdraws
+  ---
+  duration_ms: 398.8475
+  type: 'test'
+  ...
+# Subtest: no bids: nothing to settle, ever
+ok 12 - no bids: nothing to settle, ever
+  ---
+  duration_ms: 364.99925
+  type: 'test'
+  ...
+# Subtest: operator levers and startup checks: void addresses, writesDisabled, wrong network, wrong token
+ok 13 - operator levers and startup checks: void addresses, writesDisabled, wrong network, wrong token
+  ---
+  duration_ms: 289.470042
+  type: 'test'
+  ...
+# Subtest: cached logs are dropped when the chain they came from is gone (same addresses, new chain)
+ok 14 - cached logs are dropped when the chain they came from is gone (same addresses, new chain)
+  ---
+  duration_ms: 617.975625
+  type: 'test'
+  ...
+# Subtest: site-config verifies a deployment and writes it into the chain config
+ok 15 - site-config verifies a deployment and writes it into the chain config
+  ---
+  duration_ms: 502.527333
+  type: 'test'
+  ...
+# Subtest: the published pages build, say nothing the contracts contradict, and carry no dev code
+ok 16 - the published pages build, say nothing the contracts contradict, and carry no dev code
+  ---
+  duration_ms: 426.737917
+  type: 'test'
+  ...
+# Subtest: the unused drafts are gone
+ok 17 - the unused drafts are gone
+  ---
+  duration_ms: 0.07075
+  type: 'test'
+  ...
+# Subtest: the dev build carries the dev wallet; the published build does not
+ok 18 - the dev build carries the dev wallet; the published build does not
+  ---
+  duration_ms: 91.619458
+  type: 'test'
+  ...
+# Subtest: chain configs: Ethereum and Sepolia use native ETH, with legacy addresses retained and no deployment
+ok 19 - chain configs: Ethereum and Sepolia use native ETH, with legacy addresses retained and no deployment
+  ---
+  duration_ms: 0.502542
+  type: 'test'
+  ...
+# Subtest: build.py refuses Ethereum without an ETH/USD band, and any malformed band
+ok 20 - build.py refuses Ethereum without an ETH/USD band, and any malformed band
+  ---
+  duration_ms: 884.587417
+  type: 'test'
+  ...
+# Subtest: native registration, 100th unlock and direct ETH bid through the real site adapter
+ok 21 - native registration, 100th unlock and direct ETH bid through the real site adapter
+  ---
+  duration_ms: 1052.832292
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8974.183667

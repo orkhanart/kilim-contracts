@@ -6,61 +6,73 @@
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#208-234) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#231)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimSymbols(uint256,address)\n"
+      "description": "KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#219-245) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#242)\n\tCalls stack containing the loop:\n\t\tKilimAuction.deliverTo(address,uint256)\n"
     },
     {
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction.deliverSymbols(uint256) (src/KilimAuction.sol#168-194) has external calls inside a loop: this.deliverTo{gas: allowance}(bidder,take) (src/KilimAuction.sol#181-187)\n"
+      "description": "KilimAuction.deliverSymbols(uint256) (src/KilimAuction.sol#177-205) has external calls inside a loop: this.deliverTo{gas: allowance}(bidder,take) (src/KilimAuction.sol#192-198)\n"
     },
     {
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#208-234) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#231)\n\tCalls stack containing the loop:\n\t\tKilimAuction.deliverTo(address,uint256)\n"
+      "description": "KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#219-245) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#242)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimSymbols(uint256,address)\n"
     },
     {
       "check": "reentrancy-benign",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#194-203):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#196-202)\n\tState variables written after the call(s):\n\t- refundLiability += amount (src/auction/ERC20EnglishAuction.sol#200)\n\t- refunds[bidder] += amount (src/auction/ERC20EnglishAuction.sol#199)\n"
+      "description": "Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#265-278):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#271-277)\n\tState variables written after the call(s):\n\t- refundLiability += amount (src/auction/ERC20EnglishAuction.sol#275)\n\t- refunds[bidder] += amount (src/auction/ERC20EnglishAuction.sol#274)\n"
     },
     {
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#194-203):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#196-202)\n\tEvent emitted after the call(s):\n\t- RefundDeferred(bidder,amount) (src/auction/ERC20EnglishAuction.sol#201)\n\t- RefundPaid(bidder,amount) (src/auction/ERC20EnglishAuction.sol#197)\n"
+      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#270-276):\n\tExternal calls:\n\t- collection.mintMasterpiece(winner) (src/KilimAuction.sol#274)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#275)\n"
     },
     {
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#256-262):\n\tExternal calls:\n\t- collection.mintMasterpiece(winner) (src/KilimAuction.sol#260)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#261)\n"
+      "description": "Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#265-278):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#271-277)\n\tEvent emitted after the call(s):\n\t- RefundDeferred(bidder,amount) (src/auction/ERC20EnglishAuction.sol#276)\n\t- RefundPaid(bidder,amount) (src/auction/ERC20EnglishAuction.sol#272)\n"
     },
     {
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#208-234):\n\tExternal calls:\n\t- collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#231)\n\tEvent emitted after the call(s):\n\t- SymbolsClaimed(bidder,to,quantity,firstIds[0]) (src/KilimAuction.sol#233)\n"
+      "description": "Reentrancy in KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#219-245):\n\tExternal calls:\n\t- collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#242)\n\tEvent emitted after the call(s):\n\t- SymbolsClaimed(bidder,to,quantity,firstIds[0]) (src/KilimAuction.sol#244)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "ERC20EnglishAuction.settle() (src/auction/ERC20EnglishAuction.sol#120-128) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < endsAt (src/auction/ERC20EnglishAuction.sol#123)\n"
+      "description": "ERC20EnglishAuction._register(address) (src/auction/ERC20EnglishAuction.sol#149-161) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- address(paymentToken) != address(0) || block.timestamp < startsAt || registrationCount >= REGISTRATION_TARGET (src/auction/ERC20EnglishAuction.sol#151-152)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "ERC20EnglishAuction.constructor(ERC20EnglishAuction.AuctionConfig) (src/auction/ERC20EnglishAuction.sol#75-98) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- config.paymentToken.code.length == 0 || config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS (src/auction/ERC20EnglishAuction.sol#77-81)\n"
+      "description": "ERC20EnglishAuction.settle() (src/auction/ERC20EnglishAuction.sol#183-191) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < endsAt (src/auction/ERC20EnglishAuction.sol#186)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "ERC20EnglishAuction._handleBid(uint256) (src/auction/ERC20EnglishAuction.sol#154-180) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt) (src/auction/ERC20EnglishAuction.sol#158)\n\t- extended > endsAt (src/auction/ERC20EnglishAuction.sol#178)\n"
+      "description": "ERC20EnglishAuction.registerFor(address,uint256,bytes) (src/auction/ERC20EnglishAuction.sol#134-143) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > deadline (src/auction/ERC20EnglishAuction.sol#135)\n"
+    },
+    {
+      "check": "timestamp",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "ERC20EnglishAuction.constructor(ERC20EnglishAuction.AuctionConfig) (src/auction/ERC20EnglishAuction.sol#96-123) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- (config.paymentToken != address(0) && config.paymentToken.code.length == 0) || config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS (src/auction/ERC20EnglishAuction.sol#98-102)\n"
+    },
+    {
+      "check": "timestamp",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "ERC20EnglishAuction._handleBid(uint256) (src/auction/ERC20EnglishAuction.sol#217-246) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt) (src/auction/ERC20EnglishAuction.sol#224)\n\t- extended > endsAt (src/auction/ERC20EnglishAuction.sol#244)\n"
     },
     {
       "check": "assembly",
@@ -210,7 +222,13 @@
       "check": "dead-code",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "ERC20EnglishAuction._afterSettle() (src/auction/ERC20EnglishAuction.sol#131) is never used and should be removed\n"
+      "description": "ERC20EnglishAuction._afterSettle() (src/auction/ERC20EnglishAuction.sol#194) is never used and should be removed\n"
+    },
+    {
+      "check": "low-level-calls",
+      "impact": "Informational",
+      "confidence": "High",
+      "description": "Low level call in ERC20EnglishAuction._pay(address,uint256) (src/auction/ERC20EnglishAuction.sol#308-323):\n\t- (paid,None) = address(to).call{value: amount}() (src/auction/ERC20EnglishAuction.sol#310)\n"
     },
     {
       "check": "naming-convention",

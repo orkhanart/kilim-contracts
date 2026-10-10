@@ -1,5 +1,7 @@
 # Open-source provenance and Kilim adaptation
 
+> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
+
 Checked September 18, 2026 UTC. The build reuses OpenZeppelin directly and a limited, explicitly identified part of thirdweb's English auction implementation. **The complete Kilim contracts have not received an independent audit.**
 
 ## What is reused

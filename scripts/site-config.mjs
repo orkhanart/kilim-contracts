@@ -44,9 +44,9 @@ const F = A.F;
 const collection = (await call(a, F.auction.collection)).toLowerCase();
 if ((await codeAt(collection, 'latest')) === '0x') die('auction.collection() has no code');
 const token = (await call(a, F.auction.paymentToken)).toLowerCase();
-if (token !== cfg.usdc.toLowerCase()) die(`paymentToken() is ${token}, not the configured USDC ${cfg.usdc}`);
+if (token !== (cfg.nativeEth ? A.ZERO : cfg.usdc.toLowerCase())) die(`paymentToken() is ${token}, not the configured currency`);
 const unit = await call(a, F.auction.tokenUnit);
-if (unit !== 1_000_000n) die(`tokenUnit() is ${unit}, not 1e6`);
+if (unit !== (cfg.nativeEth ? 1_000_000_000_000_000n : 1_000_000n)) die(`unexpected tokenUnit(): ${unit}`);
 const endsAt = await call(a, F.auction.endsAt);
 if (endsAt !== 0n && !args.includes('--allow-started')) die('endsAt() is not 0: the auction already has bids (pass --allow-started to accept)');
 const motifs = Number(await call(collection, F.collection.motifCount));
@@ -57,7 +57,7 @@ const facts = {
   duration: `${Number(await call(a, F.auction.duration))} s`,
   extensionWindow: `${Number(await call(a, F.auction.extensionWindow))} s`,
   incrementBps: Number(await call(a, F.auction.incrementBps)),
-  reservePrice: `${Number(await call(a, F.auction.reservePrice)) / 1e6} USDC`,
+  reservePrice: `${Number(await call(a, F.auction.reservePrice)) / (cfg.nativeEth ? 1e18 : 1e6)} ${cfg.nativeEth ? "ETH" : "USDC"}`,
   symbolCap: String(await call(a, F.auction.symbolCap)),
   maxSymbolsPerBid: String(await call(a, F.auction.maxSymbolsPerBid)),
   treasury: A.checksum(await call(a, F.auction.treasury)),

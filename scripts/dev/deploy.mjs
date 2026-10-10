@@ -213,8 +213,8 @@ export async function deployLocal(rpcUrl, overrides = {}) {
   const latest = await rpc.call('eth_getBlockByNumber', ['latest', false]);
   const startsAt = cfg.startsAt ?? BigInt(latest.timestamp) + cfg.openDelay;
   const auctionArgs = [[
-    usdc, treasury, overrides.collectionOwner ?? treasury,
-    startsAt, cfg.duration, cfg.extensionWindow, cfg.incrementBps, cfg.reservePrice,
+    cfg.nativeEth ? A.ZERO : usdc, treasury, overrides.collectionOwner ?? treasury,
+    startsAt, cfg.duration, cfg.extensionWindow, cfg.incrementBps, cfg.nativeEth ? 10000000000000000n : cfg.reservePrice,
     cfg.symbolCap, cfg.maxSymbolsPerBid, r.motifCount, cfg.maxCells,
     r.geometryHash, r.rendererHash, r.renderer,
   ]];
@@ -241,7 +241,7 @@ export async function deployLocal(rpcUrl, overrides = {}) {
       for (const who of bidders) await rpc.send({ from: deployer, to: usdc, data: A.F.erc20.mint.encode([who, fund]) });
     }
   }
-  return { chainId, usdc, weth, swapRouter02, quoterV2, feeTiers, auction, collection: collection.toLowerCase(),
+  return { nativeEth: !!cfg.nativeEth, chainId, usdc, weth, swapRouter02, quoterV2, feeTiers, auction, collection: collection.toLowerCase(),
            deployBlock, startsAt: Number(startsAt), accounts, treasury, deployer,
            renderer: r.renderer, rendererHash: r.rendererHash, chunks: r.chunks, motifCount: r.motifCount };
 }
@@ -254,6 +254,7 @@ export function siteConfig(d, { rpcUrl = 'http://127.0.0.1:8545', name = 'Local 
     rpcUrls: [rpcUrl],
     explorer: null,
     dev: true,
+    nativeEth: !!d.nativeEth,
     usdc: A.checksum(d.usdc),
     weth: A.checksum(d.weth),
     swapRouter02: A.checksum(d.swapRouter02),

@@ -6,7 +6,7 @@ import {ERC20EnglishAuction} from "./auction/ERC20EnglishAuction.sol";
 import {Kilim} from "./Kilim.sol";
 import {IKilimRenderer} from "./render/IKilimRenderer.sol";
 
-/// @notice An ascending stablecoin auction: outbid principal is withdrawable; symbol credits remain.
+/// @notice Native ETH launch (zero payment token), with legacy ERC-20 regression support.
 /// @dev Kilim reward/prize extension of the Apache-2.0 auction adaptation. See REUSE.md for provenance.
 ///      Outbid bidders keep their credits by design, to reward continued bidding; a single wallet can
 ///      therefore collect credits for refunded bids. Immutable caps bound issuance. Each bid reserves
@@ -110,7 +110,8 @@ contract KilimAuction is ERC20EnglishAuction {
         if (config.treasury == address(collection)) revert InvalidConfiguration();
     }
 
-    /// @notice Bid a full amount in stablecoin base units. Approve this contract first.
+    /// @notice Bid the full amount in wei with matching msg.value in native mode.
+    /// @dev Legacy ERC-20 mode instead requires approval and zero msg.value.
     /// @param minimumReward Revert if capped credits fall below your expected reward.
     /// @param expectedFirstSymbolId Revert unless the reward starts at this symbol ID, i.e. the
     ///        quoted traits; 0 accepts whatever IDs are next. Pass 0 when the quoted reward is 0:
@@ -118,7 +119,15 @@ contract KilimAuction is ERC20EnglishAuction {
     /// @dev All accounting precedes token calls; a rejected deposit rolls back credits and the bid.
     ///      The reward reserves the next symbol IDs in allocation order, so their traits are fixed
     ///      now and cannot change with claim time, claim order, or recipient.
-    function bid(uint256 amount, uint256 minimumReward, uint256 expectedFirstSymbolId) external nonReentrant {
+    function bid(uint256 amount, uint256 minimumReward, uint256 expectedFirstSymbolId)
+        external
+        payable
+        nonReentrant
+    {
+        _bid(amount, minimumReward, expectedFirstSymbolId);
+    }
+
+    function _bid(uint256 amount, uint256 minimumReward, uint256 expectedFirstSymbolId) private {
         (address outbid, uint256 outbidAmount) = _handleBid(amount);
         uint256 reward = rewardForBid(amount);
         if (reward < minimumReward) revert RewardSlippage();
@@ -147,7 +156,7 @@ contract KilimAuction is ERC20EnglishAuction {
     /// @notice Mint your reserved symbol IDs, oldest bid first.
     /// @dev A claim spanning several bids mints several ID ranges; the collection's SymbolsMinted
     ///      events list each one. firstTokenId below is the first ID minted by this claim.
-    ///         Normally unnecessary: deliverSymbols sends every symbol to its bidder.
+    ///         Native-ETH bidders claim their symbols here; legacy ERC-20 mode also supports delivery.
     function claimSymbols(uint256 quantity, address to) external nonReentrant {
         _validateRecipient(to);
         if (quantity == 0 || quantity > collection.MAX_MINT_BATCH() || quantity > symbolCredits[msg.sender]) {
@@ -166,6 +175,8 @@ contract KilimAuction is ERC20EnglishAuction {
     ///      nonReentrant and deliverTo only accepts calls from this contract.
     // slither-disable-next-line reentrancy-no-eth
     function deliverSymbols(uint256 maxSymbols) external nonReentrant returns (uint256 delivered) {
+        // Native-ETH launch uses collector claims, not automatic symbol delivery.
+        if (address(paymentToken) == address(0)) revert Unauthorized();
         if (maxSymbols == 0 || maxSymbols > DELIVERY_BATCH) revert InvalidQuantity();
         uint256 cursor = deliveryCursor;
         uint256 end = _deliveryQueue.length;
@@ -246,6 +257,9 @@ contract KilimAuction is ERC20EnglishAuction {
     /// @dev Settlement sends the 1/1 straight to the winner. A wallet that rejects it, or needs more
     ///      than PRIZE_GAS, leaves settlement intact and the winner claims it with claimPrize.
     function _afterSettle() internal override {
+        // Give the delivery its full allowance or do not settle yet (EIP-150 keeps back 1/64): a
+        // low-gas settle() cannot skip sending the 1/1. Reverting undoes the settlement; anyone retries.
+        if (gasleft() < PRIZE_GAS + PRIZE_GAS / 63 + 50_000) revert InsufficientGas();
         try this.deliverPrize{gas: PRIZE_GAS}() {}
         catch {
             emit PrizeDeliveryFailed(highestBidder);

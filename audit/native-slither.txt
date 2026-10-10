@@ -1,0 +1,147 @@
+'forge clean' running (wd: /Users/orkhan/Documents/ChatGPT/kilim/contracts)
+'forge config --json' running
+'forge build --build-info --skip ./test/** ./script/** --force' running (wd: /Users/orkhan/Documents/ChatGPT/kilim/contracts)
+
+Detector: arbitrary-send-eth
+ERC20EnglishAuction._pay(address,uint256) (src/auction/ERC20EnglishAuction.sol#279-294) sends eth to arbitrary user
+	Dangerous calls:
+	- (paid,None) = address(to).call{value: amount}() (src/auction/ERC20EnglishAuction.sol#281)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#functions-that-send-ether-to-arbitrary-destinations
+
+Detector: calls-loop
+KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#229-255) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#252)
+	Calls stack containing the loop:
+		KilimAuction.claimSymbols(uint256,address)
+KilimAuction.deliverSymbols(uint256) (src/KilimAuction.sol#187-215) has external calls inside a loop: this.deliverTo{gas: allowance}(bidder,take) (src/KilimAuction.sol#202-208)
+KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#229-255) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#252)
+	Calls stack containing the loop:
+		KilimAuction.deliverTo(address,uint256)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
+
+Detector: reentrancy-benign
+Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#244-253):
+	External calls:
+	- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#246-252)
+	State variables written after the call(s):
+	- refundLiability += amount (src/auction/ERC20EnglishAuction.sol#250)
+	- refunds[bidder] += amount (src/auction/ERC20EnglishAuction.sol#249)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Detector: reentrancy-events
+Reentrancy in KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#229-255):
+	External calls:
+	- collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#252)
+	Event emitted after the call(s):
+	- SymbolsClaimed(bidder,to,quantity,firstIds[0]) (src/KilimAuction.sol#254)
+Reentrancy in ERC20EnglishAuction._refundOutbid(address,uint256) (src/auction/ERC20EnglishAuction.sol#244-253):
+	External calls:
+	- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/ERC20EnglishAuction.sol#246-252)
+	Event emitted after the call(s):
+	- RefundDeferred(bidder,amount) (src/auction/ERC20EnglishAuction.sol#251)
+	- RefundPaid(bidder,amount) (src/auction/ERC20EnglishAuction.sol#247)
+Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#277-283):
+	External calls:
+	- collection.mintMasterpiece(winner) (src/KilimAuction.sol#281)
+	Event emitted after the call(s):
+	- PrizeClaimed(winner,winner) (src/KilimAuction.sol#282)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-4
+
+Detector: timestamp
+ERC20EnglishAuction.constructor(ERC20EnglishAuction.AuctionConfig) (src/auction/ERC20EnglishAuction.sol#88-115) uses timestamp for comparisons
+	Dangerous comparisons:
+	- (config.paymentToken != address(0) && config.paymentToken.code.length == 0) || config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS (src/auction/ERC20EnglishAuction.sol#90-94)
+ERC20EnglishAuction.register() (src/auction/ERC20EnglishAuction.sol#119-128) uses timestamp for comparisons
+	Dangerous comparisons:
+	- address(paymentToken) != address(0) || block.timestamp < startsAt || registrationCount >= 99 (src/auction/ERC20EnglishAuction.sol#120)
+ERC20EnglishAuction.settle() (src/auction/ERC20EnglishAuction.sol#162-170) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < endsAt (src/auction/ERC20EnglishAuction.sol#165)
+ERC20EnglishAuction._handleBid(uint256) (src/auction/ERC20EnglishAuction.sol#196-225) uses timestamp for comparisons
+	Dangerous comparisons:
+	- settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt) (src/auction/ERC20EnglishAuction.sol#203)
+	- extended > endsAt (src/auction/ERC20EnglishAuction.sol#223)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+
+Detector: assembly
+Kilim.tokenURI(uint256) (src/Kilim.sol#358-378) uses assembly
+	- INLINE ASM (src/Kilim.sol#371-377)
+KilimRenderer.constructor(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#157-179) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#162-164)
+KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#193-196)
+	- INLINE ASM (src/render/KilimRenderer.sol#202-204)
+	- INLINE ASM (src/render/KilimRenderer.sol#210-213)
+	- INLINE ASM (src/render/KilimRenderer.sol#238-240)
+KilimRenderer._artworkBound(uint16[],uint256,uint256,bytes32,uint256) (src/render/KilimRenderer.sol#551-580) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#570-572)
+	- INLINE ASM (src/render/KilimRenderer.sol#574-576)
+KilimRenderer._artworkDefs(uint256,uint16[],uint256) (src/render/KilimRenderer.sol#583-604) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#592-594)
+	- INLINE ASM (src/render/KilimRenderer.sol#596-598)
+KilimRenderer._htmlDoc(uint256,uint256,uint256) (src/render/KilimRenderer.sol#714-739) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#725-727)
+KilimRenderer._read(uint256,uint256,uint256) (src/render/KilimRenderer.sol#750-764) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#756-758)
+KilimRenderer._readMem(uint256,uint256) (src/render/KilimRenderer.sol#766-773) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#769-771)
+KilimRenderer._rec(uint256,uint256) (src/render/KilimRenderer.sol#777-783) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#780-782)
+KilimRenderer._tables() (src/render/KilimRenderer.sol#805-817) uses assembly
+	- INLINE ASM (src/render/KilimRenderer.sol#810-816)
+KilimWriter.buf(uint256) (src/render/KilimWriter.sol#38-43) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#39-42)
+KilimWriter.str(uint256,uint256) (src/render/KilimWriter.sol#58-63) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#59-62)
+KilimWriter.ret(uint256,uint256) (src/render/KilimWriter.sol#69-77) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#70-76)
+KilimWriter.s(uint256,bytes) (src/render/KilimWriter.sol#82-88) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#83-86)
+KilimWriter.w(uint256,bytes32,uint256) (src/render/KilimWriter.sol#92-98) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#93-96)
+KilimWriter.u(uint256,uint256) (src/render/KilimWriter.sol#110-124) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#111-122)
+KilimWriter.i(uint256,int256) (src/render/KilimWriter.sol#127-135) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#129-131)
+KilimWriter.hex32(uint256,bytes32) (src/render/KilimWriter.sol#138-153) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#139-151)
+KilimWriter.b64(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#166-205) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#169-201)
+KilimWriter.path(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#217-300) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#220-297)
+KilimWriter.tables() (src/render/KilimWriter.sol#305-340) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#308-339)
+KilimWriter.path.asm_0.rv() (src/render/KilimWriter.sol#222-231) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#222-231)
+KilimWriter.path.asm_0.num() (src/render/KilimWriter.sol#233-263) uses assembly
+	- INLINE ASM (src/render/KilimWriter.sol#233-263)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Detector: cyclomatic-complexity
+KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) has a high cyclomatic complexity (21).
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#cyclomatic-complexity
+
+Detector: dead-code
+ERC20EnglishAuction._afterSettle() (src/auction/ERC20EnglishAuction.sol#173) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+Detector: low-level-calls
+Low level call in ERC20EnglishAuction._pay(address,uint256) (src/auction/ERC20EnglishAuction.sol#279-294):
+	- (paid,None) = address(to).call{value: amount}() (src/auction/ERC20EnglishAuction.sol#281)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Detector: naming-convention
+Variable KilimRenderer.TABLES (src/render/KilimRenderer.sol#130) is not in mixedCase
+Variable KilimRenderer.GEO_LEN (src/render/KilimRenderer.sol#135) is not in mixedCase
+Variable KilimRenderer.IDX_OFF (src/render/KilimRenderer.sol#136) is not in mixedCase
+Variable KilimRenderer.PAGE_OFF (src/render/KilimRenderer.sol#137) is not in mixedCase
+Variable KilimRenderer.PAGE_LEN (src/render/KilimRenderer.sol#138) is not in mixedCase
+Variable KilimRenderer.STILL_AT (src/render/KilimRenderer.sol#139) is not in mixedCase
+Variable KilimRenderer.SYMBOLS_AT (src/render/KilimRenderer.sol#140) is not in mixedCase
+Variable KilimRenderer.MAX_REC (src/render/KilimRenderer.sol#141) is not in mixedCase
+Variable KilimRenderer.STILL (src/render/KilimRenderer.sol#143) is not in mixedCase
+Parameter KilimWriter.path.asm_0.rv().q_path_asm_0_rv (src/render/KilimWriter.sol#222) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().q_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().pp_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Parameter KilimWriter.path.asm_0.num().t_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+. analyzed (30 contracts with 101 detectors), 51 result(s) found

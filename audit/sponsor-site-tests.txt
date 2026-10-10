@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: selectors and topics match the values computed from the compiled contracts
+ok 1 - selectors and topics match the values computed from the compiled contracts
+  ---
+  duration_ms: 1.336208
+  type: 'test'
+  ...
+# Subtest: encodes and decodes static and dynamic types, including nested tuples
+ok 2 - encodes and decodes static and dynamic types, including nested tuples
+  ---
+  duration_ms: 2.617458
+  type: 'test'
+  ...
+# Subtest: decoding is strict about lengths, offsets and dirty bits
+ok 3 - decoding is strict about lengths, offsets and dirty bits
+  ---
+  duration_ms: 1.18025
+  type: 'test'
+  ...
+# Subtest: decodes USDC Error(string) reverts, Panic and custom errors
+ok 4 - decodes USDC Error(string) reverts, Panic and custom errors
+  ---
+  duration_ms: 0.469542
+  type: 'test'
+  ...
+# Subtest: EIP-55 checksums and typed-in address validation
+ok 5 - EIP-55 checksums and typed-in address validation
+  ---
+  duration_ms: 0.531792
+  type: 'test'
+  ...
+# Subtest: decodes events with indexed and data fields
+ok 6 - decodes events with indexed and data fields
+  ---
+  duration_ms: 0.43875
+  type: 'test'
+  ...
+# Subtest: finds revert data in the error shapes wallets and nodes use
+ok 7 - finds revert data in the error shapes wallets and nodes use
+  ---
+  duration_ms: 0.646708
+  type: 'test'
+  ...
+# Subtest: ABI sync: every contract error is registered, every site signature exists in the ABIs
+ok 8 - ABI sync: every contract error is registered, every site signature exists in the ABIs
+  ---
+  duration_ms: 2.666833
+  type: 'test'
+  ...
+# Subtest: startup, phases, and the opening clock
+ok 9 - startup, phases, and the opening clock
+  ---
+  duration_ms: 413.992709
+  type: 'test'
+  ...
+# Subtest: without eth_simulateV1, the prefix simulation still decodes auction errors and lets valid bids through
+ok 10 - without eth_simulateV1, the prefix simulation still decodes auction errors and lets valid bids through
+  ---
+  duration_ms: 395.158625
+  type: 'test'
+  ...
+# Subtest: USDC bids: sequential approve + bid, then a batched EIP-5792 bid, then the minimum ladder
+ok 11 - USDC bids: sequential approve + bid, then a batched EIP-5792 bid, then the minimum ladder
+  ---
+  duration_ms: 933.582875
+  type: 'test'
+  ...
+# Subtest: pay with ETH: exact-output swap into the bidder’s own wallet, sequential and batched
+ok 12 - pay with ETH: exact-output swap into the bidder’s own wallet, sequential and batched
+  ---
+  duration_ms: 432.98875
+  type: 'test'
+  ...
+# Subtest: bid guards: BidTooLow, SymbolRangeMoved, TreasuryCannotBid, NonWholeUnitBid
+ok 13 - bid guards: BidTooLow, SymbolRangeMoved, TreasuryCannotBid, NonWholeUnitBid
+  ---
+  duration_ms: 540.416291
+  type: 'test'
+  ...
+# Subtest: a small pool: RewardSlippage, then bids that earn no symbols pass 0 and 0
+ok 14 - a small pool: RewardSlippage, then bids that earn no symbols pass 0 and 0
+  ---
+  duration_ms: 352.252416
+  type: 'test'
+  ...
+# Subtest: late bids extend the close by 10 minutes, with no limit
+ok 15 - late bids extend the close by 10 minutes, with no limit
+  ---
+  duration_ms: 360.803
+  type: 'test'
+  ...
+# Subtest: refunds come back automatically in USDC; one that cannot be sent waits to be withdrawn, once
+ok 16 - refunds come back automatically in USDC; one that cannot be sent waits to be withdrawn, once
+  ---
+  duration_ms: 402.474542
+  type: 'test'
+  ...
+# Subtest: claims: 64 per transaction, non-contiguous ranges, holdings from Transfer logs, bad receivers
+ok 17 - claims: 64 per transaction, non-contiguous ranges, holdings from Transfer logs, bad receivers
+  ---
+  duration_ms: 667.175125
+  type: 'test'
+  ...
+# Subtest: the loom: weave, expand, freeze, grid limits, transfers
+ok 18 - the loom: weave, expand, freeze, grid limits, transfers
+  ---
+  duration_ms: 814.757458
+  type: 'test'
+  ...
+# Subtest: settlement: anyone settles after the close, which sends the 1/1 to the winner; the treasury withdraws
+ok 19 - settlement: anyone settles after the close, which sends the 1/1 to the winner; the treasury withdraws
+  ---
+  duration_ms: 273.382459
+  type: 'test'
+  ...
+# Subtest: no bids: nothing to settle, ever
+ok 20 - no bids: nothing to settle, ever
+  ---
+  duration_ms: 261.52975
+  type: 'test'
+  ...
+# Subtest: operator levers and startup checks: void addresses, writesDisabled, wrong network, wrong token
+ok 21 - operator levers and startup checks: void addresses, writesDisabled, wrong network, wrong token
+  ---
+  duration_ms: 325.286042
+  type: 'test'
+  ...
+# Subtest: cached logs are dropped when the chain they came from is gone (same addresses, new chain)
+ok 22 - cached logs are dropped when the chain they came from is gone (same addresses, new chain)
+  ---
+  duration_ms: 755.414584
+  type: 'test'
+  ...
+# Subtest: site-config verifies a deployment and writes it into the chain config
+ok 23 - site-config verifies a deployment and writes it into the chain config
+  ---
+  duration_ms: 520.88675
+  type: 'test'
+  ...
+# Subtest: the published pages build, say nothing the contracts contradict, and carry no dev code
+ok 24 - the published pages build, say nothing the contracts contradict, and carry no dev code
+  ---
+  duration_ms: 427.654083
+  type: 'test'
+  ...
+# Subtest: the unused drafts are gone
+ok 25 - the unused drafts are gone
+  ---
+  duration_ms: 0.079541
+  type: 'test'
+  ...
+# Subtest: the dev build carries the dev wallet; the published build does not
+ok 26 - the dev build carries the dev wallet; the published build does not
+  ---
+  duration_ms: 94.445959
+  type: 'test'
+  ...
+# Subtest: chain configs: Ethereum and Sepolia use native ETH, with legacy addresses retained and no deployment
+ok 27 - chain configs: Ethereum and Sepolia use native ETH, with legacy addresses retained and no deployment
+  ---
+  duration_ms: 0.482667
+  type: 'test'
+  ...
+# Subtest: build.py refuses Ethereum without an ETH/USD band, and any malformed band
+ok 28 - build.py refuses Ethereum without an ETH/USD band, and any malformed band
+  ---
+  duration_ms: 838.554958
+  type: 'test'
+  ...
+# Subtest: native registration, 100th unlock and direct ETH bid through the real site adapter
+ok 29 - native registration, 100th unlock and direct ETH bid through the real site adapter
+  ---
+  duration_ms: 1095.086208
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10213.596042

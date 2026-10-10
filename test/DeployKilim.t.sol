@@ -203,7 +203,9 @@ contract DeployKilimTest is TestBase {
         c = _config();
         c.chainId = 1;
         c.rendererHash = address(renderer).codehash;
-        c.auction.paymentToken = MAINNET_USDC;
+        c.auction.paymentToken = address(0);
+        c.tokenDecimals = 18;
+        c.auction.reservePrice = 0.01 ether;
         c.auction.treasury = ARTIST;
         c.auction.collectionOwner = ARTIST;
     }
@@ -218,10 +220,10 @@ contract DeployKilimTest is TestBase {
         KilimRenderer renderer = _onMainnet();
         DeployKilim.Config memory c = _mainnetConfig(renderer);
         KilimAuction auction = script.deployAuction(c, renderer);
-        assertEq(address(auction.paymentToken()), MAINNET_USDC);
-        assertEq(auction.tokenUnit(), 1e6);
+        assertEq(address(auction.paymentToken()), address(0));
+        assertEq(auction.tokenUnit(), 0.001 ether);
         assertEq(auction.treasury(), ARTIST);
-        assertEq(auction.reservePrice(), 1e6);
+        assertEq(auction.reservePrice(), 0.01 ether);
         assertEq(auction.incrementBps(), 1000);
         assertEq(auction.duration(), 86_400);
         assertEq(auction.extensionWindow(), 600);
@@ -241,7 +243,7 @@ contract DeployKilimTest is TestBase {
         script.deployAuction(c, renderer);
 
         c = _mainnetConfig(renderer);
-        c.tokenDecimals = 18;
+        c.tokenDecimals = 6;
         _expectRefused("mainnet launch value: tokenDecimals");
         script.deployAuction(c, renderer);
 
@@ -332,8 +334,8 @@ contract DeployKilimTest is TestBase {
     /// @dev The committed templates carry the launch values the script pins, and stay unreadable until
     ///      every TODO is filled in.
     function testTemplatesCarryTheLaunchValuesAndFailClosed() public {
-        _checkTemplate("deploy/mainnet.example.json", 1, MAINNET_USDC);
-        _checkTemplate("deploy/sepolia.example.json", 11_155_111, SEPOLIA_USDC);
+        _checkTemplate("deploy/mainnet.example.json", 1, address(0));
+        _checkTemplate("deploy/sepolia.example.json", 11_155_111, address(0));
     }
 
     function _checkTemplate(string memory path, uint256 chain, address token) internal {

@@ -62,14 +62,14 @@ contract DeployKilim {
 
     // The decided launch settings (checklists/1-pre-deploy.md). On chain 1 any other value is refused.
     uint256 public constant MAINNET_CHAIN_ID = 1;
-    /// @notice USDC on Ethereum mainnet, 6 decimals.
-    address public constant LAUNCH_PAYMENT_TOKEN = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    uint8 public constant LAUNCH_TOKEN_DECIMALS = 6;
+    /// @notice Native ETH on Ethereum mainnet, 18 decimals.
+    address public constant LAUNCH_PAYMENT_TOKEN = address(0);
+    uint8 public constant LAUNCH_TOKEN_DECIMALS = 18;
     /// @notice orkhanart.eth: the treasury, royalty receiver and collection-page owner.
     address public constant LAUNCH_TREASURY = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     address public constant LAUNCH_COLLECTION_OWNER = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
-    /// @notice $1 opening bid: 1 × 10^6.
-    uint256 public constant LAUNCH_RESERVE_PRICE = 1_000_000;
+    /// @notice The 100th registration places the 0.01 ETH opening bid.
+    uint256 public constant LAUNCH_RESERVE_PRICE = 0.01 ether;
     /// @notice Each raise at least +10%.
     uint16 public constant LAUNCH_INCREMENT_BPS = 1000;
     /// @notice 24 hours from the first bid.
@@ -343,9 +343,16 @@ contract DeployKilim {
         a.geometryHash = c.geometryHash;
         a.rendererHash = c.rendererHash;
         a.renderer = address(renderer);
-        if (a.paymentToken.code.length == 0) revert Refused("payment token has no code");
-        if (IERC20Decimals(a.paymentToken).decimals() != c.tokenDecimals) revert Refused("token decimals");
-        if (a.reservePrice == 0 || a.reservePrice % 10 ** c.tokenDecimals != 0) {
+        if (a.paymentToken == address(0)) {
+            if (c.tokenDecimals != 18) revert Refused("token decimals");
+        } else {
+            if (a.paymentToken.code.length == 0) revert Refused("payment token has no code");
+            if (IERC20Decimals(a.paymentToken).decimals() != c.tokenDecimals) {
+                revert Refused("token decimals");
+            }
+        }
+        uint256 unit = a.paymentToken == address(0) ? 0.001 ether : 10 ** c.tokenDecimals;
+        if (a.reservePrice == 0 || a.reservePrice % unit != 0) {
             revert Refused("reserve price");
         }
         if (a.startsAt < block.timestamp + c.minLeadSeconds || a.startsAt > block.timestamp + MAX_LEAD) {

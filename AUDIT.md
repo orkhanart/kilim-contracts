@@ -1,4 +1,8 @@
+> 8 October sponsored-registration update: see [NATIVE-ETH.md](docs/NATIVE-ETH.md). 232 contract tests, 29 site checks and 3 sponsor/browser tests passed locally. Fresh Slither results retain 1 High, 12 Low and 39 Informational findings. Sponsorship is not activated; independent final review and testnet rehearsal remain pending.
+
 # Kilim internal security review
+
+> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
 
 **Review dates:** September 18 and 26, 2026 UTC.  
 **Disposition:** Development implementation. **Not approved for a real-money launch.**  
@@ -36,7 +40,15 @@ A bidder keeps symbol credits after getting all of their losing principal back. 
 
 **Status:** Accepted by the owner (September 18 and 25, 2026) as the intended incentive. Nonrefundable purchases, increment-only rewards and winner-only rewards were offered and declined. Disclose the mechanism plainly; do not advertise $1 of net revenue per symbol.
 
-### K-09 — Launch blocker: automatic refunds and symbol delivery are new and unreviewed
+### K-09 — Launch blocker: automatic refunds and prize delivery are new and unreviewed; symbol delivery is off for the ETH launch
+
+> **Corrected 9 October 2026.** For the native-ETH launch, symbols are **not** delivered automatically. Since 8 October `deliverSymbols` refuses to run when the payment asset is ETH (`KilimAuction.sol:177-179`, reverting `Unauthorized`), and bidders mint their own symbols with `claimSymbols`. `test/NativeRegistration.t.sol:160-161` holds it to that, and a full run on the local test bench (`scripts/bench.mjs`) showed a bidder owning no symbols until they claimed. See [NATIVE-ETH.md](docs/NATIVE-ETH.md), "Custody and claims".
+>
+> What is still automatic in ETH mode, and so still in scope for this finding: the refund of an outbid bid, paid inside the bid that beats it, and the hand-over of the 1/1 at settlement. Both keep their pull fallback (`withdrawRefund`, `claimPrize`).
+>
+> The delivery code (`deliverSymbols`, `deliverTo`, the queue and its cursor) is still compiled into the contract for the legacy ERC-20 mode. It is unreachable in ETH mode but remains code an auditor must read. Open decision before the code is frozen: remove it, or keep it and have it reviewed.
+>
+> The text below describes the 28 September design, when delivery was automatic in every mode. Its test counts and its "no bidder needs to claim" wording predate the ETH change.
 
 Location: `ERC20EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction.deliverSymbols()` / `deliverTo()`, `KilimAuction._afterSettle()` / `deliverPrize()`.
 

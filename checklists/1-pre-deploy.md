@@ -1,5 +1,7 @@
 # 1. Pre-deploy checklist
 
+> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](../docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
+
 Everything that must be true **before the mainnet deployment transaction is sent**. Next: [2-deploy.md](2-deploy.md), then [3-post-deploy.md](3-post-deploy.md).
 
 The contracts have **no admin, pause, upgrade or metadata setter**, and a deployed auction **cannot be stopped**. Anything wrong at deployment is permanent. `[x]` marks items done, checked against the repo on September 25, 2026. K-01 to K-07 refer to findings in [AUDIT.md](../AUDIT.md).

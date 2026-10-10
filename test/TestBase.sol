@@ -16,6 +16,8 @@ interface Vm {
     function expectRevert(bytes calldata) external;
     function expectPartialRevert(bytes4) external;
     function deal(address, uint256) external;
+    function snapshotState() external returns (uint256);
+    function revertToState(uint256) external returns (bool);
     function expectEmit() external;
     function toString(uint256) external pure returns (string memory);
     function parseJsonUint(string calldata, string calldata) external pure returns (uint256);
