@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
 import {TestBase, InvariantBase} from "./TestBase.sol";
 
 /// @dev A bidder wallet whose ETH receiver can accept, reject, or burn all the gas it is given,
@@ -100,13 +100,13 @@ contract AuctionHandler is TestBase {
 
     function claim(uint8 actorSeed, uint8 quantitySeed, uint8 destination) external {
         address actor = actors[actorSeed % 3];
-        uint256 credits = auction.symbolCredits(actor);
+        uint256 credits = auction.glyphCredits(actor);
         address to = actors[destination % 3];
         if (credits == 0 || !_takesNfts(to)) return;
         uint256 quantity = 1 + uint256(quantitySeed) % 64;
         if (quantity > credits) quantity = credits;
         vm.prank(actor);
-        auction.claimSymbols(quantity, to);
+        auction.claimGlyphs(quantity, to);
         ++claimCalls;
     }
 
@@ -163,9 +163,8 @@ contract AuctionInvariants is InvariantBase {
     function setUp() public {
         // A small pool keeps the run bounded and exercises exhausted rewards, where bids
         // are still accepted but reserve no IDs.
-        KilimAuction.Config memory c = config();
-        c.symbolCap = 600;
-        c.maxSymbolsPerBid = 60;
+        KilimAuction.Config memory c = config(600);
+        c.maxGlyphsPerBid = 60;
         auction = new KilimAuction(c);
         handler = new AuctionHandler(auction);
         targets.push(address(handler));
@@ -203,22 +202,22 @@ contract AuctionInvariants is InvariantBase {
     function invariantCreditsCannotBeCreatedTwiceOrOverCap() public view {
         uint256 sum;
         for (uint256 i; i < 3; ++i) {
-            sum += auction.symbolCredits(handler.actors(i));
+            sum += auction.glyphCredits(handler.actors(i));
         }
-        assertEq(sum + auction.symbolsClaimed(), auction.symbolsAllocated());
-        assertEq(auction.collection().symbolsMinted(), auction.symbolsClaimed());
-        assertTrue(auction.symbolsAllocated() <= auction.symbolCap());
+        assertEq(sum + auction.glyphsClaimed(), auction.glyphsAllocated());
+        assertEq(auction.glyphs().glyphsMinted(), auction.glyphsClaimed());
+        assertTrue(auction.glyphsAllocated() <= auction.glyphCap());
     }
 
     /// Reserved ranges match credits exactly, sit inside the allocated block, never overlap,
     /// and contain only unminted IDs.
     function invariantReservedIdsMatchCreditsAndAreUnminted() public view {
-        Kilim nft = auction.collection();
-        uint256 first = nft.FIRST_SYMBOL_ID();
-        uint256 end = first + auction.symbolsAllocated();
+        KilimGlyphs nft = auction.glyphs();
+        uint256 first = 1;
+        uint256 end = first + auction.glyphsAllocated();
         KilimAuction.CreditRange[][3] memory all;
         for (uint256 a; a < 3; ++a) {
-            all[a] = auction.unclaimedSymbolRanges(handler.actors(a));
+            all[a] = auction.unclaimedGlyphRanges(handler.actors(a));
             uint256 total;
             for (uint256 i; i < all[a].length; ++i) {
                 KilimAuction.CreditRange memory r = all[a][i];
@@ -226,11 +225,11 @@ contract AuctionInvariants is InvariantBase {
                 assertTrue(r.nextId >= first && r.nextId + r.remaining <= end);
                 if (i != 0) assertTrue(all[a][i - 1].nextId + all[a][i - 1].remaining <= r.nextId);
                 // Endpoints only: scanning every reserved ID is O(supply) per call.
-                assertTrue(nft.kindOf(r.nextId) == Kilim.Kind.None);
-                assertTrue(nft.kindOf(r.nextId + r.remaining - 1) == Kilim.Kind.None);
+                assertTrue(_unminted(nft, r.nextId));
+                assertTrue(_unminted(nft, r.nextId + r.remaining - 1));
                 total += r.remaining;
             }
-            assertEq(total, auction.symbolCredits(handler.actors(a)));
+            assertEq(total, auction.glyphCredits(handler.actors(a)));
         }
         for (uint256 a; a < 3; ++a) {
             for (uint256 b = a + 1; b < 3; ++b) {
@@ -250,7 +249,17 @@ contract AuctionInvariants is InvariantBase {
         assertTrue(auction.endsAt() == 0 || auction.endsAt() > auction.startsAt());
         assertTrue(!auction.settled() || (auction.endsAt() != 0 && auction.highestBidder() != address(0)));
         assertTrue(!auction.prizeClaimed() || auction.settled());
-        assertTrue(auction.collection().masterpieceMinted() == auction.prizeClaimed());
+        assertTrue(auction.oneOfOne().minted() == auction.prizeClaimed());
+    }
+
+    /// @dev An id that was never minted: no owner now and never burned.
+    function _unminted(KilimGlyphs nft, uint256 id) private view returns (bool) {
+        if (nft.burned(id)) return false;
+        try nft.ownerOf(id) returns (address) {
+            return false;
+        } catch {
+            return true;
+        }
     }
 
     function _checkAll() private view {
@@ -286,7 +295,7 @@ contract AuctionInvariants is InvariantBase {
         handler.prize(0);
         assertTrue(!auction.prizeClaimed());
         handler.prize(1);
-        assertEq(auction.collection().ownerOf(1), handler.actors(1));
+        assertEq(auction.oneOfOne().ownerOf(1), handler.actors(1));
         handler.refund(0, 0);
         assertEq(handler.refundCalls(), 0);
         handler.refund(0, 2);

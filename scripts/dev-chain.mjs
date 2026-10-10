@@ -1,4 +1,5 @@
-// Local dev chain for the site: anvil on 127.0.0.1:8545, a fresh Kilim deployment (native ETH), the
+// Local dev chain for the site: anvil on 127.0.0.1:8545, a fresh Kilim deployment (native ETH, the
+// packed glyph and page stores, the three contracts), the
 // site config in site/chains/31337.json, and the *.dev.html pages. Runs until Ctrl-C.
 //
 //   pnpm dev:chain                    deploy; registration opens at startsAt (two minutes later)
@@ -48,7 +49,7 @@ try {
   const d = await deployLocal(anvil.rpcUrl);
   const cfg = siteConfig(d, { rpcUrl: anvil.rpcUrl });
   writeFileSync(resolve(site, 'chains/31337.json'), JSON.stringify(cfg, null, 2) + '\n');
-  console.log(`auction    ${cfg.auction}\ncollection ${cfg.collection}\ndeployed at block ${d.deployBlock}; registration opens at ${new Date(d.startsAt * 1000).toISOString()}`);
+  console.log(`auction    ${cfg.auction}\nglyphs     ${cfg.glyphs}\noneOfOne   ${cfg.oneOfOne}\ndeployed at block ${d.deployBlock}; registration opens at ${new Date(d.startsAt * 1000).toISOString()}`);
   if (register !== null) {
     const count = await registerWallets(rpcClient(anvil.rpcUrl), d, register);
     console.log(count === REGISTRATION_TARGET
@@ -64,7 +65,6 @@ Then open:
   ${base}/auction.dev.html?as=1   Alice
   ${base}/auction.dev.html?as=2   Bob
   ${base}/auction.dev.html?as=9   the treasury (cannot register or bid)
-  ${base}/weave.dev.html?as=1     the weaving page
   ${base}/index.dev.html          the landing page
 Accounts 0-9 hold 10,000 test ETH. Bids, refunds and proceeds are ETH. Ctrl-C stops anvil.`);
 } catch (e) {

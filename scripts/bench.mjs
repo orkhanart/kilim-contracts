@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startAnvil } from './dev/anvil.mjs';
-import { deployLocal, rpcClient, A } from './dev/deploy.mjs';
+import { deployLocal, rpcClient, A, F as FN } from './dev/deploy.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -19,7 +19,6 @@ const PORT = Number(value('--port', '5199')), RPC_PORT = Number(value('--rpc-por
 
 const ETH = 10n ** 18n;
 const hex = (n) => '0x' + BigInt(n).toString(16);
-const nftBalance = A.fn('balanceOf(address owner) returns (uint256)');   // the collection's ERC-721 balance
 const eth = (wei) => { const s = (BigInt(wei) * 1000000n / ETH).toString().padStart(7, '0'); return (s.slice(0, -6) + '.' + s.slice(-6)).replace(/\.?0+$/, '') || '0'; };
 const toWei = (text) => { const [whole, part = ''] = String(text).trim().split('.'); return BigInt(whole || '0') * ETH + BigInt((part + '0'.repeat(18)).slice(0, 18)); };
 /** Wallet n of the bench: a plain address on the private chain, impersonated by anvil. */
@@ -37,7 +36,7 @@ const note = (ok, text) => { log.unshift({ ok, text, at: new Date().toISOString(
 
 async function deploy() {
   d = await deployLocal(anvil.rpcUrl);
-  F = A.F.auction;
+  F = FN.auction;
   await rpc.call('anvil_autoImpersonateAccount', [true]);
   // Check-in opens at startsAt: go there, so the bench starts where a visitor would.
   await rpc.call('evm_setNextBlockTimestamp', [d.startsAt]); await rpc.call('evm_mine');
@@ -75,7 +74,9 @@ const PLAIN = {
   TreasuryCannotBid: () => 'the treasury wallet cannot bid',
   AlreadySettled: () => 'the auction is already settled',
   NotSettled: () => 'the auction has to be settled first',
-  InvalidQuantity: () => 'this wallet has no symbols left to claim, or asked for too many at once',
+  InvalidQuantity: () => 'this wallet has no glyphs left to claim, or asked for too many at once',
+  InvalidRecipient: () => 'glyphs cannot go to that address',
+  InsufficientGas: () => 'the transaction needs more gas for the refund or the 1/1 delivery',
 };
 const plain = (code, a) => (PLAIN[code] ? PLAIN[code](a ?? []) : 'the contract refused');
 const NAMES = ['Aylin', 'Bora', 'Cem', 'Deniz', 'Elif'];
@@ -116,8 +117,8 @@ const actions = {
   },
   async settle() { const r = await send(wallet(1), F.settle); note(r.ok, r.ok ? 'The auction is settled. The 1/1 went to the winner.' : `Settling was refused: ${r.error}.`); },
   async claim({ n, quantity = 10 }) {
-    const from = wallet(n), r = await send(from, F.claimSymbols, [BigInt(quantity), from]);
-    note(r.ok, r.ok ? `${who(n)} claimed ${quantity} symbols.` : `${who(n)}'s claim was refused: ${r.error}.`);
+    const from = wallet(n), r = await send(from, F.claimGlyphs, [BigInt(quantity), from]);
+    note(r.ok, r.ok ? `${who(n)} claimed ${quantity} glyphs.` : `${who(n)}'s claim was refused: ${r.error}.`);
   },
   async refund({ n }) {
     const from = wallet(n), r = await send(from, F.withdrawRefund, [from]);
@@ -138,7 +139,7 @@ const actions = {
 async function state() {
   const [t, count, highest, bidder, ends, settled, minimum, allocated, claimed, due] = await Promise.all([
     now(), view(F.registrationCount), view(F.highestBid), view(F.highestBidder), view(F.endsAt), view(F.settled),
-    view(F.minimumBid).catch(() => 0n), view(F.symbolsAllocated), view(F.symbolsClaimed), view(F.proceedsDue),
+    view(F.minimumBid).catch(() => 0n), view(F.glyphsAllocated), view(F.glyphsClaimed), view(F.proceedsDue),
   ]);
   const end = Number(ends);
   const phase = settled ? 'settled' : end && t >= end ? 'ended' : end ? 'running' : Number(count) >= 100 ? 'ready' : 'checkin';
@@ -147,18 +148,18 @@ async function state() {
   for (let n = 1; n <= Math.max(used, NAMES.length); n++) {
     const a = wallet(n);
     // Only the wallets that have something to show beyond "checked in" are listed in full.
-    const [credits, refund] = await Promise.all([view(F.symbolCredits, [a]), view(F.refunds, [a])]);
+    const [credits, refund] = await Promise.all([view(F.glyphCredits, [a]), view(F.refunds, [a])]);
     if (n > NAMES.length && !credits && !refund && a !== leader) continue;
     const [registered, balance, owned] = await Promise.all([
       view(F.registered, [a]), rpc.call('eth_getBalance', [a, 'latest']),
-      rpc.view(d.collection, nftBalance, [a]).then((r) => r[0]).catch(() => null),
+      rpc.view(d.glyphs, FN.glyphs.balanceOf, [a]).then((r) => r[0]).catch(() => null),
     ]);
     wallets.push({ n, name: who(n), registered, balance: eth(balance), credits: String(credits), refund: eth(refund), owned: owned === null ? '?' : String(owned), leading: a === leader });
   }
   return {
     time: t, phase, count: Number(count), highest: eth(highest), leader: leader ? who(Number(BigInt(leader) & 0xffffffffn)) : null,
     endsAt: end, left: end ? end - t : null, minimum: eth(minimum), allocated: String(allocated), claimed: String(claimed), proceeds: eth(due),
-    auction: d.auction, collection: d.collection, wallets, used, log: log.slice(0, 60),
+    auction: d.auction, glyphs: d.glyphs, oneOfOne: d.oneOfOne, wallets, used, log: log.slice(0, 60),
   };
 }
 

@@ -8,90 +8,51 @@
         "internalType": "address"
       },
       {
-        "name": "owner_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
         "name": "royaltyReceiver_",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "symbolCap_",
+        "name": "glyphCap_",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "motifCount_",
-        "type": "uint16",
-        "internalType": "uint16"
+        "name": "gridChunks_",
+        "type": "address[]",
+        "internalType": "address[]"
       },
       {
-        "name": "maxCells_",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "geometryHash_",
+        "name": "gridsHash_",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "rendererHash_",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "renderer_",
+        "name": "namesChunk_",
         "type": "address",
-        "internalType": "contract IKilimRenderer"
+        "internalType": "address"
+      },
+      {
+        "name": "namesHash_",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "description_",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "externalUrl_",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "APPEARANCE_INDIGO",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "APPEARANCE_INK",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "APPEARANCE_VERMILION",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "FIRST_SYMBOL_ID",
+    "name": "GLYPH_COUNT",
     "inputs": [],
     "outputs": [
       {
@@ -104,20 +65,7 @@
   },
   {
     "type": "function",
-    "name": "HARD_MAX_CELLS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "MASTERPIECE_ID",
+    "name": "GRIDS_PER_CHUNK",
     "inputs": [],
     "outputs": [
       {
@@ -131,6 +79,19 @@
   {
     "type": "function",
     "name": "MAX_MINT_BATCH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "NAME_OFFSET_TABLE",
     "inputs": [],
     "outputs": [
       {
@@ -174,70 +135,6 @@
   },
   {
     "type": "function",
-    "name": "artworkData",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "data",
-        "type": "tuple",
-        "internalType": "struct Kilim.ArtworkData",
-        "components": [
-          {
-            "name": "cells",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
-          },
-          {
-            "name": "appearance",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "revision",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "columns",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "rows",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "frozen",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "artworksMinted",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "balanceOf",
     "inputs": [
       {
@@ -257,26 +154,32 @@
   },
   {
     "type": "function",
-    "name": "collectionDescription",
-    "inputs": [],
-    "outputs": [
+    "name": "burn",
+    "inputs": [
       {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "collectionExternalUrl",
-    "inputs": [],
+    "name": "burned",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
       {
         "name": "",
-        "type": "string",
-        "internalType": "string"
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -296,64 +199,26 @@
   },
   {
     "type": "function",
-    "name": "expand",
-    "inputs": [
-      {
-        "name": "artworkId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "expectedRevision",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "cells",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "columns",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "rows",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "appearance",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "freezeArtwork",
-    "inputs": [
-      {
-        "name": "artworkId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "geometryHash",
+    "name": "description",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "externalUrl",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -373,6 +238,122 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphCap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphOf",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphsBurned",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphsMinted",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "grid",
+    "inputs": [
+      {
+        "name": "glyph",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "gridChunks",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "grids",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "gridsHash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -403,65 +384,7 @@
   },
   {
     "type": "function",
-    "name": "kindOf",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint8",
-        "internalType": "enum Kilim.Kind"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "masterpieceMinted",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "maxCells",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "mintMasterpiece",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "mintSymbols",
+    "name": "mintGlyphs",
     "inputs": [
       {
         "name": "to",
@@ -502,19 +425,6 @@
   },
   {
     "type": "function",
-    "name": "motifCount",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "name",
     "inputs": [],
     "outputs": [
@@ -528,13 +438,45 @@
   },
   {
     "type": "function",
-    "name": "owner",
+    "name": "name",
+    "inputs": [
+      {
+        "name": "glyph",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "namesChunk",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "namesHash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -560,39 +502,6 @@
   },
   {
     "type": "function",
-    "name": "renderer",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IKilimRenderer"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "rendererHash",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "royaltyInfo",
     "inputs": [
       {
@@ -608,12 +517,12 @@
     ],
     "outputs": [
       {
-        "name": "receiver",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -704,37 +613,6 @@
   },
   {
     "type": "function",
-    "name": "setCollectionInfo",
-    "inputs": [
-      {
-        "name": "description",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "externalUrl",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setRoyaltyReceiver",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "supportsInterface",
     "inputs": [
       {
@@ -754,6 +632,25 @@
   },
   {
     "type": "function",
+    "name": "svg",
+    "inputs": [
+      {
+        "name": "glyph",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "symbol",
     "inputs": [],
     "outputs": [
@@ -767,124 +664,10 @@
   },
   {
     "type": "function",
-    "name": "symbolCap",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolData",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "data",
-        "type": "tuple",
-        "internalType": "struct Kilim.SymbolData",
-        "components": [
-          {
-            "name": "seed",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "consumedBy",
-            "type": "uint128",
-            "internalType": "uint128"
-          },
-          {
-            "name": "lastRevision",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "motif",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "material",
-            "type": "uint8",
-            "internalType": "uint8"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolTraits",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "seed",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "motif",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "material",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolsBurned",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolsMinted",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "tokenURI",
     "inputs": [
       {
-        "name": "tokenId",
+        "name": "id",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -919,53 +702,6 @@
       }
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
-      {
-        "name": "newOwner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "weave",
-    "inputs": [
-      {
-        "name": "cells",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "columns",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "rows",
-        "type": "uint16",
-        "internalType": "uint16"
-      },
-      {
-        "name": "appearance",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "artworkId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -1020,121 +756,7 @@
   },
   {
     "type": "event",
-    "name": "ArtworkCreated",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "creator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "layoutHash",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArtworkExpanded",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "revision",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "layoutHash",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArtworkPermanentlyFrozen",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ContractURIUpdated",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MetadataUpdate",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
-      {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoyaltyReceiverUpdated",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "SymbolsMinted",
+    "name": "GlyphsMinted",
     "inputs": [
       {
         "name": "recipient",
@@ -1155,7 +777,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "count",
+        "name": "quantity",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1192,22 +814,6 @@
     "type": "error",
     "name": "AlreadyMinted",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ArtworkFrozen",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "DuplicateSymbol",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
   },
   {
     "type": "error",
@@ -1314,18 +920,19 @@
   },
   {
     "type": "error",
-    "name": "InvalidAppearance",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "InvalidConfiguration",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "InvalidLayout",
-    "inputs": []
+    "name": "InvalidGlyph",
+    "inputs": [
+      {
+        "name": "glyph",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ]
   },
   {
     "type": "error",
@@ -1339,17 +946,18 @@
   },
   {
     "type": "error",
-    "name": "MissingExistingSymbols",
-    "inputs": []
+    "name": "InvalidTokenId",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "StaleRevision",
     "inputs": []
   },
   {
@@ -1375,29 +983,7 @@
   },
   {
     "type": "error",
-    "name": "SymbolAlreadyConsumed",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "Unauthorized",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "WrongKind",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
   }
 ]

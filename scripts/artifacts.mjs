@@ -13,7 +13,7 @@ const { keccak_256 } = solcRequire('js-sha3'); // Already pinned by solc in the 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const manifest = { schema: 2, contracts: {}, compiledSourceKeccak256: {}, sourceSha256: {} };
 mkdirSync(resolve(root, 'abi'), { recursive: true });
-for (const name of ['Kilim', 'KilimAuction']) {
+for (const name of ['KilimGlyphs', 'KilimOneOfOne', 'KilimAuction']) {
   const artifact = JSON.parse(readFileSync(resolve(root, `out/${name}.sol/${name}.json`), 'utf8'));
   const metadata = typeof artifact.metadata === 'string' ? JSON.parse(artifact.metadata) : artifact.metadata;
   const expectedCompiler = solc.version().split('.Emscripten')[0];

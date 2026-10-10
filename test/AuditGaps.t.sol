@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {TestBase} from "./TestBase.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 
@@ -70,11 +70,11 @@ contract AnySignatureWallet {
 ///         fails when the check it names is removed or loosened.
 contract AuditGapsTest is TestBase {
     KilimAuction internal auction;
-    Kilim internal nft;
+    KilimGlyphs internal nft;
 
     function setUp() public {
         auction = new KilimAuction(config());
-        nft = auction.collection();
+        nft = auction.glyphs();
         _openBidding(auction);
         _fund(ALICE, 100 ether);
         _fund(BOB, 100 ether);
@@ -97,7 +97,8 @@ contract AuditGapsTest is TestBase {
         auction.bid{value: amount}(amount, 0, 0);
         uint256 used = before - gasleft();
         assertEq(auction.refunds(address(leader)), RESERVE);
-        // The refund's 150,000 cap plus the bid itself; a cap of 190,000 or more fails this.
+        // The refund's 150,000 cap plus the bid itself (about 128,000 today); a cap of 193,000 or more
+        // fails this.
         assertTrue(used < 320_000);
     }
 
@@ -111,7 +112,8 @@ contract AuditGapsTest is TestBase {
         uint256 used = before - gasleft();
         assertTrue(auction.settled());
         assertTrue(!auction.prizeClaimed());
-        // The delivery's 500,000 cap plus settlement itself; a cap of 585,000 or more fails this.
+        // The delivery's 500,000 cap plus settlement itself (about 17,000 today); a cap of 583,000 or
+        // more fails this.
         assertTrue(used < 600_000);
     }
 
@@ -119,9 +121,11 @@ contract AuditGapsTest is TestBase {
 
     function testAWinnerNeedingMostOfThePrizeCapIsDeliveredAtAnyGasLimit() public {
         ProbeWallet winner = _wallet();
-        // Just under the most a winner's callback can use (about 408,000 of the 500,000; the mint takes
-        // the rest). This also pins the mint's own cost: retune it if the compiler settings change.
-        winner.set(false, 0, 407_000, "");
+        // Just under the most a winner's callback can use: 389,005 of the 500,000 by a one-gas binary
+        // search on 10 October 2026 (the cold call into the 1/1, its minted flag, the safe mint and the
+        // auction's prizeClaimed take the rest). This also pins the delivery's own cost: retune it if
+        // the contracts or the compiler settings change. 390,000 is not delivered.
+        winner.set(false, 0, 388_000, "");
         winner.bid(RESERVE);
         vm.warp(auction.endsAt());
         uint256 delivered;
@@ -130,7 +134,7 @@ contract AuditGapsTest is TestBase {
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {
                 assertTrue(auction.prizeClaimed());
-                assertEq(nft.ownerOf(1), address(winner));
+                assertEq(auction.oneOfOne().ownerOf(1), address(winner));
                 ++delivered;
             } else {
                 assertTrue(!auction.settled());
@@ -162,16 +166,16 @@ contract AuditGapsTest is TestBase {
         _bid(auction, ALICE, auction.minimumBid());
         vm.warp(auction.endsAt());
         auction.settle();
-        bytes memory claim = abi.encodeCall(auction.claimSymbols, (1, CAROL));
+        bytes memory claim = abi.encodeCall(auction.claimGlyphs, (1, CAROL));
         sink.set(false, 0, 0, claim);
-        uint256 credits = auction.symbolCredits(address(sink));
+        uint256 credits = auction.glyphCredits(address(sink));
         vm.prank(TREASURY);
         auction.withdrawProceeds(address(sink));
         assertTrue(!sink.reentered());
-        assertEq(auction.symbolCredits(address(sink)), credits);
+        assertEq(auction.glyphCredits(address(sink)), credits);
         // The same call is valid outside the payout: it failed on the guard, not on its own terms.
         assertTrue(sink.run(claim));
-        assertEq(auction.symbolCredits(address(sink)), credits - 1);
+        assertEq(auction.glyphCredits(address(sink)), credits - 1);
     }
 
     function testClaimedPrizeCallbackCannotReenter() public {
@@ -181,13 +185,13 @@ contract AuditGapsTest is TestBase {
         vm.warp(auction.endsAt());
         auction.settle();
         assertTrue(!auction.prizeClaimed());
-        bytes memory claim = abi.encodeCall(auction.claimSymbols, (1, CAROL));
+        bytes memory claim = abi.encodeCall(auction.claimGlyphs, (1, CAROL));
         winner.set(false, 0, 0, claim);
-        uint256 credits = auction.symbolCredits(address(winner));
+        uint256 credits = auction.glyphCredits(address(winner));
         assertTrue(winner.run(abi.encodeCall(auction.claimPrize, (address(winner)))));
-        assertEq(nft.ownerOf(1), address(winner));
+        assertEq(auction.oneOfOne().ownerOf(1), address(winner));
         assertTrue(!winner.reentered());
-        assertEq(auction.symbolCredits(address(winner)), credits);
+        assertEq(auction.glyphCredits(address(winner)), credits);
         winner.set(false, 0, 0, "");
         assertTrue(winner.run(claim));
     }
@@ -226,7 +230,7 @@ contract AuditGapsTest is TestBase {
         if (k == 1) caller = TREASURY;
         if (k == 2) caller = auction.highestBidder();
         if (k == 3) caller = address(nft);
-        if (k == 4) caller = PAGE_OWNER;
+        if (k == 4) caller = address(auction.oneOfOne());
         if (caller == address(auction)) return;
         uint256 held = address(auction).balance;
         uint256 own = caller.balance;
@@ -244,7 +248,7 @@ contract AuditGapsTest is TestBase {
         assertEq(address(auction).balance, held);
         assertEq(caller.balance, own);
         assertEq(address(auction).balance, auction.liabilities());
-        assertTrue(!nft.masterpieceMinted());
+        assertTrue(!auction.oneOfOne().minted());
         assertTrue(!auction.prizeClaimed());
     }
 

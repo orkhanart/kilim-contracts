@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
-import {KilimRenderer} from "../src/render/KilimRenderer.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 
 interface VmDeploy {
     function readFile(string calldata) external view returns (string memory);
@@ -13,13 +13,14 @@ interface VmDeploy {
     function parseJsonAddress(string calldata, string calldata) external pure returns (address);
     function parseJsonBytes32(string calldata, string calldata) external pure returns (bytes32);
     function parseJsonString(string calldata, string calldata) external pure returns (string memory);
-    function parseJsonStringArray(string calldata, string calldata) external pure returns (string[] memory);
-    function parseJsonUintArray(string calldata, string calldata) external pure returns (uint256[] memory);
-    function parseJsonBool(string calldata, string calldata) external pure returns (bool);
+    function keyExistsJson(string calldata, string calldata) external pure returns (bool);
     function startBroadcast(address) external;
     function stopBroadcast() external;
     function snapshotState() external returns (uint256);
     function revertToState(uint256) external returns (bool);
+    function prank(address) external;
+    function startPrank(address) external;
+    function stopPrank() external;
     function getNonce(address) external view returns (uint64);
     function computeCreateAddress(address, uint256) external pure returns (address);
     function toString(uint256) external pure returns (string memory);
@@ -29,19 +30,33 @@ interface VmDeploy {
 
 /// @title DeployKilim
 /// @notice Deploys Kilim in the published order, and refuses before sending anything if a check fails:
-///           1. runStore():   the STORE chunks through the deterministic CREATE2 deployer (any already
-///                            deployed is verified and skipped), then KilimRenderer, also by CREATE2.
-///                            Prints the addresses and rendererHash to publish.
-///           2. runAuction(): KilimAuction, which creates Kilim, from the signed-off config, at the
-///                            published deployer nonce. Prints every setting it deploys with.
-///         `run()` does both (testnet rehearsal). The config is a JSON file named by $KILIM_DEPLOY_CONFIG;
-///         see deploy/mainnet.example.json, deploy/sepolia.example.json and docs/RENDERER.md.
-///         On Ethereum mainnet (chain 1) the auction settings must be the decided launch values below,
-///         the published nonce is always checked and the inspection window must be nonzero. Other chains
-///         (the Sepolia rehearsal, the local chain) accept any valid settings and print each one next to
-///         the launch value it differs from.
+///           1. runStore():     every SSTORE2 chunk (glyph grids, names, page prefix, head and tail) through
+///                              the deterministic CREATE2 deployer, salt 0. A chunk already deployed is
+///                              verified and skipped.
+///           2. runContracts(): with the deployer at nonce n, KilimGlyphs at n and KilimOneOfOne at n + 1,
+///                              both with the auction predicted at n + 2 as minter, then KilimAuction at
+///                              n + 2. Every immutable is read back and the auction's address is checked
+///                              against the prediction.
+///         `run()` does both (the local dry run, `pnpm deploy:dry`, and the testnet rehearsal). The config
+///         is a JSON file named by $KILIM_DEPLOY_CONFIG; see deploy/mainnet.example.json,
+///         deploy/sepolia.example.json and docs/STORAGE.md. On Ethereum mainnet (chain 1) the deployer
+///         must be the artist's wallet, the auction settings must be the decided launch values, the
+///         published nonce is always checked and the inspection window must be nonzero. Other chains
+///         accept any valid settings and print each one next to the launch value.
 /// @dev forge simulates the whole script before broadcasting, so any revert here means nothing is sent.
-///      Every heavy step is first dry-run inside a state snapshot to measure its gas and check its output.
+///      Every heavy step is first dry-run inside a state snapshot to measure its gas (printed per
+///      transaction, refused above MAX_TX_GAS) and check its output: the dry run of the contracts also
+///      mints a glyph and the 1/1 (as the auction, in the snapshot) to compare both tokenURIs with the
+///      golden hashes in the manifests and to measure their gas.
+///
+///      The manifests are what onchain/pack_glyphs.py and onchain/pack_page.py write:
+///        <glyphStore>/manifest.json: glyphCount, create2.deployer, hashes.gridsHash, hashes.namesHash,
+///          grids.chunks[], names.chunks[], description (the collection description the golden was
+///          computed with) and golden.tokenURI.sha256 for golden.glyph (any token showing that glyph).
+///        <pageStore>/manifest.json: create2.deployer, hashes.prefixHash/headHash/tailHash,
+///          sections.prefix/head/tail.chunks[], name, description, externalUrl (the 1/1's, as packed)
+///          and golden.tokenURI.sha256 (the 1/1's whole tokenURI).
+///        A chunk entry is {file, size, keccak, address}; every chunk but a section's last is full.
 contract DeployKilim {
     VmDeploy internal constant vm = VmDeploy(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant CONSOLE = 0x000000000000000000636F6e736F6c652e6c6f67;
@@ -49,7 +64,9 @@ contract DeployKilim {
     address public constant CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
     bytes32 public constant SALT = bytes32(0);
     uint256 public constant CHUNK = 24_575;
-    /// @notice Policy ceiling for every transaction, well under the 16,777,216 per-transaction cap.
+    /// @notice Grid chunks are cut at 767 grids so no grid straddles two chunks.
+    uint256 public constant GRID_CHUNK = 767 * 32;
+    /// @notice Policy ceiling for every transaction and for reading a token, well under the 16,777,216 cap.
     uint256 public constant MAX_TX_GAS = 8_000_000;
     /// @notice No start date further out than this is accepted.
     uint256 public constant MAX_LEAD = 365 days;
@@ -58,9 +75,9 @@ contract DeployKilim {
 
     // The decided launch settings (checklists/1-pre-deploy.md). On chain 1 any other value is refused.
     uint256 public constant MAINNET_CHAIN_ID = 1;
-    /// @notice orkhanart.eth: the treasury, royalty receiver and collection-page owner.
+    /// @notice orkhanart.eth: the deployer, the treasury and the royalty receiver.
+    address public constant LAUNCH_DEPLOYER = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     address public constant LAUNCH_TREASURY = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
-    address public constant LAUNCH_COLLECTION_OWNER = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     /// @notice The opening bid, 0.01 ETH: the only reserve the auction constructor accepts.
     uint256 public constant LAUNCH_RESERVE_PRICE = 0.01 ether;
     /// @notice Each raise at least +10%.
@@ -69,352 +86,511 @@ contract DeployKilim {
     uint64 public constant LAUNCH_DURATION = 86_400;
     /// @notice A bid in the last 10 minutes moves the close to 10 minutes after it, with no limit.
     uint64 public constant LAUNCH_EXTENSION_WINDOW = 600;
-    uint256 public constant LAUNCH_SYMBOL_CAP = 1_000_000;
-    uint256 public constant LAUNCH_MAX_SYMBOLS_PER_BID = 1_000_000;
-    uint16 public constant LAUNCH_MAX_CELLS = 256;
+    uint256 public constant LAUNCH_GLYPH_CAP = 1_000_000;
+    uint256 public constant LAUNCH_MAX_GLYPHS_PER_BID = 1_000_000;
 
     struct Config {
         uint256 chainId;
-        string store;
         address deployer;
-        /// @dev The published nonce for the auction deployment. NO_NONCE_CHECK skips the check, except on
-        ///      chain 1, where it is refused.
+        /// @dev The published nonce for the glyph collection, the first of the three contract deployments.
+        ///      NO_NONCE_CHECK skips the check, except on chain 1, where it is refused.
         uint256 deployerNonce;
-        uint256 motifCount;
-        bytes32 geometryHash;
-        bytes32 indexHash;
-        bytes32 pageHash;
-        /// @dev Zero until the renderer is deployed and its hash published; required by the auction phase.
-        bytes32 rendererHash;
         /// @dev The inspection window: `startsAt` must be at least this many seconds after deployment.
         ///      Must be nonzero on chain 1.
         uint256 minLeadSeconds;
+        string glyphStore;
+        string pageStore;
         KilimAuction.Config auction;
+        uint256 glyphCap;
+        string collectionDescription;
+        string collectionExternalUrl;
+        string oneOfOneName;
+        string oneOfOneDescription;
+        string oneOfOneExternalUrl;
+    }
+
+    /// @dev One stored section: its published hash, the chunk files' bytes and their CREATE2 addresses.
+    struct Section {
+        bytes32 hash;
+        bytes[] chunks;
+        address[] addresses;
     }
 
     struct Store {
-        string manifest;
-        string golden;
-        bytes[] chunks;
-        address[] addresses;
+        string glyphManifest;
+        string pageManifest;
+        Section grids;
+        Section names;
+        Section prefix;
+        Section head;
+        Section tail;
+    }
+
+    struct Deployed {
+        KilimGlyphs glyphs;
+        KilimOneOfOne oneOfOne;
+        KilimAuction auction;
     }
 
     error Refused(string reason);
 
     // ------------------------------------------------------------ entry points
 
-    /// @notice One-shot deploy for local and Sepolia. Refused on mainnet, where rendererHash must be
-    ///         published before the auction is deployed: use runStore, publish, then runAuction.
+    /// @notice One-shot deploy for local and Sepolia. Refused on mainnet, where the store is deployed and
+    ///         inspected before the contracts: use runStore, then runContracts.
     function run() external {
         if (block.chainid == MAINNET_CHAIN_ID) {
-            revert Refused("run() is not for mainnet: use runStore then runAuction");
+            revert Refused("run() is not for mainnet: use runStore then runContracts");
         }
         Config memory c = loadConfig(vm.envString("KILIM_DEPLOY_CONFIG"));
-        KilimRenderer renderer = deployStore(c);
-        if (c.rendererHash == bytes32(0)) c.rendererHash = address(renderer).codehash;
-        deployAuction(c, renderer);
+        deployStore(c);
+        deployContracts(c);
     }
 
     function runStore() external {
         deployStore(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")));
     }
 
-    function runAuction() external {
-        Config memory c = loadConfig(vm.envString("KILIM_DEPLOY_CONFIG"));
-        (address renderer,) = _predictRenderer(c, _loadStore(c));
-        deployAuction(c, KilimRenderer(renderer));
+    function runContracts() external {
+        deployContracts(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")));
     }
 
     function loadConfig(string memory path) public view returns (Config memory c) {
         string memory j = vm.readFile(path);
         c.chainId = vm.parseJsonUint(j, ".chainId");
-        c.store = vm.parseJsonString(j, ".store");
         c.deployer = vm.parseJsonAddress(j, ".deployer");
         c.deployerNonce = vm.parseJsonUint(j, ".deployerNonce");
-        c.motifCount = vm.parseJsonUint(j, ".expected.motifCount");
-        c.geometryHash = vm.parseJsonBytes32(j, ".expected.geometryHash");
-        c.indexHash = vm.parseJsonBytes32(j, ".expected.indexHash");
-        c.pageHash = vm.parseJsonBytes32(j, ".expected.pageHash");
-        c.rendererHash = vm.parseJsonBytes32(j, ".expected.rendererHash");
         c.minLeadSeconds = vm.parseJsonUint(j, ".minLeadSeconds");
+        c.glyphStore = vm.parseJsonString(j, ".glyphStore");
+        c.pageStore = vm.parseJsonString(j, ".pageStore");
         c.auction.treasury = vm.parseJsonAddress(j, ".auction.treasury");
-        c.auction.collectionOwner = vm.parseJsonAddress(j, ".auction.collectionOwner");
         c.auction.startsAt = uint64(vm.parseJsonUint(j, ".auction.startsAt"));
         c.auction.duration = uint64(vm.parseJsonUint(j, ".auction.duration"));
         c.auction.extensionWindow = uint64(vm.parseJsonUint(j, ".auction.extensionWindow"));
         c.auction.incrementBps = uint16(vm.parseJsonUint(j, ".auction.incrementBps"));
         c.auction.reservePrice = vm.parseJsonUint(j, ".auction.reservePrice");
-        c.auction.symbolCap = vm.parseJsonUint(j, ".auction.symbolCap");
-        c.auction.maxSymbolsPerBid = vm.parseJsonUint(j, ".auction.maxSymbolsPerBid");
-        c.auction.maxCells = uint16(vm.parseJsonUint(j, ".auction.maxCells"));
+        c.auction.maxGlyphsPerBid = vm.parseJsonUint(j, ".auction.maxGlyphsPerBid");
+        c.glyphCap = vm.parseJsonUint(j, ".collection.glyphCap");
+        c.collectionDescription = vm.parseJsonString(j, ".collection.description");
+        c.collectionExternalUrl = vm.parseJsonString(j, ".collection.externalUrl");
+        c.oneOfOneName = vm.parseJsonString(j, ".oneOfOne.name");
+        c.oneOfOneDescription = vm.parseJsonString(j, ".oneOfOne.description");
+        c.oneOfOneExternalUrl = vm.parseJsonString(j, ".oneOfOne.externalUrl");
     }
 
-    // ------------------------------------------------------------ phase 1: chunks and renderer
+    // ------------------------------------------------------------ phase 1: the chunks
 
-    /// @notice Verify the packed store, then deploy whatever of it is missing, then the renderer.
-    function deployStore(Config memory c) public returns (KilimRenderer renderer) {
+    /// @notice Verify both stores against their manifests, then deploy whatever chunk is missing.
+    function deployStore(Config memory c) public returns (Store memory s) {
         _requireChain(c);
-        Store memory s = _loadStore(c);
-        (address predicted, bytes memory initcode) = _predictRenderer(c, s);
+        s = loadStore(c);
+        Section[5] memory sections = [s.grids, s.names, s.prefix, s.head, s.tail];
+        string[5] memory labels = ["grids ", "names ", "prefix", "head  ", "tail  "];
 
-        // Dry run: measure every transaction and check the renderer's answers against the golden file.
+        // Dry run: measure every chunk deployment that is still missing, and print its gas.
         uint256 snap = vm.snapshotState();
-        bool[] memory missing = new bool[](s.chunks.length);
-        for (uint256 k; k < s.chunks.length; ++k) {
-            missing[k] = s.addresses[k].code.length == 0;
-            if (missing[k]) _create2(_sstore2(s.chunks[k]), s.addresses[k], "chunk");
+        for (uint256 i; i < sections.length; ++i) {
+            _deployMissing(sections[i], labels[i], true);
         }
-        // A renderer already at `predicted` came from this same initcode (CREATE2 commits to it), so it is
-        // not compared with anything here: it goes through the same immutables, chunk-list and golden checks
-        // as a fresh one, and below its code hash must equal a published rendererHash.
-        if (predicted.code.length == 0) _create2(initcode, predicted, "renderer");
-        bytes32 codehash = predicted.codehash;
-        _checkRenderer(c, s, KilimRenderer(predicted));
         vm.revertToState(snap);
 
-        if (c.rendererHash != bytes32(0) && c.rendererHash != codehash) {
-            revert Refused("renderer code hash differs from the published rendererHash");
-        }
-
         vm.startBroadcast(c.deployer);
-        for (uint256 k; k < s.chunks.length; ++k) {
-            if (missing[k]) _create2(_sstore2(s.chunks[k]), s.addresses[k], "chunk");
+        for (uint256 i; i < sections.length; ++i) {
+            _deployMissing(sections[i], labels[i], false);
         }
-        if (predicted.code.length == 0) _create2(initcode, predicted, "renderer");
         vm.stopBroadcast();
 
-        renderer = KilimRenderer(predicted);
-        _checkRenderer(c, s, renderer);
-        _log(string.concat("KilimRenderer ", vm.toString(predicted)));
-        _log(string.concat("rendererHash  ", vm.toString(address(renderer).codehash)));
-        for (uint256 k; k < s.addresses.length; ++k) {
-            _log(string.concat("chunk ", vm.toString(k), "       ", vm.toString(s.addresses[k])));
+        for (uint256 i; i < sections.length; ++i) {
+            _logSection(labels[i], sections[i]);
         }
     }
 
-    function _loadStore(Config memory c) internal view returns (Store memory s) {
-        s.manifest = vm.readFile(string.concat(c.store, "/manifest.json"));
-        s.golden = vm.readFile(string.concat(c.store, "/golden.json"));
-        if (vm.parseJsonUint(s.manifest, ".motifCount") != c.motifCount) {
-            revert Refused("motif count differs");
-        }
-        if (vm.parseJsonBytes32(s.manifest, ".hashes.geometryHash") != c.geometryHash) {
-            revert Refused("manifest geometryHash differs from the config");
-        }
-        if (vm.parseJsonBytes32(s.manifest, ".hashes.indexHash") != c.indexHash) {
-            revert Refused("indexHash differs");
-        }
-        if (vm.parseJsonBytes32(s.manifest, ".hashes.pageHash") != c.pageHash) {
-            revert Refused("pageHash differs");
-        }
-        if (vm.parseJsonAddress(s.manifest, ".create2.deployer") != CREATE2_DEPLOYER) {
-            revert Refused("deployer");
-        }
-        string[] memory files = vm.parseJsonStringArray(s.manifest, ".chunkFiles");
-        if (files.length == 0) revert Refused("no chunks");
-        s.chunks = new bytes[](files.length);
-        s.addresses = new address[](files.length);
-        bytes memory store;
-        for (uint256 k; k < files.length; ++k) {
-            bytes memory data = vm.readFileBinary(string.concat(c.store, "/", files[k]));
-            string memory key = string.concat(".chunks[", vm.toString(k), "]");
-            if (data.length != vm.parseJsonUint(s.manifest, string.concat(key, ".size"))) {
-                revert Refused("chunk size");
+    /// @dev Deploys the chunks of one section that are not on the chain yet. `measure` (dry run only)
+    ///      prints the gas of each transaction; the policy ceiling is checked either way.
+    function _deployMissing(Section memory section, string memory label, bool measure) internal {
+        for (uint256 k; k < section.chunks.length; ++k) {
+            if (section.addresses[k].code.length != 0) continue;
+            uint256 g = _create2(_sstore2(section.chunks[k]), section.addresses[k], "chunk");
+            if (measure) {
+                _log(string.concat(label, " chunk ", vm.toString(k), " deployment gas ", vm.toString(g)));
             }
-            if (keccak256(data) != vm.parseJsonBytes32(s.manifest, string.concat(key, ".keccak"))) {
-                revert Refused("chunk hash");
+        }
+    }
+
+    /// @notice Read both manifests and every chunk file, checking sizes, hashes, layout and addresses.
+    function loadStore(Config memory c) public view returns (Store memory s) {
+        s.glyphManifest = vm.readFile(string.concat(c.glyphStore, "/manifest.json"));
+        s.pageManifest = vm.readFile(string.concat(c.pageStore, "/manifest.json"));
+        if (vm.parseJsonUint(s.glyphManifest, ".glyphCount") != 1024) revert Refused("glyph count");
+        if (
+            vm.parseJsonAddress(s.glyphManifest, ".create2.deployer") != CREATE2_DEPLOYER
+                || vm.parseJsonAddress(s.pageManifest, ".create2.deployer") != CREATE2_DEPLOYER
+        ) revert Refused("deployer");
+        string memory g = s.glyphManifest;
+        string memory pg = s.pageManifest;
+        s.grids = _loadSection(c.glyphStore, g, "grids", ".grids.chunks", GRID_CHUNK);
+        s.names = _loadSection(c.glyphStore, g, "names", ".names.chunks", CHUNK);
+        s.prefix = _loadSection(c.pageStore, pg, "prefix", ".sections.prefix.chunks", CHUNK);
+        s.head = _loadSection(c.pageStore, pg, "head", ".sections.head.chunks", CHUNK);
+        s.tail = _loadSection(c.pageStore, pg, "tail", ".sections.tail.chunks", CHUNK);
+        if (_total(s.grids) != 1024 * 32) revert Refused("grids are not 32,768 bytes");
+        if (s.names.chunks.length != 1) revert Refused("names must be one chunk");
+        // The golden hashes were computed with these texts; the contracts must be deployed with the same.
+        if (!_sameText(vm.parseJsonString(g, ".description"), c.collectionDescription)) {
+            revert Refused("collection description differs from the packed glyphs");
+        }
+        if (
+            !_sameText(vm.parseJsonString(pg, ".name"), c.oneOfOneName)
+                || !_sameText(vm.parseJsonString(pg, ".description"), c.oneOfOneDescription)
+                || !_sameText(vm.parseJsonString(pg, ".externalUrl"), c.oneOfOneExternalUrl)
+        ) revert Refused("1/1 name, description or externalUrl differs from the packed page");
+    }
+
+    /// @dev One section: every chunk file must match its manifest entry and its CREATE2 address, every
+    ///      chunk but the last must be full, and the concatenation must hash to `.hashes.<label>Hash`.
+    function _loadSection(
+        string memory dir,
+        string memory manifest,
+        string memory label,
+        string memory key,
+        uint256 full
+    ) internal view returns (Section memory section) {
+        section.hash = vm.parseJsonBytes32(manifest, string.concat(".hashes.", label, "Hash"));
+        uint256 count;
+        while (vm.keyExistsJson(manifest, string.concat(key, "[", vm.toString(count), "]"))) {
+            ++count;
+        }
+        if (count == 0) revert Refused(string.concat(label, ": no chunks"));
+        section.chunks = new bytes[](count);
+        section.addresses = new address[](count);
+        uint256 total;
+        for (uint256 k; k < count; ++k) {
+            string memory entry = string.concat(key, "[", vm.toString(k), "]");
+            bytes memory data = _loadChunk(dir, manifest, label, entry);
+            if (k + 1 < count && data.length != full) revert Refused(string.concat(label, ": chunk layout"));
+            section.chunks[k] = data;
+            section.addresses[k] = _predict(_sstore2(data));
+            if (section.addresses[k] != vm.parseJsonAddress(manifest, string.concat(entry, ".address"))) {
+                revert Refused(string.concat(label, ": chunk CREATE2 address"));
             }
-            if (data.length == 0 || data.length > CHUNK || (k + 1 < files.length && data.length != CHUNK)) {
-                revert Refused("chunk layout");
-            }
-            s.chunks[k] = data;
-            s.addresses[k] = _predict(_sstore2(data));
-            if (s.addresses[k] != vm.parseJsonAddress(s.manifest, string.concat(key, ".create2"))) {
-                revert Refused("chunk CREATE2 address");
-            }
-            address a = s.addresses[k];
+            address a = section.addresses[k];
             if (a.code.length != 0 && keccak256(a.code) != keccak256(bytes.concat(hex"00", data))) {
-                revert Refused("foreign code at a chunk address");
+                revert Refused(string.concat(label, ": foreign code at a chunk address"));
             }
-            store = bytes.concat(store, data);
+            total += data.length;
         }
-        _checkSections(c, store);
+        // One allocation for the whole section: concatenating chunk by chunk is quadratic in memory.
+        if (keccak256(_concat(section.chunks, total)) != section.hash) {
+            revert Refused(string.concat(label, ": section hash"));
+        }
     }
 
-    /// @dev Recompute the three published hashes from the exact bytes that will be deployed.
-    function _checkSections(Config memory c, bytes memory store) internal pure {
-        uint256 g = _u32(store, 4);
-        uint256 i = _u32(store, 8);
-        uint256 p = _u32(store, 12);
-        if (64 + g + i + p != store.length) revert Refused("store sections do not add up");
-        if (keccak256(_slice(store, 64, 64 + g)) != c.geometryHash) revert Refused("geometry bytes");
-        if (keccak256(_slice(store, 64 + g, 64 + g + i)) != c.indexHash) revert Refused("index bytes");
-        if (keccak256(_slice(store, 64 + g + i, 64 + g + i + p)) != c.pageHash) revert Refused("page bytes");
-    }
-
-    function _predictRenderer(Config memory c, Store memory s)
+    function _loadChunk(string memory dir, string memory manifest, string memory label, string memory entry)
         internal
-        pure
-        returns (address predicted, bytes memory initcode)
+        view
+        returns (bytes memory data)
     {
-        initcode = bytes.concat(
-            type(KilimRenderer).creationCode, abi.encode(s.addresses, c.geometryHash, c.indexHash, c.pageHash)
+        data = vm.readFileBinary(
+            string.concat(dir, "/", vm.parseJsonString(manifest, string.concat(entry, ".file")))
         );
-        predicted = _predict(initcode);
+        if (data.length != vm.parseJsonUint(manifest, string.concat(entry, ".size"))) {
+            revert Refused(string.concat(label, ": chunk size"));
+        }
+        if (keccak256(data) != vm.parseJsonBytes32(manifest, string.concat(entry, ".keccak"))) {
+            revert Refused(string.concat(label, ": chunk hash"));
+        }
+        if (data.length == 0 || data.length > CHUNK) revert Refused(string.concat(label, ": chunk layout"));
     }
 
-    /// @dev The renderer must describe the published store and give the golden answers.
-    function _checkRenderer(Config memory c, Store memory s, KilimRenderer r) internal view {
-        if (
-            r.motifCount() != c.motifCount || r.geometryHash() != c.geometryHash
-                || r.indexHash() != c.indexHash || r.pageHash() != c.pageHash
-        ) revert Refused("renderer immutables");
-        address[] memory chunks = r.chunks();
-        for (uint256 j; j < chunks.length; ++j) {
-            if (chunks[j] != s.addresses[j]) revert Refused("renderer chunk list");
-        }
-        if (sha256(bytes(r.masterpieceURI())) != vm.parseJsonBytes32(s.golden, ".masterpieceURI")) {
-            revert Refused("1/1 differs from golden");
-        }
-        string memory k = ".symbolURICases[0]";
-        string memory uri = r.symbolURI(
-            vm.parseJsonUint(s.golden, string.concat(k, ".tokenId")),
-            vm.parseJsonBytes32(s.golden, string.concat(k, ".seed")),
-            uint16(vm.parseJsonUint(s.golden, string.concat(k, ".motif"))),
-            uint8(vm.parseJsonUint(s.golden, string.concat(k, ".material")))
-        );
-        if (sha256(bytes(uri)) != vm.parseJsonBytes32(s.golden, string.concat(k, ".sha256"))) {
-            revert Refused("symbol differs from golden");
-        }
-        if (
-            sha256(bytes(_goldenArtwork(s.golden, r)))
-                != vm.parseJsonBytes32(s.golden, ".artworkURICases[0].sha256")
-        ) {
-            revert Refused("artwork differs from golden");
+    function _concat(bytes[] memory parts, uint256 total) internal pure returns (bytes memory all) {
+        all = new bytes(total);
+        uint256 pos;
+        for (uint256 i; i < parts.length; ++i) {
+            bytes memory part = parts[i];
+            assembly ("memory-safe") {
+                mcopy(add(add(all, 32), pos), add(part, 32), mload(part))
+            }
+            pos += part.length;
         }
     }
 
-    /// @dev The renderer's answer for the first golden artwork URI case.
-    function _goldenArtwork(string memory golden, KilimRenderer r) internal view returns (string memory) {
-        string memory k = string.concat(
-            ".artworkCases[", vm.toString(vm.parseJsonUint(golden, ".artworkURICases[0].case")), "]"
-        );
-        uint256[] memory raw = vm.parseJsonUintArray(golden, string.concat(k, ".motifs"));
-        uint16[] memory motifs = new uint16[](raw.length);
-        for (uint256 i; i < raw.length; ++i) {
-            motifs[i] = uint16(raw[i]);
+    function _total(Section memory section) internal pure returns (uint256 total) {
+        for (uint256 k; k < section.chunks.length; ++k) {
+            total += section.chunks[k].length;
         }
-        return r.artworkURI(
-            vm.parseJsonUint(golden, ".artworkURICases[0].number"),
-            motifs,
-            uint16(vm.parseJsonUint(golden, string.concat(k, ".cols"))),
-            uint16(vm.parseJsonUint(golden, string.concat(k, ".rows"))),
-            vm.parseJsonBytes32(golden, string.concat(k, ".appearance")),
-            uint64(vm.parseJsonUint(golden, ".artworkURICases[0].revision")),
-            vm.parseJsonBool(golden, ".artworkURICases[0].frozen")
-        );
     }
 
-    // ------------------------------------------------------------ phase 2: the auction
+    // ------------------------------------------------------------ phase 2: the contracts
 
-    /// @notice Deploy KilimAuction (and with it Kilim) against the deployed renderer.
-    function deployAuction(Config memory c, KilimRenderer renderer) public returns (KilimAuction auction) {
+    /// @notice Deploy KilimGlyphs, KilimOneOfOne and KilimAuction, in that order, from the deployer's nonce.
+    function deployContracts(Config memory c) public returns (Deployed memory d) {
         _requireChain(c);
-        _printSettings(c, renderer);
+        _printSettings(c);
         _requireLaunchSettings(c);
-        if (address(renderer).code.length == 0) revert Refused("renderer not deployed");
-        if (c.rendererHash == bytes32(0)) revert Refused("publish rendererHash in the config first");
-        if (address(renderer).codehash != c.rendererHash) revert Refused("renderer code hash differs");
-        if (renderer.motifCount() != c.motifCount || renderer.geometryHash() != c.geometryHash) {
-            revert Refused("renderer describes other geometry");
+        Store memory s = loadStore(c);
+        _requireStored(s);
+        // On every chain: the auction constructor accepts no other reserve (its REGISTRATION_BALANCE).
+        if (c.auction.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("reserve price");
+        if (
+            c.auction.startsAt < block.timestamp + c.minLeadSeconds
+                || c.auction.startsAt > block.timestamp + MAX_LEAD
+        ) revert Refused("startsAt outside the inspection window");
+        if (c.auction.treasury == address(0)) revert Refused("zero address");
+        uint256 nonce = vm.getNonce(c.deployer);
+        if (c.deployerNonce != NO_NONCE_CHECK && nonce != c.deployerNonce) revert Refused("deployer nonce");
+        address predicted = vm.computeCreateAddress(c.deployer, nonce + 2);
+
+        // Dry run: deploy all three as the deployer (a prank, nothing is sent), measure each, check the
+        // auction's address against the prediction, read everything back, then check the two tokenURIs
+        // against the golden hashes and measure them.
+        uint256 snap = vm.snapshotState();
+        vm.startPrank(c.deployer);
+        Deployed memory dry = _deployThree(c, s, predicted, true);
+        vm.stopPrank();
+        if (address(dry.auction) != predicted) revert Refused("auction address differs from the prediction");
+        _checkContracts(c, s, dry);
+        _checkGolden(c, s, dry);
+        vm.revertToState(snap);
+
+        vm.startBroadcast(c.deployer);
+        d = _deployThree(c, s, predicted, false);
+        vm.stopBroadcast();
+        if (address(d.auction) != predicted) revert Refused("auction address differs from the prediction");
+        _checkContracts(c, s, d);
+        _log(string.concat("KilimGlyphs    ", vm.toString(address(d.glyphs))));
+        _log(string.concat("KilimOneOfOne  ", vm.toString(address(d.oneOfOne))));
+        _log(string.concat("KilimAuction   ", vm.toString(address(d.auction))));
+    }
+
+    /// @dev The three creations in order. `measure` (dry run only) prints each transaction's gas,
+    ///      execution plus the intrinsic cost of its creation data, and checks it against the policy.
+    function _deployThree(Config memory c, Store memory s, address minter, bool measure)
+        internal
+        returns (Deployed memory d)
+    {
+        uint256 g = gasleft();
+        d.glyphs = new KilimGlyphs(
+            minter,
+            c.auction.treasury,
+            c.glyphCap,
+            s.grids.addresses,
+            s.grids.hash,
+            s.names.addresses[0],
+            s.names.hash,
+            c.collectionDescription,
+            c.collectionExternalUrl
+        );
+        g -= gasleft();
+        if (measure) {
+            _measured(
+                g, type(KilimGlyphs).creationCode, _glyphsArgs(c, s, minter), "KilimGlyphs deployment gas"
+            );
+        }
+        g = gasleft();
+        d.oneOfOne = new KilimOneOfOne(
+            minter,
+            c.auction.treasury,
+            d.glyphs,
+            _page(s),
+            c.oneOfOneName,
+            c.oneOfOneDescription,
+            c.oneOfOneExternalUrl
+        );
+        g -= gasleft();
+        if (measure) {
+            _measured(
+                g,
+                type(KilimOneOfOne).creationCode,
+                _oneOfOneArgs(c, s, minter, d.glyphs),
+                "KilimOneOfOne deployment gas"
+            );
         }
         KilimAuction.Config memory a = c.auction;
-        a.motifCount = uint16(c.motifCount);
-        a.geometryHash = c.geometryHash;
-        a.rendererHash = c.rendererHash;
-        a.renderer = address(renderer);
-        // On every chain: the auction constructor accepts no other reserve (its REGISTRATION_BALANCE).
-        if (a.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("reserve price");
-        if (a.startsAt < block.timestamp + c.minLeadSeconds || a.startsAt > block.timestamp + MAX_LEAD) {
-            revert Refused("startsAt outside the inspection window");
-        }
-        if (a.treasury == address(0) || a.collectionOwner == address(0)) revert Refused("zero address");
-        uint256 nonce = vm.getNonce(c.deployer);
-        if (c.deployerNonce != NO_NONCE_CHECK && nonce != c.deployerNonce) {
-            revert Refused("deployer nonce");
-        }
-        address predicted = vm.computeCreateAddress(c.deployer, nonce);
-
-        uint256 snap = vm.snapshotState();
-        uint256 g = gasleft();
-        KilimAuction dry = new KilimAuction(a);
+        a.glyphs = address(d.glyphs);
+        a.oneOfOne = address(d.oneOfOne);
+        g = gasleft();
+        d.auction = new KilimAuction(a);
         g -= gasleft();
-        g += _intrinsic(bytes.concat(type(KilimAuction).creationCode, abi.encode(a)));
-        if (g > MAX_TX_GAS) revert Refused("auction deployment gas");
-        _checkAuction(c, a, dry);
-        vm.revertToState(snap);
-
-        vm.startBroadcast(c.deployer);
-        auction = new KilimAuction(a);
-        vm.stopBroadcast();
-        if (address(auction) != predicted) revert Refused("auction address differs from the prediction");
-        _checkAuction(c, a, auction);
-        _log(string.concat("KilimAuction  ", vm.toString(address(auction))));
-        _log(string.concat("Kilim         ", vm.toString(address(auction.collection()))));
-        _log(string.concat("deploy gas    ", vm.toString(g)));
+        if (measure) {
+            _measured(g, type(KilimAuction).creationCode, abi.encode(a), "KilimAuction deployment gas");
+        }
     }
 
-    function _checkAuction(Config memory c, KilimAuction.Config memory a, KilimAuction auction)
+    /// @dev The stored page as the 1/1's constructor takes it.
+    function _page(Store memory s) internal pure returns (KilimOneOfOne.Page memory) {
+        return KilimOneOfOne.Page({
+            prefixChunks: s.prefix.addresses,
+            prefixHash: s.prefix.hash,
+            headChunks: s.head.addresses,
+            headHash: s.head.hash,
+            tailChunks: s.tail.addresses,
+            tailHash: s.tail.hash
+        });
+    }
+
+    /// @dev The glyph collection's constructor arguments, ABI-encoded as the creation transaction carries them.
+    function _glyphsArgs(Config memory c, Store memory s, address minter)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(
+            minter,
+            c.auction.treasury,
+            c.glyphCap,
+            s.grids.addresses,
+            s.grids.hash,
+            s.names.addresses[0],
+            s.names.hash,
+            c.collectionDescription,
+            c.collectionExternalUrl
+        );
+    }
+
+    /// @dev The 1/1's constructor arguments, ABI-encoded as the creation transaction carries them.
+    function _oneOfOneArgs(Config memory c, Store memory s, address minter, KilimGlyphs glyphs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(
+            minter,
+            c.auction.treasury,
+            glyphs,
+            _page(s),
+            c.oneOfOneName,
+            c.oneOfOneDescription,
+            c.oneOfOneExternalUrl
+        );
+    }
+
+    /// @dev A creation transaction's gas: what the constructor used plus the intrinsic cost of sending
+    ///      its creation code and arguments. Printed, and refused above the policy ceiling.
+    function _measured(uint256 executionGas, bytes memory creationCode, bytes memory args, string memory what)
         internal
         view
     {
-        Kilim k = auction.collection();
-        if (
-            auction.treasury() != a.treasury || auction.startsAt() != a.startsAt
-                || auction.duration() != a.duration || auction.extensionWindow() != a.extensionWindow
-                || auction.incrementBps() != a.incrementBps || auction.reservePrice() != a.reservePrice
-                || auction.symbolCap() != a.symbolCap || auction.maxSymbolsPerBid() != a.maxSymbolsPerBid
-                || auction.endsAt() != 0
-        ) revert Refused("auction read-back");
-        if (
-            k.minter() != address(auction) || k.owner() != a.collectionOwner
-                || k.royaltyReceiver() != a.treasury || k.symbolCap() != a.symbolCap
-                || k.motifCount() != c.motifCount || k.maxCells() != a.maxCells
-                || k.geometryHash() != c.geometryHash || k.rendererHash() != c.rendererHash
-                || address(k.renderer()) != a.renderer
-        ) revert Refused("collection read-back");
+        uint256 g = executionGas + _intrinsic(bytes.concat(creationCode, args));
+        _log(string.concat(what, " ", vm.toString(g)));
+        _gasPolicy(g, what);
     }
 
-    /// @dev Chain 1 only: every auction setting must be the decided launch value, the published nonce is
-    ///      always checked, and the inspection window must be nonzero. Other chains stay configurable.
+    /// @dev Every immutable, read back, must be what was deployed.
+    function _checkContracts(Config memory c, Store memory s, Deployed memory d) internal view {
+        KilimGlyphs k = d.glyphs;
+        if (
+            k.minter() != address(d.auction) || k.royaltyReceiver() != c.auction.treasury
+                || k.glyphCap() != c.glyphCap || k.gridsHash() != s.grids.hash
+                || k.namesHash() != s.names.hash || k.namesChunk() != s.names.addresses[0]
+                || !_same(k.gridChunks(), s.grids.addresses)
+                || !_sameText(k.description(), c.collectionDescription)
+                || !_sameText(k.externalUrl(), c.collectionExternalUrl)
+        ) revert Refused("glyphs read-back");
+        KilimOneOfOne o = d.oneOfOne;
+        if (
+            o.minter() != address(d.auction) || o.royaltyReceiver() != c.auction.treasury
+                || address(o.glyphs()) != address(k) || o.prefixHash() != s.prefix.hash
+                || o.headHash() != s.head.hash || o.tailHash() != s.tail.hash
+                || !_same(o.prefixChunks(), s.prefix.addresses) || !_same(o.headChunks(), s.head.addresses)
+                || !_same(o.tailChunks(), s.tail.addresses) || !_sameText(o.name(), c.oneOfOneName)
+                || !_sameText(o.description(), c.oneOfOneDescription)
+                || !_sameText(o.externalUrl(), c.oneOfOneExternalUrl) || o.minted()
+        ) revert Refused("1/1 read-back");
+        KilimAuction a = d.auction;
+        if (
+            a.treasury() != c.auction.treasury || a.startsAt() != c.auction.startsAt
+                || a.duration() != c.auction.duration || a.extensionWindow() != c.auction.extensionWindow
+                || a.incrementBps() != c.auction.incrementBps || a.reservePrice() != c.auction.reservePrice
+                || address(a.glyphs()) != address(k) || address(a.oneOfOne()) != address(o)
+                || a.glyphCap() != c.glyphCap || a.maxGlyphsPerBid() != c.auction.maxGlyphsPerBid
+                || a.endsAt() != 0
+        ) revert Refused("auction read-back");
+    }
+
+    /// @dev Inside the dry run only: mint one glyph and the 1/1 as the auction would, compare both
+    ///      tokenURIs with the golden hashes and keep their gas under the policy ceiling.
+    function _checkGolden(Config memory c, Store memory s, Deployed memory d) internal {
+        uint256 glyph = vm.parseJsonUint(s.glyphManifest, ".golden.glyph");
+        uint256 id = _idShowing(d.glyphs, glyph);
+        vm.prank(address(d.auction));
+        d.glyphs.mintGlyphs(c.deployer, c.deployer, id, 1);
+        if (
+            sha256(bytes(d.glyphs.tokenURI(id)))
+                != vm.parseJsonBytes32(s.glyphManifest, ".golden.tokenURI.sha256")
+        ) {
+            revert Refused("glyph tokenURI differs from golden");
+        }
+        uint256 g = _readGas(address(d.glyphs), abi.encodeCall(d.glyphs.tokenURI, (id)));
+        _log(string.concat("glyph tokenURI gas ", vm.toString(g), " (token ", vm.toString(id), ")"));
+        _gasPolicy(g, "glyph tokenURI gas");
+        vm.prank(address(d.auction));
+        d.oneOfOne.mint(c.deployer);
+        if (
+            sha256(bytes(d.oneOfOne.tokenURI(1)))
+                != vm.parseJsonBytes32(s.pageManifest, ".golden.tokenURI.sha256")
+        ) revert Refused("1/1 tokenURI differs from golden");
+        g = _readGas(address(d.oneOfOne), abi.encodeCall(d.oneOfOne.tokenURI, (1)));
+        _log(string.concat("1/1 tokenURI gas ", vm.toString(g)));
+        _gasPolicy(g, "1/1 tokenURI gas");
+    }
+
+    /// @dev The first token id that shows `glyph`; about 1,024 tries on average.
+    function _idShowing(KilimGlyphs k, uint256 glyph) internal view returns (uint256 id) {
+        for (id = 1; id <= 1_000_000; ++id) {
+            if (k.glyphOf(id) == glyph) return id;
+        }
+        revert Refused("no token shows the golden glyph");
+    }
+
+    /// @dev Gas of a read as a marketplace makes it: the call itself, without copying the answer.
+    function _readGas(address target, bytes memory data) internal view returns (uint256 g) {
+        bool ok;
+        g = gasleft();
+        assembly ("memory-safe") {
+            ok := staticcall(gas(), target, add(data, 32), mload(data), 0, 0)
+        }
+        g -= gasleft();
+        if (!ok) revert Refused("read failed");
+    }
+
+    function _requireStored(Store memory s) internal view {
+        Section[5] memory sections = [s.grids, s.names, s.prefix, s.head, s.tail];
+        for (uint256 i; i < sections.length; ++i) {
+            for (uint256 k; k < sections[i].addresses.length; ++k) {
+                if (sections[i].addresses[k].code.length == 0) {
+                    revert Refused("store not deployed: runStore first");
+                }
+            }
+        }
+    }
+
+    /// @dev Chain 1 only: the artist's wallet deploys, every auction setting must be the decided launch
+    ///      value, the published nonce is always checked, and the inspection window must be nonzero.
     function _requireLaunchSettings(Config memory c) internal view {
         if (block.chainid != MAINNET_CHAIN_ID) return;
         KilimAuction.Config memory a = c.auction;
+        if (c.deployer != LAUNCH_DEPLOYER) revert Refused("mainnet launch value: deployer");
         if (a.treasury != LAUNCH_TREASURY) revert Refused("mainnet launch value: treasury");
-        if (a.collectionOwner != LAUNCH_COLLECTION_OWNER) {
-            revert Refused("mainnet launch value: collectionOwner");
-        }
         if (a.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("mainnet launch value: reservePrice");
         if (a.incrementBps != LAUNCH_INCREMENT_BPS) revert Refused("mainnet launch value: incrementBps");
         if (a.duration != LAUNCH_DURATION) revert Refused("mainnet launch value: duration");
         if (a.extensionWindow != LAUNCH_EXTENSION_WINDOW) {
             revert Refused("mainnet launch value: extensionWindow");
         }
-        if (a.symbolCap != LAUNCH_SYMBOL_CAP) revert Refused("mainnet launch value: symbolCap");
-        if (a.maxSymbolsPerBid != LAUNCH_MAX_SYMBOLS_PER_BID) {
-            revert Refused("mainnet launch value: maxSymbolsPerBid");
+        if (c.glyphCap != LAUNCH_GLYPH_CAP) revert Refused("mainnet launch value: glyphCap");
+        if (a.maxGlyphsPerBid != LAUNCH_MAX_GLYPHS_PER_BID) {
+            revert Refused("mainnet launch value: maxGlyphsPerBid");
         }
-        if (a.maxCells != LAUNCH_MAX_CELLS) revert Refused("mainnet launch value: maxCells");
         if (c.deployerNonce == NO_NONCE_CHECK) revert Refused("mainnet needs the published deployerNonce");
         if (c.minLeadSeconds == 0) revert Refused("mainnet needs a nonzero minLeadSeconds");
     }
 
-    /// @dev Prints every setting the auction phase deploys with. A value that differs from the decided
+    /// @dev Prints every setting the contracts phase deploys with. A value that differs from the decided
     ///      launch value is flagged; on chain 1 it is then refused.
-    function _printSettings(Config memory c, KilimRenderer renderer) internal view {
+    function _printSettings(Config memory c) internal view {
         KilimAuction.Config memory a = c.auction;
-        _log(string.concat("auction settings for chain ", vm.toString(block.chainid)));
-        _log(string.concat("  deployer          ", vm.toString(c.deployer)));
+        _log(string.concat("settings for chain ", vm.toString(block.chainid)));
+        _show("deployer          ", c.deployer, LAUNCH_DEPLOYER);
         _log(
             string.concat(
                 "  deployerNonce     ",
@@ -434,19 +610,17 @@ contract DeployKilim {
                     : string(" (not in the future)")
             )
         );
-        _log(string.concat("  renderer          ", vm.toString(address(renderer))));
-        _log(string.concat("  rendererHash      ", vm.toString(c.rendererHash)));
-        _log(string.concat("  motifCount        ", vm.toString(c.motifCount)));
-        _log(string.concat("  geometryHash      ", vm.toString(c.geometryHash)));
+        _log(string.concat("  glyphStore        ", c.glyphStore));
+        _log(string.concat("  pageStore         ", c.pageStore));
         _show("treasury          ", a.treasury, LAUNCH_TREASURY);
-        _show("collectionOwner   ", a.collectionOwner, LAUNCH_COLLECTION_OWNER);
         _show("reservePrice      ", a.reservePrice, LAUNCH_RESERVE_PRICE);
         _show("incrementBps      ", a.incrementBps, LAUNCH_INCREMENT_BPS);
         _show("duration          ", a.duration, LAUNCH_DURATION);
         _show("extensionWindow   ", a.extensionWindow, LAUNCH_EXTENSION_WINDOW);
-        _show("symbolCap         ", a.symbolCap, LAUNCH_SYMBOL_CAP);
-        _show("maxSymbolsPerBid  ", a.maxSymbolsPerBid, LAUNCH_MAX_SYMBOLS_PER_BID);
-        _show("maxCells          ", a.maxCells, LAUNCH_MAX_CELLS);
+        _show("glyphCap          ", c.glyphCap, LAUNCH_GLYPH_CAP);
+        _show("maxGlyphsPerBid   ", a.maxGlyphsPerBid, LAUNCH_MAX_GLYPHS_PER_BID);
+        _log(string.concat("  collection        ", c.collectionDescription, " | ", c.collectionExternalUrl));
+        _log(string.concat("  1/1               ", c.oneOfOneName, " | ", c.oneOfOneExternalUrl));
     }
 
     function _show(string memory name, uint256 value, uint256 launch) internal view {
@@ -467,8 +641,30 @@ contract DeployKilim {
         ok; // logging is best effort
     }
 
+    function _logSection(string memory name, Section memory section) internal view {
+        for (uint256 k; k < section.addresses.length; ++k) {
+            _log(string.concat(name, " chunk ", vm.toString(k), "  ", vm.toString(section.addresses[k])));
+        }
+    }
+
     function _requireChain(Config memory c) internal view {
         if (block.chainid != c.chainId) revert Refused("wrong chain");
+    }
+
+    function _gasPolicy(uint256 used, string memory what) internal pure {
+        if (used > MAX_TX_GAS) revert Refused(what);
+    }
+
+    function _same(address[] memory a, address[] memory b) internal pure returns (bool) {
+        if (a.length != b.length) return false;
+        for (uint256 i; i < a.length; ++i) {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+    }
+
+    function _sameText(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 
     /// @dev SSTORE2 creation code: runtime = 0x00 || data.
@@ -486,13 +682,14 @@ contract DeployKilim {
         );
     }
 
-    /// @dev One CREATE2 through the deterministic deployer; checks the address and the gas policy.
+    /// @dev One CREATE2 through the deterministic deployer; checks the address and the gas policy and
+    ///      returns the transaction's gas (execution plus the intrinsic cost of the call data).
     function _create2(bytes memory initcode, address expected, string memory what)
         internal
-        returns (address)
+        returns (uint256 g)
     {
         bytes memory data = bytes.concat(SALT, initcode);
-        uint256 g = gasleft();
+        g = gasleft();
         (bool ok, bytes memory ret) = CREATE2_DEPLOYER.call(data);
         g -= gasleft();
         if (!ok || ret.length != 20 || address(bytes20(ret)) != expected || expected.code.length == 0) {
@@ -500,7 +697,6 @@ contract DeployKilim {
         }
         g += _intrinsic(data) - 32_000; // a call, not a creation transaction
         if (g > MAX_TX_GAS) revert Refused(string.concat(what, " deployment gas"));
-        return expected;
     }
 
     /// @dev Transaction base cost for `data` sent as a creation: 53,000 + calldata + initcode words.
@@ -508,19 +704,6 @@ contract DeployKilim {
         g = 53_000 + 2 * ((data.length + 31) / 32);
         for (uint256 i; i < data.length; ++i) {
             g += data[i] == 0 ? 4 : 16;
-        }
-    }
-
-    function _u32(bytes memory s, uint256 pos) internal pure returns (uint256 v) {
-        for (uint256 i; i < 4; ++i) {
-            v = (v << 8) | uint8(s[pos + i]);
-        }
-    }
-
-    function _slice(bytes memory b, uint256 from, uint256 to) internal pure returns (bytes memory out) {
-        out = new bytes(to - from);
-        assembly ("memory-safe") {
-            mcopy(add(out, 32), add(add(b, 32), from), sub(to, from))
         }
     }
 }

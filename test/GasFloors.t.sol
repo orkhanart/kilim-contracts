@@ -121,37 +121,40 @@ contract GasFloorsTest is TestBase {
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {
                 assertTrue(auction.prizeClaimed());
-                assertEq(auction.collection().ownerOf(1), address(pool));
+                assertEq(auction.oneOfOne().ownerOf(1), address(pool));
             } else {
                 assertTrue(!auction.settled());
             }
             vm.revertToState(snap);
         }
         auction.settle();
-        assertEq(auction.collection().ownerOf(1), address(pool));
+        assertEq(auction.oneOfOne().ownerOf(1), address(pool));
         assertEq(pool.received(), 1);
     }
 
-    /// @dev The collection and the auction have separate guards. A holder who settles from inside a
-    ///      weave callback must not be able to make the prize delivery fail.
-    function testSettlingFromInsideAWeaveCallbackStillSendsThePrize() public {
+    /// @dev The 1/1 has no reentrancy guard of its own and shares none with the glyphs or the auction.
+    ///      A holder who settles from inside a glyph transfer callback must not be able to make the
+    ///      prize delivery fail (audit finding R-06, re-targeted at the three contracts).
+    function testSettlingFromInsideAGlyphCallbackStillSendsThePrize() public {
         PoolWinner pool = new PoolWinner();
-        WeavingSettler mallory = new WeavingSettler(auction);
+        TransferSettler mallory = new TransferSettler(auction);
         vm.deal(address(mallory), 1 ether);
         mallory.bid(0.01 ether);
         vm.deal(address(pool), 1 ether);
         pool.bid(auction, 0.011 ether);
         mallory.claim(4);
         vm.warp(auction.endsAt());
-        mallory.weaveAndSettle();
+        mallory.transferAndSettle();
         assertTrue(auction.settled());
         assertTrue(auction.prizeClaimed());
-        assertEq(auction.collection().ownerOf(1), address(pool));
+        assertEq(auction.oneOfOne().ownerOf(1), address(pool));
+        assertEq(auction.glyphs().ownerOf(1), address(mallory));
     }
 }
 
-/// @dev Holds four symbols, weaves them, and settles the auction from the artwork's receiver callback.
-contract WeavingSettler is IERC721Receiver {
+/// @dev Holds four glyphs, moves one to itself with a safe transfer, and settles the auction from the
+///      glyph contract's receiver callback.
+contract TransferSettler is IERC721Receiver {
     KilimAuction private immutable auction;
     uint256[] private held;
     bool private settling;
@@ -165,12 +168,12 @@ contract WeavingSettler is IERC721Receiver {
     }
 
     function claim(uint256 quantity) external {
-        auction.claimSymbols(quantity, address(this));
+        auction.claimGlyphs(quantity, address(this));
     }
 
-    function weaveAndSettle() external {
+    function transferAndSettle() external {
         settling = true;
-        auction.collection().weave(held, 2, 2, "flat/ink");
+        auction.glyphs().safeTransferFrom(address(this), address(this), held[0]);
     }
 
     function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {

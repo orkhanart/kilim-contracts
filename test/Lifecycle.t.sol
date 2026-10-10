@@ -2,13 +2,15 @@
 pragma solidity 0.8.37;
 
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {TestBase} from "./TestBase.sol";
 
 contract LifecycleTest is TestBase {
-    function testRefundedSymbolsComposeExpandAndTransferThenAllClaimsSettle() public {
+    function testRefundedGlyphsAreClaimedBurnedAndTransferredThenAllClaimsSettle() public {
         KilimAuction auction = new KilimAuction(config());
-        Kilim nft = auction.collection();
+        KilimGlyphs nft = auction.glyphs();
+        KilimOneOfOne oneOfOne = auction.oneOfOne();
         _openBidding(auction);
         assertEq(address(auction).balance, 0);
         _fund(ALICE, 100 * UNIT);
@@ -24,22 +26,22 @@ contract LifecycleTest is TestBase {
         assertEq(address(auction).balance, 11 * UNIT);
         assertEq(address(auction).balance, auction.liabilities());
 
+        // Alice claims six glyphs (ids 1-6), burns four of them as the Weaver will, and sells one.
         vm.startPrank(ALICE);
-        auction.claimSymbols(6, ALICE);
-        uint256 artwork = nft.weave(ids(2, 4), 2, 2, INK);
-        nft.expand(artwork, 1, ids(2, 6), 3, 2, VERMILION);
-        nft.freezeArtwork(artwork);
-        nft.transferFrom(ALICE, CAROL, artwork);
+        auction.claimGlyphs(6, ALICE);
+        for (uint256 id = 1; id <= 4; ++id) {
+            nft.burn(id);
+        }
+        nft.transferFrom(ALICE, CAROL, 5);
         vm.stopPrank();
         assertEq(ALICE.balance, 100 * UNIT);
         assertEq(address(auction).balance, auction.liabilities());
-        assertEq(nft.ownerOf(artwork), CAROL);
-        Kilim.ArtworkData memory art = nft.artworkData(artwork);
-        assertEq(art.revision, 2);
-        assertTrue(art.frozen);
-        assertEq(art.cells.length, 6);
-        for (uint256 id = 2; id < 8; id++) {
-            assertEq(nft.symbolData(id).consumedBy, artwork);
+        assertEq(nft.ownerOf(5), CAROL);
+        assertEq(nft.ownerOf(6), ALICE);
+        for (uint256 id = 1; id <= 4; ++id) {
+            assertTrue(nft.burned(id));
+            vm.expectRevert();
+            nft.ownerOf(id);
         }
 
         vm.warp(auction.endsAt());
@@ -48,27 +50,32 @@ contract LifecycleTest is TestBase {
         assertEq(address(auction).balance, auction.liabilities());
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
-        assertEq(auction.collection().ownerOf(1), BOB);
+        assertEq(oneOfOne.ownerOf(1), BOB);
         // Both bidders keep and can claim remaining credits after all ETH has been paid out.
         vm.prank(ALICE);
-        auction.claimSymbols(4, ALICE);
+        auction.claimGlyphs(4, ALICE);
         vm.prank(BOB);
-        auction.claimSymbols(11, BOB);
+        auction.claimGlyphs(11, BOB);
 
         assertEq(TREASURY.balance, 11 * UNIT);
         assertEq(BOB.balance, 89 * UNIT);
         assertEq(ALICE.balance, 100 * UNIT);
         assertEq(address(auction).balance, 0);
         assertEq(auction.liabilities(), 0);
-        assertEq(auction.symbolCredits(ALICE), 0);
-        assertEq(auction.symbolCredits(BOB), 0);
-        assertEq(auction.symbolsAllocated(), 21);
-        assertEq(auction.symbolsClaimed(), 21);
-        assertEq(nft.symbolsMinted(), 21);
-        assertEq(nft.symbolsBurned(), 6);
-        assertEq(nft.ownerOf(1), BOB);
-        assertEq(nft.balanceOf(ALICE), 4);
-        assertEq(nft.balanceOf(BOB), 12);
+        assertEq(auction.glyphCredits(ALICE), 0);
+        assertEq(auction.glyphCredits(BOB), 0);
+        assertEq(auction.glyphsAllocated(), 21);
+        assertEq(auction.glyphsClaimed(), 21);
+        assertEq(nft.glyphsMinted(), 21);
+        assertEq(nft.glyphsBurned(), 4);
+        assertEq(oneOfOne.ownerOf(1), BOB);
+        assertEq(oneOfOne.balanceOf(BOB), 1);
+        assertEq(nft.balanceOf(ALICE), 5);
+        assertEq(nft.balanceOf(BOB), 11);
         assertEq(nft.balanceOf(CAROL), 1);
+        // Burned ids stay taken: the next claim never reuses them.
+        assertEq(nft.ownerOf(21), BOB);
+        vm.expectRevert();
+        nft.ownerOf(22);
     }
 }

@@ -13,7 +13,12 @@
             "internalType": "address"
           },
           {
-            "name": "collectionOwner",
+            "name": "glyphs",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "oneOfOne",
             "type": "address",
             "internalType": "address"
           },
@@ -43,44 +48,27 @@
             "internalType": "uint256"
           },
           {
-            "name": "symbolCap",
+            "name": "maxGlyphsPerBid",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "maxSymbolsPerBid",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "motifCount",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "maxCells",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "geometryHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "rendererHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "renderer",
-            "type": "address",
-            "internalType": "address"
           }
         ]
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "GLYPH_PRICE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -110,19 +98,6 @@
   },
   {
     "type": "function",
-    "name": "SYMBOL_PRICE",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "bid",
     "inputs": [
       {
@@ -136,7 +111,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "expectedFirstSymbolId",
+        "name": "expectedFirstGlyphId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -146,20 +121,7 @@
   },
   {
     "type": "function",
-    "name": "claimPrize",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimSymbols",
+    "name": "claimGlyphs",
     "inputs": [
       {
         "name": "quantity",
@@ -177,16 +139,16 @@
   },
   {
     "type": "function",
-    "name": "collection",
-    "inputs": [],
-    "outputs": [
+    "name": "claimPrize",
+    "inputs": [
       {
-        "name": "",
+        "name": "to",
         "type": "address",
-        "internalType": "contract Kilim"
+        "internalType": "address"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -279,6 +241,77 @@
   },
   {
     "type": "function",
+    "name": "glyphCap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphCredits",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphs",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract KilimGlyphs"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphsAllocated",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "glyphsClaimed",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "highestBid",
     "inputs": [],
     "outputs": [
@@ -331,7 +364,7 @@
   },
   {
     "type": "function",
-    "name": "maxSymbolsPerBid",
+    "name": "maxGlyphsPerBid",
     "inputs": [],
     "outputs": [
       {
@@ -351,6 +384,19 @@
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "oneOfOne",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract KilimOneOfOne"
       }
     ],
     "stateMutability": "view"
@@ -584,64 +630,6 @@
   },
   {
     "type": "function",
-    "name": "symbolCap",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolCredits",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolsAllocated",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "symbolsClaimed",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "treasury",
     "inputs": [],
     "outputs": [
@@ -655,7 +643,7 @@
   },
   {
     "type": "function",
-    "name": "unclaimedSymbolRanges",
+    "name": "unclaimedGlyphRanges",
     "inputs": [
       {
         "name": "bidder",
@@ -765,13 +753,13 @@
         "internalType": "uint256"
       },
       {
-        "name": "symbolReward",
+        "name": "glyphReward",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "firstSymbolId",
+        "name": "firstGlyphId",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -789,6 +777,37 @@
     "type": "event",
     "name": "EIP712DomainChanged",
     "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GlyphsClaimed",
+    "inputs": [
+      {
+        "name": "bidder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "firstTokenId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
     "anonymous": false
   },
   {
@@ -925,37 +944,6 @@
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "SymbolsClaimed",
-    "inputs": [
-      {
-        "name": "bidder",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "recipient",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "count",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "firstTokenId",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AlreadyRegistered",
     "inputs": []
@@ -990,6 +978,17 @@
     "type": "error",
     "name": "EthTransferFailed",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GlyphRangeMoved",
+    "inputs": [
+      {
+        "name": "firstGlyphId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
@@ -1089,17 +1088,6 @@
         "name": "str",
         "type": "string",
         "internalType": "string"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "SymbolRangeMoved",
-    "inputs": [
-      {
-        "name": "firstSymbolId",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ]
   },

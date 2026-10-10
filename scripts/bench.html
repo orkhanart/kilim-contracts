@@ -114,7 +114,7 @@
 
       <section class="card" id="card-bid">
         <h3>Bidding</h3>
-        <p>Anyone can bid once check-in is complete. Every 0.001 ETH of a bid earns one symbol, even if you are outbid later.</p>
+        <p>Anyone can bid once check-in is complete. Every 0.001 ETH of a bid earns one glyph, even if you are outbid later.</p>
         <p class="lock" id="bid-lock">Bidding is locked until 100 wallets have checked in.</p>
         <div class="facts">
           <div><span>Highest bid</span><b id="highest">none yet</b></div>
@@ -142,7 +142,7 @@
 
       <section class="card" id="card-after">
         <h3>After the auction</h3>
-        <p>Settling hands the 1/1 to the winner. After that, bidders claim their symbols and the artist withdraws the winning bid.</p>
+        <p>Settling hands the 1/1 to the winner. After that, bidders claim their glyphs and the artist withdraws the winning bid.</p>
         <p class="lock">Available once the time has run out.</p>
         <div class="buttons" style="margin-top:0">
           <button data-do="settle" id="settle">Settle the auction</button>
@@ -150,7 +150,7 @@
         </div>
         <div class="buttons">
           <div class="field"><label for="after-n">Bidder</label><select id="after-n"></select></div>
-          <button id="claim" class="plain" style="align-self:flex-end">Claim 10 symbols</button>
+          <button id="claim" class="plain" style="align-self:flex-end">Claim 10 glyphs</button>
           <button id="refund" class="plain" style="align-self:flex-end">Withdraw refund</button>
         </div>
       </section>
@@ -160,8 +160,8 @@
       <section class="card">
         <h3>Bidders</h3>
         <p>Five pretend people you can bid with.</p>
-        <table><thead><tr><th>Name</th><th>Checked in</th><th>Symbols to claim</th><th>Symbols owned</th></tr></thead><tbody id="wallets"></tbody></table>
-        <p style="margin:14px 0 0;font-size:14px">Symbols given out so far: <b id="allocated">0</b>. Claimed: <b id="claimed">0</b>. Owed to the artist: <b id="proceeds">0</b> ETH.</p>
+        <table><thead><tr><th>Name</th><th>Checked in</th><th>Glyphs to claim</th><th>Glyphs owned</th></tr></thead><tbody id="wallets"></tbody></table>
+        <p style="margin:14px 0 0;font-size:14px">Glyphs given out so far: <b id="allocated">0</b>. Claimed: <b id="claimed">0</b>. Owed to the artist: <b id="proceeds">0</b> ETH.</p>
       </section>
       <section class="card">
         <h3>What happened</h3>
@@ -183,7 +183,7 @@ const NOW = {
   ready: () => ['Ready to start', '100 wallets are in. The auction starts, and its 24-hour clock with it, as soon as someone places the first bid.'],
   running: (s) => ['The auction is running', `${s.leader} leads with ${s.highest} ETH. ${span(s.left)} left. Place more bids, or skip time to reach the end.`],
   ended: (s) => ['Time is up', `${s.leader} won with ${s.highest} ETH. Press "Settle the auction" to hand over the 1/1.`],
-  settled: (s) => ['Settled', `${s.leader} has the 1/1. Bidders can now claim their symbols.`],
+  settled: (s) => ['Settled', `${s.leader} has the 1/1. Bidders can now claim their glyphs.`],
 };
 let names = [], typed = false;
 

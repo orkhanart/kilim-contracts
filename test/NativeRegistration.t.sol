@@ -66,7 +66,7 @@ contract NativeRegistrationTest is TestBase {
         assertEq(auction.registrationCount(), 100);
         assertTrue(!auction.registered(ALICE));
         assertEq(auction.highestBidder(), ALICE);
-        assertEq(auction.symbolCredits(ALICE), 10);
+        assertEq(auction.glyphCredits(ALICE), 10);
         assertEq(auction.endsAt(), block.timestamp + 1 days);
         assertEq(auction.minimumBid(), 0.011 ether);
         assertEq(address(auction).balance, auction.liabilities());
@@ -104,7 +104,7 @@ contract NativeRegistrationTest is TestBase {
         unlock();
         assertEq(auction.registrationCount(), 100);
         assertEq(auction.highestBidder(), address(0));
-        assertEq(auction.symbolCredits(CAROL), 0);
+        assertEq(auction.glyphCredits(CAROL), 0);
         assertEq(CAROL.balance, 0.01 ether);
         vm.expectRevert(EnglishAuction.RegistrationClosed.selector);
         vm.prank(ALICE);
@@ -124,7 +124,7 @@ contract NativeRegistrationTest is TestBase {
         vm.expectRevert();
         start(BOB);
         assertEq(BOB.balance, 1 ether);
-        assertEq(auction.symbolCredits(BOB), 0);
+        assertEq(auction.glyphCredits(BOB), 0);
     }
 
     function testSlippageAndWrongValueDoNotStartUnlockedAuction() public {
@@ -148,13 +148,13 @@ contract NativeRegistrationTest is TestBase {
         vm.prank(BOB);
         auction.bid{value: 0.011 ether}(0.011 ether, 11, 0);
         assertEq(ALICE.balance, 1 ether);
-        assertEq(auction.symbolCredits(ALICE), 10);
+        assertEq(auction.glyphCredits(ALICE), 10);
         assertEq(address(auction).balance, 0.011 ether);
         vm.prank(ALICE);
-        auction.claimSymbols(10, ALICE);
-        assertEq(auction.collection().balanceOf(ALICE), 10);
-        // Symbols are never sent automatically: the old delivery entry point does not exist.
-        (bool delivered,) = address(auction).call(abi.encodeWithSignature("deliverSymbols(uint256)", 10));
+        auction.claimGlyphs(10, ALICE);
+        assertEq(auction.glyphs().balanceOf(ALICE), 10);
+        // Glyphs are never sent automatically: the old delivery entry point does not exist.
+        (bool delivered,) = address(auction).call(abi.encodeWithSignature("deliverGlyphs(uint256)", 10));
         assertTrue(!delivered);
         vm.warp(auction.endsAt());
         auction.settle();

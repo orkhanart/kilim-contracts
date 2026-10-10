@@ -3,48 +3,49 @@ pragma solidity 0.8.37;
 
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {TestBase} from "./TestBase.sol";
 
 /// @notice The exact launch settings decided by the artist, exercised end to end in ETH.
-///         Only the times, motif count and renderer are fixtures.
+///         Only the times, the glyph data and the page are fixtures.
 contract LaunchConfigTest is TestBase {
-    /// orkhanart.eth: treasury, royalty receiver and collection-page owner.
+    /// orkhanart.eth: treasury and royalty receiver.
     address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     uint256 internal constant FUNDS = 1000 ether;
+    uint256 internal constant LAUNCH_GLYPH_CAP = 1_000_000;
 
     KilimAuction internal auction;
-    Kilim internal nft;
+    KilimGlyphs internal nft;
+    KilimOneOfOne internal oneOfOne;
 
-    function launchConfig() internal view returns (KilimAuction.Config memory c) {
+    /// @dev The launch values, with the token contracts deployed for the next creation (see config()).
+    function launchConfig() internal returns (KilimAuction.Config memory c) {
         c = KilimAuction.Config({
             treasury: ARTIST,
-            collectionOwner: ARTIST,
+            glyphs: address(0),
+            oneOfOne: address(0),
             startsAt: uint64(block.timestamp + 1 days),
             duration: 24 hours,
             extensionWindow: 10 minutes,
             incrementBps: 1000,
             reservePrice: 0.01 ether,
-            symbolCap: 1_000_000,
-            maxSymbolsPerBid: 1_000_000,
-            motifCount: 812,
-            maxCells: 256,
-            geometryHash: mockRenderer.geometryHash(),
-            rendererHash: address(mockRenderer).codehash,
-            renderer: address(mockRenderer)
+            maxGlyphsPerBid: LAUNCH_GLYPH_CAP
         });
+        c = withTokens(c, LAUNCH_GLYPH_CAP);
     }
 
     function setUp() public {
         auction = new KilimAuction(launchConfig());
-        nft = auction.collection();
+        nft = auction.glyphs();
+        oneOfOne = auction.oneOfOne();
         _fund(ALICE, FUNDS);
         _fund(BOB, FUNDS);
         _fund(ARTIST, FUNDS);
         _openBidding(auction);
     }
 
-    /// @dev Bids `units` thousandths of an ETH and requires one symbol for each.
+    /// @dev Bids `units` thousandths of an ETH and requires one glyph for each.
     function _bid(address user, uint256 units) private {
         vm.prank(user);
         auction.bid{value: units * UNIT}(units * UNIT, units, 0);
@@ -56,18 +57,29 @@ contract LaunchConfigTest is TestBase {
         assertEq(auction.reservePrice(), 0.01 ether);
         assertEq(auction.REGISTRATION_BALANCE(), 0.01 ether);
         assertEq(auction.REGISTRATION_TARGET(), 100);
-        assertEq(auction.SYMBOL_PRICE(), 0.001 ether);
+        assertEq(auction.GLYPH_PRICE(), 0.001 ether);
         assertEq(auction.incrementBps(), 1000);
         assertEq(auction.duration(), 24 hours);
         assertEq(auction.extensionWindow(), 10 minutes);
         assertEq(auction.endsAt(), 0);
-        assertEq(auction.symbolCap(), 1_000_000);
-        assertEq(auction.maxSymbolsPerBid(), 1_000_000);
-        assertEq(nft.owner(), ARTIST);
+        assertEq(auction.glyphCap(), LAUNCH_GLYPH_CAP);
+        assertEq(auction.maxGlyphsPerBid(), LAUNCH_GLYPH_CAP);
+        assertEq(nft.glyphCap(), LAUNCH_GLYPH_CAP);
         assertEq(nft.royaltyReceiver(), ARTIST);
         assertEq(uint256(nft.ROYALTY_BPS()), 500);
         assertEq(nft.minter(), address(auction));
-        assertEq(nft.maxCells(), 256);
+        assertEq(nft.MAX_MINT_BATCH(), 64);
+        assertEq(nft.GLYPH_COUNT(), 1024);
+        assertEq(oneOfOne.TOKEN_ID(), 1);
+        assertTrue(!oneOfOne.minted());
+        assertEq(oneOfOne.minter(), address(auction));
+        assertEq(oneOfOne.royaltyReceiver(), ARTIST);
+        assertEq(uint256(oneOfOne.ROYALTY_BPS()), 500);
+        assertEq(address(oneOfOne.glyphs()), address(nft));
+        assertEq(oneOfOne.name(), ONE_OF_ONE_NAME);
+        assertEq(nft.name(), "Kilim Glyphs");
+        assertEq(nft.symbol(), "GLYPH");
+        assertEq(oneOfOne.symbol(), "KILIM");
     }
 
     /// 0.01 ETH, then +10% rounded up to whole thousandths: 10, 11, 13, 15, 17, 19, 21, 24, 27 ...
@@ -80,27 +92,27 @@ contract LaunchConfigTest is TestBase {
         assertEq(auction.minimumBid(), 46 * UNIT);
     }
 
-    function testOneUnitIsOneSymbolWithNoPerBidCap() public {
+    function testOneUnitIsOneGlyphWithNoPerBidCap() public {
         _bid(ALICE, 10);
-        assertEq(auction.symbolCredits(ALICE), 10);
-        // A large jump bid earns every 0.001 ETH in symbols.
+        assertEq(auction.glyphCredits(ALICE), 10);
+        // A large jump bid earns every 0.001 ETH in glyphs.
         _bid(BOB, 5000);
-        assertEq(auction.symbolCredits(BOB), 5000);
-        assertEq(auction.symbolsAllocated(), 5010);
-        // Alice was outbid: refunded in full inside Bob's bid, symbols kept.
+        assertEq(auction.glyphCredits(BOB), 5000);
+        assertEq(auction.glyphsAllocated(), 5010);
+        // Alice was outbid: refunded in full inside Bob's bid, glyphs kept.
         assertEq(ALICE.balance, FUNDS);
         assertEq(BOB.balance, FUNDS - 5 ether);
         assertEq(auction.refunds(ALICE), 0);
-        assertEq(auction.symbolCredits(ALICE), 10);
-        // Claims run 64 at a time; 5,000 symbols take 79 claims.
+        assertEq(auction.glyphCredits(ALICE), 10);
+        // Claims run 64 at a time; 5,000 glyphs take 79 claims.
         for (uint256 i; i < 78; ++i) {
             vm.prank(BOB);
-            auction.claimSymbols(64, BOB);
+            auction.claimGlyphs(64, BOB);
         }
         vm.prank(BOB);
-        auction.claimSymbols(8, BOB);
+        auction.claimGlyphs(8, BOB);
         assertEq(nft.balanceOf(BOB), 5000);
-        assertEq(auction.symbolCredits(BOB), 0);
+        assertEq(auction.glyphCredits(BOB), 0);
     }
 
     function testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes() public {
@@ -120,18 +132,26 @@ contract LaunchConfigTest is TestBase {
         assertEq(ARTIST.balance, FUNDS + 11 * UNIT);
         assertEq(address(auction).balance, 0);
         // Settlement sent the 1/1 to the winner: nothing to claim.
-        assertEq(nft.ownerOf(1), BOB);
+        assertEq(oneOfOne.ownerOf(1), BOB);
     }
 
-    function testArtistWalletCannotBidButManagesThePage() public {
+    function testArtistWalletCannotBidAndHasNoRoleButRoyalties() public {
         vm.expectRevert(EnglishAuction.TreasuryCannotBid.selector);
         vm.prank(ARTIST);
         auction.bid{value: 10 * UNIT}(10 * UNIT, 0, 0);
         assertEq(ARTIST.balance, FUNDS);
-        vm.prank(ARTIST);
-        nft.setCollectionInfo("A living language of symbols", "https://kilim.art");
         (address receiver, uint256 royalty) = nft.royaltyInfo(2, 100 * UNIT);
         assertEq(receiver, ARTIST);
         assertEq(royalty, 5 * UNIT);
+        (receiver, royalty) = oneOfOne.royaltyInfo(1, 100 * UNIT);
+        assertEq(receiver, ARTIST);
+        assertEq(royalty, 5 * UNIT);
+        // No contract has a setter or a mint the artist could call.
+        vm.startPrank(ARTIST);
+        vm.expectRevert(KilimGlyphs.Unauthorized.selector);
+        nft.mintGlyphs(ARTIST, ARTIST, 1, 1);
+        vm.expectRevert(KilimOneOfOne.Unauthorized.selector);
+        oneOfOne.mint(ARTIST);
+        vm.stopPrank();
     }
 }

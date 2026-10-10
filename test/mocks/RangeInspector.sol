@@ -18,13 +18,13 @@ contract RangeInspector is IERC721Receiver {
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external view returns (bytes4) {
-        KilimAuction.CreditRange[] memory ranges = auction.unclaimedSymbolRanges(address(this));
+        KilimAuction.CreditRange[] memory ranges = auction.unclaimedGlyphRanges(address(this));
         uint256 total;
         for (uint256 i; i < ranges.length; ++i) {
             require(ranges[i].remaining != 0, "exhausted range visible in callback");
             total += ranges[i].remaining;
         }
-        require(total == auction.symbolCredits(address(this)), "ranges differ from credits in callback");
+        require(total == auction.glyphCredits(address(this)), "ranges differ from credits in callback");
         return IERC721Receiver.onERC721Received.selector;
     }
 }

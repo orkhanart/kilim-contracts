@@ -1,27 +1,28 @@
 {
-  "_comment": "Local dry run of the store phase (pnpm deploy:dry). Chain 31337 is forge's in-memory chain; nothing is sent.",
+  "_comment": "Local dry run of both phases (pnpm deploy:dry runs run(): the store, then the contracts). Chain 31337 is forge's in-memory chain, whose clock starts at timestamp 1, so startsAt 100000 is inside the inspection window (minLeadSeconds after that, under a year); nothing is sent. The stores are what onchain/pack_glyphs.py and onchain/pack_page.py write, and the texts below must equal the packed manifests' (the script refuses otherwise).",
   "chainId": 31337,
-  "store": "../onchain/build",
   "deployer": "0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38",
   "deployerNonce": 115792089237316195423570985008687907853269984665640564039457584007913129639935,
   "minLeadSeconds": 86400,
-  "expected": {
-    "motifCount": 812,
-    "geometryHash": "0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1",
-    "indexHash": "0x302a954a11f930fb229667bbccb48d35da8f8aed39acae5b6c519874a22d6e0a",
-    "pageHash": "0x477ad9e9a0124a046b7813bf0f36b52736de8f5f70478f416014e18a02a7bdc2",
-    "rendererHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "glyphStore": "../onchain/build-glyphs",
+  "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "collectionOwner": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "startsAt": 0,
+    "startsAt": 100000,
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,
     "reservePrice": 10000000000000000,
-    "symbolCap": 1000000,
-    "maxSymbolsPerBid": 1000000,
-    "maxCells": 256
+    "maxGlyphsPerBid": 1000000
+  },
+  "collection": {
+    "glyphCap": 1000000,
+    "description": "One of the 1,024 Kilim glyphs.",
+    "externalUrl": "https://kilim.art"
+  },
+  "oneOfOne": {
+    "name": "What the weave remembers",
+    "description": "A generative ASCII carpet drawn from the 1,024 Kilim glyphs.",
+    "externalUrl": ""
   }
 }

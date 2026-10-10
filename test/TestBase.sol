@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
-import {MockRenderer} from "./mocks/MockRenderer.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 
 interface Vm {
     function warp(uint256) external;
@@ -33,18 +34,34 @@ abstract contract TestBase {
     address internal constant BOB = address(0xB0B);
     address internal constant CAROL = address(0xCA401);
     address internal constant TREASURY = address(0x7777);
-    address internal constant PAGE_OWNER = address(0x9999);
-    /// @dev The bid unit, the auction's SYMBOL_PRICE: 0.001 ETH earns one symbol.
+    /// @dev The bid unit, the auction's GLYPH_PRICE: 0.001 ETH earns one glyph.
     uint256 internal constant UNIT = 0.001 ether;
     /// @dev The only reserve the auction accepts, its REGISTRATION_BALANCE: 10 units.
     uint256 internal constant RESERVE = 0.01 ether;
     /// @dev Throwaway registrants are REGISTRANT_BASE, REGISTRANT_BASE + 1, ...
     uint160 internal constant REGISTRANT_BASE = 0x5EED0000;
-    bytes32 internal constant INK = "flat/ink";
-    bytes32 internal constant INDIGO = "flat/indigo";
-    bytes32 internal constant VERMILION = "flat/vermilion";
-    /// @dev The renderer every unit fixture wires in: 812 motifs, a test geometry hash.
-    MockRenderer internal mockRenderer = new MockRenderer(812, keccak256("test geometry"));
+    /// @dev The glyph cap every fixture uses unless a test asks for another.
+    uint256 internal constant GLYPH_CAP = 10000;
+    uint256 internal constant GLYPH_COUNT = 1024;
+    /// @dev SSTORE2 chunks hold at most this many data bytes (EIP-170 less the leading 0x00).
+    uint256 internal constant CHUNK = 24_575;
+    string internal constant DESCRIPTION = "Stand-in description";
+    string internal constant EXTERNAL_URL = "https://kilim.art";
+    string internal constant ONE_OF_ONE_NAME = "What the weave remembers";
+    /// @dev The stand-in page: PREFIX is raw JSON up to the animation_url's data scheme, HEAD is the raw
+    ///      loader up to the opening quote of GRIDS, and the rest of the loader is stored base64 as TAIL.
+    string internal constant PAGE_PREFIX =
+        '{"name":"What the weave remembers","description":"stand-in","image":"data:image/png;base64,iVBORw0KGgo=","animation_url":"data:text/html;base64,';
+    string internal constant PAGE_HEAD = "<!doctype html><html><body><script>const GRIDS='";
+    string internal constant PAGE_REST = "';document.body.textContent=GRIDS.length</script></body></html>";
+
+    /// @dev The stand-in glyph store and page, deployed once per test contract, on first use.
+    address[] private _gridChunks;
+    address private _namesChunk;
+    bytes32 private _gridsHash;
+    bytes32 private _namesHash;
+    KilimOneOfOne.Page private _page;
+    bool private _pageDeployed;
 
     function assertEq(uint256 a, uint256 b) internal pure {
         require(a == b, "uint mismatch");
@@ -58,28 +75,204 @@ abstract contract TestBase {
         require(a == b, "bytes mismatch");
     }
 
+    function assertEq(string memory a, string memory b) internal pure {
+        require(keccak256(bytes(a)) == keccak256(bytes(b)), "string mismatch");
+    }
+
     function assertTrue(bool condition) internal pure {
         require(condition, "assertion failed");
     }
 
-    function config() internal view returns (KilimAuction.Config memory c) {
+    // ------------------------------------------------------------ the auction and its tokens
+
+    /// @dev A config whose glyph collection and 1/1 are freshly deployed, each naming this contract's
+    ///      NEXT creation as its minter. So `new KilimAuction(c)` must be the very next contract this
+    ///      test creates, exactly as the deploy script orders the three.
+    function config() internal returns (KilimAuction.Config memory c) {
+        return config(GLYPH_CAP);
+    }
+
+    function config(uint256 cap) internal returns (KilimAuction.Config memory c) {
         c = KilimAuction.Config({
             treasury: TREASURY,
-            collectionOwner: PAGE_OWNER,
+            glyphs: address(0),
+            oneOfOne: address(0),
             startsAt: uint64(block.timestamp + 1 hours),
             duration: 22 hours,
             extensionWindow: 10 minutes,
             incrementBps: 500,
             reservePrice: RESERVE,
-            symbolCap: 10000,
-            maxSymbolsPerBid: 1000,
-            motifCount: 812,
-            maxCells: 256,
-            geometryHash: mockRenderer.geometryHash(),
-            rendererHash: address(mockRenderer).codehash,
-            renderer: address(mockRenderer)
+            maxGlyphsPerBid: 1000
         });
+        c = withTokens(c, cap);
     }
+
+    /// @dev Deploys the glyph collection and the 1/1 for `c`, in the published order: both take the
+    ///      auction's address, predicted as this contract's creation after these two.
+    function withTokens(KilimAuction.Config memory c, uint256 cap)
+        internal
+        returns (KilimAuction.Config memory)
+    {
+        // The stand-in chunks are created on first use; they must exist before the nonce is read.
+        _deployGlyphStore();
+        standInPage();
+        address auction = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
+        KilimGlyphs glyphs = newGlyphs(auction, c.treasury, cap);
+        KilimOneOfOne oneOfOne = newOneOfOne(auction, c.treasury, glyphs);
+        c.glyphs = address(glyphs);
+        c.oneOfOne = address(oneOfOne);
+        return c;
+    }
+
+    /// @dev A glyph collection over the stand-in grids and names.
+    function newGlyphs(address minter, address royalty, uint256 cap) internal returns (KilimGlyphs) {
+        _deployGlyphStore();
+        return new KilimGlyphs(
+            minter, royalty, cap, _gridChunks, _gridsHash, _namesChunk, _namesHash, DESCRIPTION, EXTERNAL_URL
+        );
+    }
+
+    /// @dev A glyph collection over the given 32,768 grid bytes and names section.
+    function newGlyphs(address minter, address royalty, uint256 cap, bytes memory grids, bytes memory names)
+        internal
+        returns (KilimGlyphs)
+    {
+        return new KilimGlyphs(
+            minter,
+            royalty,
+            cap,
+            chunked(grids, 767 * 32),
+            keccak256(grids),
+            sstore2(names),
+            keccak256(names),
+            DESCRIPTION,
+            EXTERNAL_URL
+        );
+    }
+
+    /// @dev The 1/1 over the stand-in page.
+    function newOneOfOne(address minter, address royalty, KilimGlyphs glyphs)
+        internal
+        returns (KilimOneOfOne)
+    {
+        return new KilimOneOfOne(
+            minter, royalty, glyphs, standInPage(), ONE_OF_ONE_NAME, DESCRIPTION, EXTERNAL_URL
+        );
+    }
+
+    /// @dev The stand-in page's chunks, deployed on first use.
+    function standInPage() internal returns (KilimOneOfOne.Page memory) {
+        if (!_pageDeployed) {
+            _page = pageFrom(bytes(PAGE_PREFIX), bytes(PAGE_HEAD), bytes(Base64.encode(bytes(PAGE_REST))));
+            _pageDeployed = true;
+        }
+        return _page;
+    }
+
+    /// @dev Cuts the three sections into chunks (every chunk but a section's last is full) and deploys them.
+    function pageFrom(bytes memory prefix, bytes memory head, bytes memory tail)
+        internal
+        returns (KilimOneOfOne.Page memory page)
+    {
+        page.prefixChunks = chunked(prefix, CHUNK);
+        page.prefixHash = keccak256(prefix);
+        page.headChunks = chunked(head, CHUNK);
+        page.headHash = keccak256(head);
+        page.tailChunks = chunked(tail, CHUNK);
+        page.tailHash = keccak256(tail);
+    }
+
+    function _deployGlyphStore() private {
+        if (_gridChunks.length != 0) return;
+        bytes memory grids = standInGrids();
+        bytes memory names = standInNames();
+        // Grids are cut at 767 x 32 bytes so no grid straddles a chunk: two chunks of 24,544 and 8,224.
+        _gridChunks = chunked(grids, 767 * 32);
+        _gridsHash = keccak256(grids);
+        _namesChunk = sstore2(names);
+        _namesHash = keccak256(names);
+    }
+
+    // ------------------------------------------------------------ stand-in data
+
+    /// @dev 1,024 arbitrary but fixed grids: glyph n's grid is keccak256("kilim stand-in grid", n).
+    function standInGrids() internal pure returns (bytes memory out) {
+        out = new bytes(GLYPH_COUNT * 32);
+        for (uint256 n = 1; n <= GLYPH_COUNT; ++n) {
+            bytes32 g = standInGrid(n);
+            assembly ("memory-safe") {
+                mstore(add(add(out, 32), mul(sub(n, 1), 32)), g)
+            }
+        }
+    }
+
+    function standInGrid(uint256 n) internal pure returns (bytes32) {
+        return keccak256(abi.encode("kilim stand-in grid", n));
+    }
+
+    /// @dev A names section in the packer's layout: 1,025 big-endian uint16 offsets, then the names.
+    ///      Names repeat, as the real ones do (29 meanings across 1,024 glyphs).
+    function standInNames() internal pure returns (bytes memory) {
+        string[] memory names = new string[](GLYPH_COUNT);
+        for (uint256 n = 1; n <= GLYPH_COUNT; ++n) {
+            names[n - 1] = standInName(n);
+        }
+        return namesSection(names);
+    }
+
+    function standInName(uint256 n) internal pure returns (string memory) {
+        return string.concat("Meaning ", vm.toString(n % 29 + 1));
+    }
+
+    /// @dev Packs `names` (one per glyph, in order) into the offset table and the concatenated names.
+    function namesSection(string[] memory names) internal pure returns (bytes memory out) {
+        uint256 total;
+        for (uint256 i; i < names.length; ++i) {
+            total += bytes(names[i]).length;
+        }
+        out = new bytes(2 * (names.length + 1) + total);
+        uint256 offset;
+        uint256 pos = 2 * (names.length + 1);
+        for (uint256 i; i <= names.length; ++i) {
+            out[2 * i] = bytes1(uint8(offset >> 8));
+            out[2 * i + 1] = bytes1(uint8(offset));
+            if (i == names.length) break;
+            bytes memory name = bytes(names[i]);
+            for (uint256 k; k < name.length; ++k) {
+                out[pos++] = name[k];
+            }
+            offset += name.length;
+        }
+    }
+
+    /// @dev One SSTORE2 chunk: creation code 0x61 <len+1> 0x80600a3d393df300 || 0x00 || data, so the
+    ///      runtime code is 0x00 || data.
+    function sstore2(bytes memory data) internal returns (address chunk) {
+        require(data.length != 0 && data.length <= CHUNK, "chunk size");
+        bytes memory initcode =
+            abi.encodePacked(hex"61", uint16(data.length + 1), hex"80600a3d393df300", data);
+        assembly ("memory-safe") {
+            chunk := create(0, add(initcode, 32), mload(initcode))
+        }
+        require(chunk != address(0), "chunk deployment failed");
+    }
+
+    /// @dev Cuts `data` into chunks of `size` bytes (the last one shorter) and deploys each.
+    function chunked(bytes memory data, uint256 size) internal returns (address[] memory chunks) {
+        uint256 count = (data.length + size - 1) / size;
+        chunks = new address[](count);
+        for (uint256 k; k < count; ++k) {
+            uint256 from = k * size;
+            uint256 to = from + size < data.length ? from + size : data.length;
+            bytes memory piece = new bytes(to - from);
+            assembly ("memory-safe") {
+                mcopy(add(piece, 32), add(add(data, 32), from), sub(to, from))
+            }
+            chunks[k] = sstore2(piece);
+        }
+    }
+
+    // ------------------------------------------------------------ bidding helpers
 
     /// @dev The i-th throwaway registrant. No code, and distinct from ALICE, BOB, CAROL and the treasury.
     function registrant(uint256 i) internal pure returns (address) {
@@ -118,36 +311,14 @@ abstract contract TestBase {
         auction.bid{value: amount}(amount, 0, 0);
     }
 
-    /// @dev One of the three canonical appearances, picked by `seed`.
-    function appearanceOf(uint256 seed) internal pure returns (bytes32) {
-        uint256 k = seed % 3;
-        return k == 0 ? INK : k == 1 ? INDIGO : VERMILION;
-    }
-
-    /// @dev A collection wired to a mock renderer with `motifs` motifs, as the auction would create it.
-    function newKilim(
-        address minter,
-        address pageOwner,
-        address royalty,
-        uint256 cap,
-        uint16 motifs,
-        uint16 cells
-    ) internal returns (Kilim) {
-        MockRenderer r = motifs == 812 ? mockRenderer : new MockRenderer(motifs, keccak256("test geometry"));
-        return
-            new Kilim(
-                minter, pageOwner, royalty, cap, motifs, cells, r.geometryHash(), address(r).codehash, r
-            );
-    }
-
-    /// @dev Mints the next unminted symbol IDs, as a minter reserving them in order would.
+    /// @dev Mints the next unminted glyph ids, as a minter reserving them in order would.
     ///      Calls a view first, so never place it directly after vm.prank or vm.expectRevert.
-    function mintNext(Kilim nft, address to, address bidder, uint256 quantity)
+    function mintNext(KilimGlyphs nft, address to, address bidder, uint256 quantity)
         internal
         returns (uint256 first)
     {
-        first = nft.FIRST_SYMBOL_ID() + nft.symbolsMinted();
-        nft.mintSymbols(to, bidder, first, quantity);
+        first = 1 + nft.glyphsMinted();
+        nft.mintGlyphs(to, bidder, first, quantity);
     }
 
     function ids(uint256 start, uint256 count) internal pure returns (uint256[] memory result) {

@@ -1,27 +1,28 @@
 {
-  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/RENDERER.md for the order. The expected hashes come from onchain/build/manifest.json; rendererHash stays zero until runStore prints it.",
+  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/STORAGE.md for the order. The stores come from onchain/pack_glyphs.py and onchain/pack_page.py.",
   "chainId": 11155111,
-  "store": "../onchain/build",
-  "deployer": "TODO: the dedicated deployer address",
-  "deployerNonce": "TODO: the published nonce for the auction transaction",
+  "deployer": "TODO: the rehearsal deployer address",
+  "deployerNonce": "TODO: the published nonce for the glyph collection, the first of the three contract transactions",
   "minLeadSeconds": 86400,
-  "expected": {
-    "motifCount": 812,
-    "geometryHash": "0x072134247de2d0ab98f8315ae051ce9ca0220e0eaca7516c1dbdf2402e7c3fa1",
-    "indexHash": "0x302a954a11f930fb229667bbccb48d35da8f8aed39acae5b6c519874a22d6e0a",
-    "pageHash": "0x477ad9e9a0124a046b7813bf0f36b52736de8f5f70478f416014e18a02a7bdc2",
-    "rendererHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-  },
+  "glyphStore": "../onchain/build-glyphs",
+  "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "collectionOwner": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "startsAt": "TODO: unix seconds, at least minLeadSeconds after deployment",
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,
     "reservePrice": 10000000000000000,
-    "symbolCap": 1000000,
-    "maxSymbolsPerBid": 1000000,
-    "maxCells": 256
+    "maxGlyphsPerBid": 1000000
+  },
+  "collection": {
+    "glyphCap": 1000000,
+    "description": "One of the 1,024 Kilim glyphs.",
+    "externalUrl": "https://kilim.art"
+  },
+  "oneOfOne": {
+    "name": "What the weave remembers",
+    "description": "A generative ASCII carpet drawn from the 1,024 Kilim glyphs.",
+    "externalUrl": ""
   }
 }

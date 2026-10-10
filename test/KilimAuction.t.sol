@@ -4,7 +4,8 @@ pragma solidity 0.8.37;
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {Kilim} from "../src/Kilim.sol";
+import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {TestBase} from "./TestBase.sol";
 import {Receiver} from "./mocks/Receiver.sol";
 import {RangeInspector} from "./mocks/RangeInspector.sol";
@@ -53,11 +54,13 @@ contract HookedBidder is IERC721Receiver {
 
 contract KilimAuctionTest is TestBase {
     KilimAuction internal auction;
-    Kilim internal nft;
+    KilimGlyphs internal nft;
+    KilimOneOfOne internal oneOfOne;
 
     function setUp() public {
         auction = new KilimAuction(config());
-        nft = auction.collection();
+        nft = auction.glyphs();
+        oneOfOne = auction.oneOfOne();
         _fund(ALICE);
         _fund(BOB);
         _fund(CAROL);
@@ -91,11 +94,11 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 25);
         assertEq(auction.highestBidder(), ALICE);
         assertEq(auction.highestBid(), 25 * UNIT);
-        assertEq(auction.symbolCredits(ALICE), 25);
+        assertEq(auction.glyphCredits(ALICE), 25);
         assertEq(ALICE.balance, before - 25 * UNIT);
         assertEq(address(auction).balance, 25 * UNIT);
         _assertSolvent();
-        assertEq(nft.symbolsMinted(), 0);
+        assertEq(nft.glyphsMinted(), 0);
     }
 
     function testOpeningBidMustMeetTheReserve() public {
@@ -104,7 +107,7 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 9);
         _bid(ALICE, 10);
         assertEq(auction.highestBid(), RESERVE);
-        assertEq(auction.symbolCredits(ALICE), 10);
+        assertEq(auction.glyphCredits(ALICE), 10);
         assertEq(auction.minimumBid(), 11 * UNIT);
         _assertSolvent();
     }
@@ -141,7 +144,7 @@ contract KilimAuctionTest is TestBase {
         assertEq(auction.highestBidder(), address(0));
         assertEq(auction.highestBid(), 0);
         assertEq(auction.endsAt(), 0);
-        assertEq(auction.symbolsAllocated(), 0);
+        assertEq(auction.glyphsAllocated(), 0);
         assertEq(address(auction).balance, 0);
     }
 
@@ -188,11 +191,11 @@ contract KilimAuctionTest is TestBase {
         vm.expectEmit();
         emit EnglishAuction.RefundPaid(ALICE, 25 * UNIT);
         _bid(BOB, 27);
-        // Paid back inside Bob's bid: nothing waits, nothing to withdraw, the symbols stay.
+        // Paid back inside Bob's bid: nothing waits, nothing to withdraw, the glyphs stay.
         assertEq(ALICE.balance, before);
         assertEq(auction.refunds(ALICE), 0);
         assertEq(auction.refundLiability(), 0);
-        assertEq(auction.symbolCredits(ALICE), 25);
+        assertEq(auction.glyphCredits(ALICE), 25);
         assertEq(address(auction).balance, 27 * UNIT);
         _assertSolvent();
         vm.expectRevert(EnglishAuction.NothingToWithdraw.selector);
@@ -213,7 +216,7 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 25);
         _bid(ALICE, 27);
         assertEq(auction.refunds(ALICE), 0);
-        assertEq(auction.symbolCredits(ALICE), 52);
+        assertEq(auction.glyphCredits(ALICE), 52);
         assertEq(ALICE.balance, before - 27 * UNIT);
         assertEq(address(auction).balance, 27 * UNIT);
         assertEq(auction.liabilities(), 27 * UNIT);
@@ -232,8 +235,8 @@ contract KilimAuctionTest is TestBase {
         assertEq(auction.highestBid(), 25 * UNIT);
         assertEq(auction.endsAt(), close);
         assertEq(auction.refundLiability(), 0);
-        assertEq(auction.symbolsAllocated(), 25);
-        assertEq(auction.symbolCredits(BOB), 0);
+        assertEq(auction.glyphsAllocated(), 25);
+        assertEq(auction.glyphCredits(BOB), 0);
         assertEq(ALICE.balance, aliceBefore);
         assertEq(BOB.balance, bobBefore);
         _assertSolvent();
@@ -362,7 +365,7 @@ contract KilimAuctionTest is TestBase {
         // The same call from outside the refund settles.
         assertTrue(bidder.fire());
         assertTrue(auction.settled());
-        assertEq(nft.ownerOf(1), BOB);
+        assertEq(oneOfOne.ownerOf(1), BOB);
     }
 
     /// @dev The winner's receiver also has a deferred refund; the prize callback still cannot withdraw it.
@@ -381,7 +384,7 @@ contract KilimAuctionTest is TestBase {
         // The 1/1 arrives inside settle(); the receiver's callback cannot withdraw from there.
         auction.settle();
         assertTrue(!receiver.callbackSucceeded());
-        assertEq(nft.ownerOf(1), address(receiver));
+        assertEq(oneOfOne.ownerOf(1), address(receiver));
         assertEq(auction.refunds(address(receiver)), 25 * UNIT);
         assertEq(CAROL.balance, before);
         _assertSolvent();
@@ -439,7 +442,7 @@ contract KilimAuctionTest is TestBase {
         vm.expectRevert(EnglishAuction.NotSettled.selector);
         vm.prank(TREASURY);
         auction.claimPrize(TREASURY);
-        assertTrue(!nft.masterpieceMinted());
+        assertTrue(!oneOfOne.minted());
         // Bidding still works whenever someone finally arrives.
         _bid(ALICE, 25);
         assertEq(auction.endsAt(), block.timestamp + 22 hours);
@@ -485,7 +488,7 @@ contract KilimAuctionTest is TestBase {
         assertEq(address(auction).balance, 56 * UNIT);
         _assertSolvent();
         vm.prank(ALICE);
-        auction.claimSymbols(25, ALICE);
+        auction.claimGlyphs(25, ALICE);
         _assertSolvent();
         bidder.configure(false, false);
         vm.prank(address(bidder));
@@ -494,11 +497,11 @@ contract KilimAuctionTest is TestBase {
         _assertSolvent();
         vm.warp(auction.endsAt());
         auction.settle();
-        assertEq(nft.ownerOf(1), BOB);
+        assertEq(oneOfOne.ownerOf(1), BOB);
         assertEq(address(auction).balance, 29 * UNIT);
         _assertSolvent();
         vm.prank(BOB);
-        auction.claimSymbols(29, BOB);
+        auction.claimGlyphs(29, BOB);
         _assertSolvent();
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
@@ -544,7 +547,7 @@ contract KilimAuctionTest is TestBase {
         emit KilimAuction.PrizeClaimed(ALICE, ALICE);
         auction.settle();
         // Settlement sent it: the winner never has to claim.
-        assertEq(nft.ownerOf(1), ALICE);
+        assertEq(oneOfOne.ownerOf(1), ALICE);
         assertTrue(auction.prizeClaimed());
         vm.expectRevert(EnglishAuction.Unauthorized.selector);
         vm.prank(BOB);
@@ -561,7 +564,7 @@ contract KilimAuctionTest is TestBase {
         vm.expectRevert(EnglishAuction.Unauthorized.selector);
         vm.prank(TREASURY);
         auction.claimPrize(TREASURY);
-        assertEq(nft.ownerOf(1), ALICE);
+        assertEq(oneOfOne.ownerOf(1), ALICE);
     }
 
     function testRejectingWinnerCannotBlockSettlementOrProceeds() public {
@@ -581,85 +584,85 @@ contract KilimAuctionTest is TestBase {
         assertEq(address(auction).balance, 0);
         vm.prank(address(receiver));
         auction.claimPrize(CAROL);
-        assertEq(nft.ownerOf(1), CAROL);
+        assertEq(oneOfOne.ownerOf(1), CAROL);
     }
 
-    function testSymbolClaimsBoundedAndNeverForfeitWithRefund() public {
+    function testGlyphClaimsBoundedAndNeverForfeitWithRefund() public {
         _bid(ALICE, 100);
         _bid(BOB, 105);
         vm.prank(ALICE);
-        auction.claimSymbols(64, CAROL);
+        auction.claimGlyphs(64, CAROL);
         vm.prank(ALICE);
-        auction.claimSymbols(36, ALICE);
+        auction.claimGlyphs(36, ALICE);
         assertEq(nft.balanceOf(CAROL), 64);
         assertEq(nft.balanceOf(ALICE), 36);
-        assertEq(auction.symbolCredits(ALICE), 0);
-        assertEq(auction.symbolsClaimed(), nft.symbolsMinted());
+        assertEq(auction.glyphCredits(ALICE), 0);
+        assertEq(auction.glyphsClaimed(), nft.glyphsMinted());
         vm.expectRevert(KilimAuction.InvalidQuantity.selector);
         vm.prank(ALICE);
-        auction.claimSymbols(1, ALICE);
+        auction.claimGlyphs(1, ALICE);
         _assertSolvent();
     }
 
-    /// @dev Symbols are never sent by a bid, a refund or settlement: only claimSymbols mints them.
-    function testSymbolsAreMintedOnlyByClaim() public {
+    /// @dev Glyphs are never sent by a bid, a refund or settlement: only claimGlyphs mints them.
+    function testGlyphsAreMintedOnlyByClaim() public {
         _bid(ALICE, 25);
         _bid(BOB, 27);
         vm.warp(auction.endsAt());
         auction.settle();
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
-        assertEq(nft.symbolsMinted(), 0);
-        assertEq(auction.symbolsClaimed(), 0);
-        assertEq(auction.symbolsAllocated(), 52);
+        assertEq(nft.glyphsMinted(), 0);
+        assertEq(auction.glyphsClaimed(), 0);
+        assertEq(auction.glyphsAllocated(), 52);
         assertEq(nft.balanceOf(ALICE), 0);
         // Credits outlive the auction: both bidders still claim after settlement.
         vm.prank(ALICE);
-        auction.claimSymbols(25, ALICE);
+        auction.claimGlyphs(25, ALICE);
         vm.prank(BOB);
-        auction.claimSymbols(27, BOB);
+        auction.claimGlyphs(27, BOB);
         assertEq(nft.balanceOf(ALICE), 25);
-        assertEq(nft.balanceOf(BOB), 28);
-        assertEq(auction.symbolsClaimed(), 52);
+        assertEq(nft.balanceOf(BOB), 27);
+        assertEq(oneOfOne.balanceOf(BOB), 1);
+        assertEq(auction.glyphsClaimed(), 52);
     }
 
     function testInvalidClaimQuantities() public {
         _bid(ALICE, 100);
         vm.startPrank(ALICE);
         vm.expectRevert(KilimAuction.InvalidQuantity.selector);
-        auction.claimSymbols(0, ALICE);
+        auction.claimGlyphs(0, ALICE);
         vm.expectRevert(KilimAuction.InvalidQuantity.selector);
-        auction.claimSymbols(65, ALICE);
+        auction.claimGlyphs(65, ALICE);
         vm.stopPrank();
     }
 
-    function testRejectingReceiverDoesNotConsumeSymbolCredits() public {
+    function testRejectingReceiverDoesNotConsumeGlyphCredits() public {
         _bid(ALICE, 25);
         Receiver receiver = new Receiver();
         receiver.configure(true, address(0), "");
         vm.expectRevert();
         vm.prank(ALICE);
-        auction.claimSymbols(4, address(receiver));
-        assertEq(auction.symbolCredits(ALICE), 25);
-        assertEq(nft.symbolsMinted(), 0);
+        auction.claimGlyphs(4, address(receiver));
+        assertEq(auction.glyphCredits(ALICE), 25);
+        assertEq(nft.glyphsMinted(), 0);
     }
 
     function testNftCallbackCannotDoubleClaim() public {
         Receiver receiver = new Receiver();
         _fund(address(receiver));
         _bid(address(receiver), 25);
-        receiver.configure(false, address(auction), abi.encodeCall(auction.claimSymbols, (4, CAROL)));
+        receiver.configure(false, address(auction), abi.encodeCall(auction.claimGlyphs, (4, CAROL)));
         vm.prank(address(receiver));
-        auction.claimSymbols(4, address(receiver));
+        auction.claimGlyphs(4, address(receiver));
         assertTrue(!receiver.callbackSucceeded());
-        assertEq(auction.symbolCredits(address(receiver)), 21);
-        assertEq(nft.symbolsMinted(), 4);
+        assertEq(auction.glyphCredits(address(receiver)), 21);
+        assertEq(nft.glyphsMinted(), 4);
     }
 
     function testRewardCapDoesNotBlockCompetitiveBids() public {
-        KilimAuction.Config memory c = config();
-        c.symbolCap = 30;
-        c.maxSymbolsPerBid = 25;
+        KilimAuction.Config memory c = config(30);
+        c.maxGlyphsPerBid = 25;
         auction = new KilimAuction(c);
         _openBidding(auction);
         _bid(ALICE, 25);
@@ -669,7 +672,7 @@ contract KilimAuctionTest is TestBase {
         vm.prank(BOB);
         auction.bid{value: 27 * UNIT}(27 * UNIT, 5, 0);
         _bid(ALICE, 29);
-        assertEq(auction.symbolsAllocated(), 30);
+        assertEq(auction.glyphsAllocated(), 30);
         assertEq(auction.highestBid(), 29 * UNIT);
         assertEq(auction.rewardForBid(1000 * UNIT), 0);
         _assertSolvent();
@@ -677,7 +680,7 @@ contract KilimAuctionTest is TestBase {
 
     function testPerBidRewardCap() public {
         _bid(ALICE, 1001);
-        assertEq(auction.symbolCredits(ALICE), 1000);
+        assertEq(auction.glyphCredits(ALICE), 1000);
         _assertSolvent();
     }
 
@@ -687,7 +690,7 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 25);
         vm.deal(address(auction), address(auction).balance + 100 * UNIT);
         assertEq(auction.liabilities(), 25 * UNIT);
-        assertEq(auction.symbolsAllocated(), 25);
+        assertEq(auction.glyphsAllocated(), 25);
         assertEq(auction.minimumBid(), 27 * UNIT);
         vm.warp(auction.endsAt());
         auction.settle();
@@ -725,14 +728,14 @@ contract KilimAuctionTest is TestBase {
             auction.withdrawRefund(bad[i]);
             vm.expectRevert(EnglishAuction.InvalidRecipient.selector);
             vm.prank(address(bidder));
-            auction.claimSymbols(1, bad[i]);
+            auction.claimGlyphs(1, bad[i]);
             // The recipient is checked before the quantity.
             vm.expectRevert(EnglishAuction.InvalidRecipient.selector);
             vm.prank(address(bidder));
-            auction.claimSymbols(0, bad[i]);
+            auction.claimGlyphs(0, bad[i]);
         }
         assertEq(auction.refunds(address(bidder)), 25 * UNIT);
-        assertEq(auction.symbolCredits(address(bidder)), 25);
+        assertEq(auction.glyphCredits(address(bidder)), 25);
         _assertSolvent();
     }
 
@@ -764,37 +767,65 @@ contract KilimAuctionTest is TestBase {
         new KilimAuction(c);
         KilimAuction valid = new KilimAuction(config());
         assertEq(valid.reservePrice(), valid.REGISTRATION_BALANCE());
-        assertEq(valid.reservePrice(), 10 * valid.SYMBOL_PRICE());
+        assertEq(valid.reservePrice(), 10 * valid.GLYPH_PRICE());
     }
 
-    /// @dev The collection's address is known before deployment (the auction's first CREATE), so a config
-    ///      can name it as the treasury by mistake. It could never withdraw the proceeds.
-    function testTreasuryCannotBeTheCollection() public {
-        address next = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+    /// @dev The token contracts exist before the auction, so a config can name one of them as the treasury
+    ///      by mistake. Neither could ever withdraw the proceeds.
+    function testTreasuryCannotBeATokenContract() public {
         KilimAuction.Config memory c = config();
-        c.treasury = vm.computeCreateAddress(next, 1);
+        c.treasury = c.glyphs;
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
-        // The prediction is right: a valid deployment puts its collection exactly there.
-        next = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+        c = config();
+        c.treasury = c.oneOfOne;
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
+    }
+
+    /// @dev The tokens name the auction's address before it exists: the deploy script predicts it from the
+    ///      deployer's nonce, and the auction refuses tokens that named any other minter.
+    function testAuctionAddressIsPredictedAndCheckedByTheTokens() public {
+        address next = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
         KilimAuction deployed = new KilimAuction(config());
         assertEq(address(deployed), next);
-        assertEq(address(deployed.collection()), vm.computeCreateAddress(next, 1));
+        assertEq(deployed.glyphs().minter(), next);
+        assertEq(deployed.oneOfOne().minter(), next);
+        assertEq(address(deployed.oneOfOne().glyphs()), address(deployed.glyphs()));
+        assertEq(deployed.glyphCap(), deployed.glyphs().glyphCap());
+        // Tokens built for one address refuse an auction at another: a creation in between moves it.
+        KilimAuction.Config memory c = config();
+        new Receiver();
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
+        // A 1/1 over a different glyph collection is refused too.
+        c = config();
+        KilimGlyphs other = newGlyphs(
+            vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2), TREASURY, GLYPH_CAP
+        );
+        c.oneOfOne = address(
+            newOneOfOne(
+                vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1), TREASURY, other
+            )
+        );
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
     }
 
     function testFuzzInvalidAuctionConfiguration(uint8 selector) public {
         KilimAuction.Config memory c = config();
-        uint256 choice = uint256(selector) % 11;
+        uint256 choice = uint256(selector) % 12;
         if (choice == 0) c.reservePrice = RESERVE + UNIT;
         else if (choice == 1) c.duration = 0;
         else if (choice == 2) c.duration = 30 days + 1;
         else if (choice == 3) c.extensionWindow = c.duration + 1;
         else if (choice == 4) c.extensionWindow = 0;
         else if (choice == 5) c.incrementBps = 10001;
-        else if (choice == 6) c.symbolCap = 0;
-        else if (choice == 7) c.symbolCap = uint256(type(uint64).max) + 1;
-        else if (choice == 8) c.maxSymbolsPerBid = 0;
-        else if (choice == 9) c.maxSymbolsPerBid = c.symbolCap + 1;
+        else if (choice == 6) c.maxGlyphsPerBid = 0;
+        else if (choice == 7) c.maxGlyphsPerBid = GLYPH_CAP + 1;
+        else if (choice == 8) c.glyphs = ALICE; // no code
+        else if (choice == 9) c.oneOfOne = ALICE; // no code
+        else if (choice == 10) c.glyphs = c.oneOfOne; // not a collection with this auction as minter
         else c.reservePrice = 0;
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
@@ -834,7 +865,7 @@ contract KilimAuctionTest is TestBase {
         vm.warp(auction.endsAt());
         auction.settle();
         assertTrue(!receiver.callbackSucceeded());
-        assertEq(nft.ownerOf(1), address(receiver));
+        assertEq(oneOfOne.ownerOf(1), address(receiver));
         vm.expectRevert(KilimAuction.PrizeAlreadyClaimed.selector);
         vm.prank(address(receiver));
         auction.claimPrize(CAROL);
@@ -853,7 +884,7 @@ contract KilimAuctionTest is TestBase {
         assertTrue(!auction.prizeClaimed());
         vm.prank(address(receiver));
         auction.claimPrize(CAROL);
-        assertEq(nft.ownerOf(1), CAROL);
+        assertEq(oneOfOne.ownerOf(1), CAROL);
     }
 
     /// @dev A winner whose receiver burns the whole delivery allowance cannot stop settlement or
@@ -868,7 +899,7 @@ contract KilimAuctionTest is TestBase {
         auction.settle();
         assertTrue(auction.settled());
         assertTrue(!auction.prizeClaimed());
-        assertTrue(!nft.masterpieceMinted());
+        assertTrue(!oneOfOne.minted());
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
         assertEq(TREASURY.balance, 25 * UNIT);
@@ -876,7 +907,7 @@ contract KilimAuctionTest is TestBase {
         emit KilimAuction.PrizeClaimed(address(burner), CAROL);
         vm.prank(address(burner));
         auction.claimPrize(CAROL);
-        assertEq(nft.ownerOf(1), CAROL);
+        assertEq(oneOfOne.ownerOf(1), CAROL);
         assertTrue(auction.prizeClaimed());
     }
 
@@ -904,7 +935,7 @@ contract KilimAuctionTest is TestBase {
     }
 
     event BidPlaced(
-        address indexed bidder, uint256 amount, uint256 symbolReward, uint256 firstSymbolId, uint64 endsAt
+        address indexed bidder, uint256 amount, uint256 glyphReward, uint256 firstGlyphId, uint64 endsAt
     );
 
     function testTreasuryCannotBid() public {
@@ -915,71 +946,67 @@ contract KilimAuctionTest is TestBase {
         vm.expectRevert(EnglishAuction.TreasuryCannotBid.selector);
         _bid(TREASURY, 27);
         assertEq(auction.highestBidder(), ALICE);
-        assertEq(auction.symbolCredits(TREASURY), 0);
+        assertEq(auction.glyphCredits(TREASURY), 0);
         assertEq(TREASURY.balance, 1e30);
         _assertSolvent();
     }
 
-    function testSymbolIdsAndTraitsAreFixedAtBidTime() public {
-        _bid(ALICE, 25); // IDs 2-26
-        _bid(BOB, 27); // IDs 27-53
-        bytes32[] memory seeds = new bytes32[](52);
-        uint16[] memory motifs = new uint16[](52);
-        uint8[] memory materials = new uint8[](52);
+    function testGlyphIdsAndGlyphsAreFixedAtBidTime() public {
+        _bid(ALICE, 25); // ids 1-25
+        _bid(BOB, 27); // ids 26-52
+        uint16[] memory glyphs = new uint16[](52);
         for (uint256 i; i < 52; ++i) {
-            (seeds[i], motifs[i], materials[i]) = nft.symbolTraits(2 + i);
+            glyphs[i] = nft.glyphOf(1 + i);
         }
-        // Claim order, timing, block and recipient do not change which IDs or traits bidders receive.
+        // Claim order, timing, block and recipient do not change which ids or glyphs bidders receive.
         vm.warp(block.timestamp + 7 hours);
         vm.roll(block.number + 1000);
         vm.prank(BOB);
-        auction.claimSymbols(27, CAROL);
+        auction.claimGlyphs(27, CAROL);
         vm.warp(auction.endsAt());
         vm.roll(block.number + 1000);
         auction.settle();
         vm.prank(ALICE);
-        auction.claimSymbols(25, BOB);
+        auction.claimGlyphs(25, BOB);
         for (uint256 i; i < 52; ++i) {
-            uint256 id = 2 + i;
-            assertEq(nft.ownerOf(id), id < 27 ? BOB : CAROL);
-            Kilim.SymbolData memory symbol = nft.symbolData(id);
-            assertEq(symbol.seed, seeds[i]);
-            assertEq(symbol.motif, motifs[i]);
-            assertEq(symbol.material, materials[i]);
+            uint256 id = 1 + i;
+            assertEq(nft.ownerOf(id), id < 26 ? BOB : CAROL);
+            assertEq(nft.glyphOf(id), glyphs[i]);
+            // Independent reference derivation, so glyphOf and the quote cannot drift together.
+            assertEq(glyphs[i], uint256(keccak256(abi.encode(block.chainid, address(nft), id))) % 1024 + 1);
         }
     }
 
-    function testExpectedFirstSymbolIdRejectsMovedRange() public {
-        _bid(CAROL, 25); // IDs 2-26; Alice is quoted 27 next.
-        _bid(BOB, 27); // Lands first and takes 27-53.
+    function testExpectedFirstGlyphIdRejectsMovedRange() public {
+        _bid(CAROL, 25); // ids 1-25; Alice is quoted 26 next.
+        _bid(BOB, 27); // Lands first and takes 26-52.
         uint256 before = ALICE.balance;
-        vm.expectRevert(abi.encodeWithSelector(KilimAuction.SymbolRangeMoved.selector, 54));
+        vm.expectRevert(abi.encodeWithSelector(KilimAuction.GlyphRangeMoved.selector, 53));
         vm.prank(ALICE);
-        auction.bid{value: 40 * UNIT}(40 * UNIT, 40, 27);
+        auction.bid{value: 40 * UNIT}(40 * UNIT, 40, 26);
         assertEq(auction.highestBidder(), BOB);
-        assertEq(auction.symbolsAllocated(), 52);
-        assertEq(auction.symbolCredits(ALICE), 0);
+        assertEq(auction.glyphsAllocated(), 52);
+        assertEq(auction.glyphCredits(ALICE), 0);
         assertEq(ALICE.balance, before);
         _assertSolvent();
         // The matching quote succeeds; 0 accepts whatever is next.
         vm.prank(ALICE);
-        auction.bid{value: 40 * UNIT}(40 * UNIT, 40, 54);
-        assertEq(auction.unclaimedSymbolRanges(ALICE)[0].nextId, 54);
+        auction.bid{value: 40 * UNIT}(40 * UNIT, 40, 53);
+        assertEq(auction.unclaimedGlyphRanges(ALICE)[0].nextId, 53);
         _bid(CAROL, 42);
-        assertEq(auction.unclaimedSymbolRanges(CAROL)[1].nextId, 94);
+        assertEq(auction.unclaimedGlyphRanges(CAROL)[1].nextId, 93);
         _assertSolvent();
     }
 
-    function testExpectedFirstSymbolIdRejectsExhaustedRewards() public {
-        KilimAuction.Config memory c = config();
-        c.symbolCap = 25;
-        c.maxSymbolsPerBid = 25;
+    function testExpectedFirstGlyphIdRejectsExhaustedRewards() public {
+        KilimAuction.Config memory c = config(25);
+        c.maxGlyphsPerBid = 25;
         auction = new KilimAuction(c);
         _openBidding(auction);
         _bid(ALICE, 25);
-        vm.expectRevert(abi.encodeWithSelector(KilimAuction.SymbolRangeMoved.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(KilimAuction.GlyphRangeMoved.selector, 0));
         vm.prank(BOB);
-        auction.bid{value: 27 * UNIT}(27 * UNIT, 0, 27);
+        auction.bid{value: 27 * UNIT}(27 * UNIT, 0, 26);
         _bid(BOB, 27);
         assertEq(auction.highestBidder(), BOB);
     }
@@ -992,29 +1019,29 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 33); // 87 credits in ranges of 25, 29 and 33, each below the batch cap.
         vm.expectRevert(KilimAuction.InvalidQuantity.selector);
         vm.prank(ALICE);
-        auction.claimSymbols(65, ALICE);
+        auction.claimGlyphs(65, ALICE);
         vm.prank(ALICE);
-        auction.claimSymbols(64, ALICE);
-        assertEq(auction.symbolCredits(ALICE), 23);
+        auction.claimGlyphs(64, ALICE);
+        assertEq(auction.glyphCredits(ALICE), 23);
     }
 
-    event SymbolsMinted(address indexed recipient, address indexed bidder, uint256 firstId, uint256 count);
-    event SymbolsClaimed(
+    event GlyphsMinted(address indexed recipient, address indexed bidder, uint256 firstId, uint256 count);
+    event GlyphsClaimed(
         address indexed bidder, address indexed recipient, uint256 count, uint256 firstTokenId
     );
 
     function testMultiRangeClaimEvents() public {
-        _bid(ALICE, 25); // IDs 2-26
-        _bid(BOB, 27); // IDs 27-53
-        _bid(ALICE, 29); // IDs 54-82
+        _bid(ALICE, 25); // ids 1-25
+        _bid(BOB, 27); // ids 26-52
+        _bid(ALICE, 29); // ids 53-81
         vm.expectEmit();
-        emit SymbolsMinted(CAROL, ALICE, 2, 25);
+        emit GlyphsMinted(CAROL, ALICE, 1, 25);
         vm.expectEmit();
-        emit SymbolsMinted(CAROL, ALICE, 54, 5);
+        emit GlyphsMinted(CAROL, ALICE, 53, 5);
         vm.expectEmit();
-        emit SymbolsClaimed(ALICE, CAROL, 30, 2);
+        emit GlyphsClaimed(ALICE, CAROL, 30, 1);
         vm.prank(ALICE);
-        auction.claimSymbols(30, CAROL);
+        auction.claimGlyphs(30, CAROL);
     }
 
     function testCreditRangesAreFinalBeforeReceiverCallbacks() public {
@@ -1025,7 +1052,7 @@ contract KilimAuctionTest is TestBase {
         _bid(BOB, 27);
         _bid(address(inspector), 29);
         // Chunk 1 exhausts the first range; its callbacks must not still see it.
-        inspector.execute(address(auction), abi.encodeCall(auction.claimSymbols, (30, address(inspector))));
+        inspector.execute(address(auction), abi.encodeCall(auction.claimGlyphs, (30, address(inspector))));
         assertEq(nft.balanceOf(address(inspector)), 30);
         _assertSolvent();
     }
@@ -1038,9 +1065,9 @@ contract KilimAuctionTest is TestBase {
         // The callback pays in full, so only the reentrancy guard stops it.
         bidder.hook(address(auction), 29 * UNIT, abi.encodeCall(auction.bid, (29 * UNIT, 0, 0)));
         vm.prank(address(bidder));
-        auction.claimSymbols(1, address(bidder));
+        auction.claimGlyphs(1, address(bidder));
         assertTrue(!bidder.callbackSucceeded());
-        assertEq(nft.ownerOf(2), address(bidder));
+        assertEq(nft.ownerOf(1), address(bidder));
         assertEq(auction.highestBidder(), BOB);
         _assertSolvent();
         // The same bid from outside the claim is accepted.
@@ -1050,83 +1077,82 @@ contract KilimAuctionTest is TestBase {
     }
 
     function testClaimsSpanBidRangesOldestFirst() public {
-        _bid(ALICE, 25); // IDs 2-26
-        _bid(BOB, 27); // IDs 27-53
-        _bid(ALICE, 29); // IDs 54-82
-        KilimAuction.CreditRange[] memory ranges = auction.unclaimedSymbolRanges(ALICE);
+        _bid(ALICE, 25); // ids 1-25
+        _bid(BOB, 27); // ids 26-52
+        _bid(ALICE, 29); // ids 53-81
+        KilimAuction.CreditRange[] memory ranges = auction.unclaimedGlyphRanges(ALICE);
         assertEq(ranges.length, 2);
-        assertEq(ranges[0].nextId, 2);
+        assertEq(ranges[0].nextId, 1);
         assertEq(ranges[0].remaining, 25);
-        assertEq(ranges[1].nextId, 54);
+        assertEq(ranges[1].nextId, 53);
         assertEq(ranges[1].remaining, 29);
         vm.prank(ALICE);
-        auction.claimSymbols(30, ALICE);
-        for (uint256 id = 2; id < 27; ++id) {
+        auction.claimGlyphs(30, ALICE);
+        for (uint256 id = 1; id < 26; ++id) {
             assertEq(nft.ownerOf(id), ALICE);
         }
-        for (uint256 id = 54; id < 59; ++id) {
+        for (uint256 id = 53; id < 58; ++id) {
             assertEq(nft.ownerOf(id), ALICE);
         }
         vm.expectRevert();
-        nft.ownerOf(59);
-        ranges = auction.unclaimedSymbolRanges(ALICE);
+        nft.ownerOf(58);
+        ranges = auction.unclaimedGlyphRanges(ALICE);
         assertEq(ranges.length, 1);
-        assertEq(ranges[0].nextId, 59);
+        assertEq(ranges[0].nextId, 58);
         assertEq(ranges[0].remaining, 24);
         vm.prank(ALICE);
-        auction.claimSymbols(24, ALICE);
-        assertEq(auction.unclaimedSymbolRanges(ALICE).length, 0);
-        assertEq(nft.ownerOf(82), ALICE);
+        auction.claimGlyphs(24, ALICE);
+        assertEq(auction.unclaimedGlyphRanges(ALICE).length, 0);
+        assertEq(nft.ownerOf(81), ALICE);
         assertEq(nft.balanceOf(ALICE), 54);
         vm.expectRevert();
-        nft.ownerOf(27);
+        nft.ownerOf(26);
     }
 
     function testBidEventReportsReservedIds() public {
         vm.expectEmit();
-        emit BidPlaced(ALICE, 25 * UNIT, 25, 2, uint64(block.timestamp + 22 hours));
+        emit BidPlaced(ALICE, 25 * UNIT, 25, 1, uint64(block.timestamp + 22 hours));
         _bid(ALICE, 25);
         uint64 deadline = auction.endsAt();
         vm.expectEmit();
-        emit BidPlaced(BOB, 27 * UNIT, 27, 27, deadline);
+        emit BidPlaced(BOB, 27 * UNIT, 27, 26, deadline);
         _bid(BOB, 27);
     }
 
     function testExhaustedRewardsReserveNoIds() public {
-        KilimAuction.Config memory c = config();
-        c.symbolCap = 30;
-        c.maxSymbolsPerBid = 25;
+        KilimAuction.Config memory c = config(30);
+        c.maxGlyphsPerBid = 25;
         auction = new KilimAuction(c);
-        nft = auction.collection();
+        nft = auction.glyphs();
         _openBidding(auction);
-        _bid(ALICE, 25); // IDs 2-26
-        _bid(BOB, 27); // IDs 27-31, capped
+        _bid(ALICE, 25); // ids 1-25
+        _bid(BOB, 27); // ids 26-30, capped
         uint64 deadline = auction.endsAt();
         vm.expectEmit();
         emit BidPlaced(ALICE, 29 * UNIT, 0, 0, deadline);
         _bid(ALICE, 29);
-        assertEq(auction.unclaimedSymbolRanges(ALICE).length, 1);
-        KilimAuction.CreditRange[] memory bobRanges = auction.unclaimedSymbolRanges(BOB);
-        assertEq(bobRanges[0].nextId, 27);
+        assertEq(auction.unclaimedGlyphRanges(ALICE).length, 1);
+        KilimAuction.CreditRange[] memory bobRanges = auction.unclaimedGlyphRanges(BOB);
+        assertEq(bobRanges[0].nextId, 26);
         assertEq(bobRanges[0].remaining, 5);
         vm.prank(BOB);
-        auction.claimSymbols(5, BOB);
-        assertEq(nft.ownerOf(31), BOB);
+        auction.claimGlyphs(5, BOB);
+        assertEq(nft.ownerOf(30), BOB);
     }
 
-    function testGas64SymbolClaimAcrossBids() public {
-        _bid(ALICE, 25); // IDs 2-26
+    function testGas64GlyphClaimAcrossBids() public {
+        _bid(ALICE, 25); // ids 1-25
         _bid(BOB, 27);
-        _bid(ALICE, 29); // IDs 54-82
+        _bid(ALICE, 29); // ids 53-81
         _bid(BOB, 31);
-        _bid(ALICE, 33); // IDs 114-146
+        _bid(ALICE, 33); // ids 113-145
         vm.prank(ALICE);
         uint256 start = gasleft();
-        auction.claimSymbols(64, ALICE);
+        auction.claimGlyphs(64, ALICE);
         uint256 used = start - gasleft();
-        emit log_named_uint("64-symbol claim across 3 bids, execution gas (before refunds)", used);
+        emit log_named_uint("64-glyph claim across 3 bids, execution gas (before refunds)", used);
         assertTrue(used < 10_000_000);
-        assertEq(nft.ownerOf(123), ALICE);
+        assertEq(nft.ownerOf(122), ALICE);
     }
 
     event log_named_uint(string key, uint256 value);
@@ -1138,8 +1164,8 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 29);
         _bid(BOB, 31);
         assertEq(ALICE.balance, aliceBefore);
-        assertEq(auction.symbolCredits(ALICE), 54);
-        assertEq(auction.symbolsAllocated(), 112);
+        assertEq(auction.glyphCredits(ALICE), 54);
+        assertEq(auction.glyphsAllocated(), 112);
         assertEq(address(auction).balance, 31 * UNIT);
         _assertSolvent();
     }
@@ -1158,7 +1184,7 @@ contract KilimAuctionTest is TestBase {
         assertEq(BOB.balance, bobBefore - next);
         assertEq(address(auction).balance, next);
         assertEq(auction.liabilities(), next);
-        assertTrue(auction.symbolsAllocated() <= auction.symbolCap());
+        assertTrue(auction.glyphsAllocated() <= auction.glyphCap());
     }
 
     /// @dev For any standing bid and increment the minimum is a whole number of units, it is accepted,
@@ -1179,7 +1205,7 @@ contract KilimAuctionTest is TestBase {
         _bid(other, BOB, minimum);
         assertEq(other.highestBid(), minimum);
         uint256 wholeUnits = minimum / UNIT;
-        assertEq(other.symbolCredits(BOB), wholeUnits < 1000 ? wholeUnits : 1000);
+        assertEq(other.glyphCredits(BOB), wholeUnits < 1000 ? wholeUnits : 1000);
         assertEq(address(other).balance, other.liabilities());
     }
 }

@@ -3,7 +3,7 @@
 // page would show and asserts it. Everything is native ETH.   pnpm walkthrough
 import assert from 'node:assert/strict';
 import { startAnvil } from './dev/anvil.mjs';
-import { deployLocal, siteConfig, rpcClient, registerWallets, openBidding, A, UNIT } from './dev/deploy.mjs';
+import { deployLocal, siteConfig, rpcClient, registerWallets, openBidding, A, F, UNIT } from './dev/deploy.mjs';
 import { loadSite, CORE } from '../../site/tools/node-load.mjs';
 
 let n = 0;
@@ -13,7 +13,7 @@ function show(chain, extra = {}) {
   const row = {
     phase: a.phase, registered: `${a.registrationCount}/100`, high: a.high ? `${a.high} ETH` : '—', minNext: `${a.minNext} ETH`,
     endsAt: a.endsAt ? new Date(a.endsAt * 1000).toISOString() : '(not started)',
-    reserved: a.symbolsReserved, claimed: a.symbolsClaimed, poolLeft: a.poolLeft, bids: a.bids.length,
+    reserved: a.glyphsReserved, claimed: a.glyphsClaimed, poolLeft: a.poolLeft, bids: a.bids.length,
   };
   if (acct) Object.assign(row, { you: acct.address.slice(0, 8), credits: acct.credits, refund: KILIM_CHAIN.fmtEth(acct.refund), held: chain.holdings().length });
   console.log('   ', JSON.stringify({ ...row, ...extra }));
@@ -36,15 +36,16 @@ async function world(overrides = {}) {
     KILIM_CHAINS: { 31337: cfg }, KILIM_DEFAULT_CHAIN: 31337, KILIM_NO_AUTO: true, KILIM_DEV_NO_AUTO: true,
   });
   // `account`: an anvil account index, or any address (the dev wallet impersonates it).
-  const as = async (account, lockSymbolIds = false) => {
+  const as = async (account, lockGlyphIds = false) => {
     const provider = ctx.KILIM_DEV.createWallet({ rpcUrl: anvil.rpcUrl, account });
-    const chain = ctx.KILIM_CHAIN.create({ chainId: 31337, provider, poll: false, receiptMs: 20, lockSymbolIds });
+    const chain = ctx.KILIM_CHAIN.create({ chainId: 31337, provider, poll: false, receiptMs: 20, lockGlyphIds });
     await chain.ready;
     return chain;
   };
   const warp = async (ts) => { await rpc.call('evm_setNextBlockTimestamp', [Number(ts)]); await rpc.call('evm_mine'); };
   const balance = async (who) => BigInt(await rpc.call('eth_getBalance', [who, 'latest']));
-  return { anvil, rpc, d, cfg, ctx, as, warp, balance };
+  const view = async (to, f, args = []) => (await rpc.view(to, f, args))[0];
+  return { anvil, rpc, d, cfg, ctx, as, warp, balance, view };
 }
 const bid = async (chain, eth, opts) => chain.bid(await chain.quote(eth), opts);
 let KILIM_CHAIN;
@@ -89,12 +90,12 @@ try {
 
   step('Alice bids 0.01 ETH, the reserve: one payable transaction. The 24h clock starts');
   const a1 = await bid(alice, '0.01');
-  assert.equal(a1.reward, 10, 'one symbol per 0.001 ETH');
+  assert.equal(a1.reward, 10, 'one glyph per 0.001 ETH');
   assert.equal(alice.phase(), 'open');
   assert.equal(await W.balance(d.auction), 10n * UNIT);
   show(alice, { reservedIds: `#${a1.firstId}–#${a1.lastId}` });
 
-  step('Bob bids 0.02 ETH: Alice gets her 0.01 ETH back inside his transaction, and keeps her symbols');
+  step('Bob bids 0.02 ETH: Alice gets her 0.01 ETH back inside his transaction, and keeps her glyphs');
   const aliceBefore = await W.balance(d.accounts[1]);
   const b1 = await bid(bob, '0.02');
   assert.equal(b1.reward, 20);
@@ -105,10 +106,10 @@ try {
   assert.equal(await W.balance(d.auction), 20n * UNIT, 'the auction holds only the highest bid');
   show(alice);
 
-  step('Carol (never registered: anyone may bid once 100 have) finds her quote stale twice: SymbolRangeMoved, then BidTooLow');
+  step('Carol (never registered: anyone may bid once 100 have) finds her quote stale twice: GlyphRangeMoved, then BidTooLow');
   let cq = await carol.quote('0.05');
   await bid(alice, '0.03');
-  const moved = await expectName(carol.bid(cq), 'SymbolRangeMoved');
+  const moved = await expectName(carol.bid(cq), 'GlyphRangeMoved');
   console.log('    ', carol.explain(moved).message);
   cq = await carol.quote('0.05');
   await bid(alice, '0.06');
@@ -125,16 +126,16 @@ try {
   console.log('    ', treasury.explain(t).message);
 
   step('A contract that cannot receive ETH bids. When Alice outbids it the refund is deferred, and it withdraws it to another address');
-  // The renderer contract has no receive function: the dev wallet impersonates it as a bidder.
-  await rpc.call('anvil_setBalance', [d.renderer, '0xde0b6b3a7640000']);
-  const vault = await W.as(d.renderer);
+  // The glyph collection has no receive function: the dev wallet impersonates it as a bidder.
+  await rpc.call('anvil_setBalance', [d.glyphs, '0xde0b6b3a7640000']);
+  const vault = await W.as(d.glyphs);
   const v1 = await bid(vault, vault.auction().minNext);
   await alice.refresh();
   await bid(alice, alice.auction().minNext);
   await vault.refresh();
   const owed = vault.account().refund;
   assert.equal(owed, BigInt(Math.round(v1.bid * 1000)) * UNIT, 'the push refund failed, so the whole bid waits');
-  assert.equal(vault.account().credits, v1.reward, 'its symbols stay');
+  assert.equal(vault.account().credits, v1.reward, 'its glyphs stay');
   show(vault);
   const safe = d.accounts[5], safeBefore = await W.balance(safe);
   await vault.withdrawRefund(safe);
@@ -155,12 +156,13 @@ try {
   }
 
   step('Carol tries to claim to a contract that cannot hold NFTs: caught before signing');
-  const bad = await expectName(carol.claim({ to: d.renderer }), 'ERC721InvalidReceiver');
+  // A stored page chunk: code, but no receiver hook.
+  const bad = await expectName(carol.claim({ to: d.chunks.head[0] }), 'ERC721InvalidReceiver');
   console.log('    ', carol.explain(bad).message);
 
-  step('Nothing is sent automatically: each bidder claims their own symbols with claimSymbols, up to 64 per transaction');
+  step('Nothing is sent automatically: each bidder claims their own glyphs with claimGlyphs, up to 64 per transaction');
   await alice.refresh();
-  assert.equal(alice.auction().symbolsClaimed, 0, 'no symbol exists until its bidder claims it');
+  assert.equal(alice.auction().glyphsClaimed, 0, 'no glyph token exists until its bidder claims it');
   let minted = 0;
   for (const who of [alice, bob, carol]) {
     await who.refresh();
@@ -176,24 +178,25 @@ try {
   await vault.refresh();
   minted += (await vault.claimAll({ to: safe })).count;
   await alice.refresh(); await carol.refresh();
-  assert.equal(alice.auction().symbolsReserved, alice.auction().symbolsClaimed);
-  assert.equal(alice.auction().symbolsClaimed, minted);
+  assert.equal(alice.auction().glyphsReserved, alice.auction().glyphsClaimed);
+  assert.equal(alice.auction().glyphsClaimed, minted);
   show(alice);
   show(carol);
 
-  step('Carol weaves 2 × 2, expands it to 2 × 3, then freezes it');
-  const held = carol.holdings();
-  const w = await carol.weave(held.slice(0, 4), 2, 2, { mode: 'flat', materials: { flat: 'indigo' } });
-  const art = carol.grids()[0];
-  const extra = carol.holdings().slice(0, 2).map((x) => x.id);
-  await carol.expand(w.artworkId, [art.cells[1], art.cells[0], extra[0], art.cells[3], art.cells[2], extra[1]], 2, 3,
-                     { mode: 'flat', materials: { flat: 'indigo' } });
-  await carol.freeze(w.artworkId);
-  const g = carol.grids()[0];
-  assert.equal(g.revision, 2); assert.equal(g.frozen, true);
-  // The site names it as tokenURI does: the first artwork is Kilim Artwork #1, whatever its token ID.
-  assert.equal(carol.nameOf(g.id), 'Kilim Artwork #1');
-  console.log('    ', `${carol.nameOf(g.id)} (token ${g.id}) · ${g.cols} × ${g.rows} · revision ${g.revision} · ${g.frozen ? 'frozen' : 'editable'}`);
+  step('Every token shows one of the 1,024 glyphs, fixed from deployment, drawn from the stored grids');
+  assert.equal(await W.view(d.glyphs, F.glyphs.GLYPH_COUNT), 1024n);
+  assert.equal(Number(await W.view(d.glyphs, F.glyphs.glyphsMinted)), minted);
+  for (const id of [a1.firstId, a1.lastId, c1.firstId]) {
+    const glyph = Number(await W.view(d.glyphs, F.glyphs.glyphOf, [BigInt(id)]));
+    const name = await W.view(d.glyphs, F.glyphs.name, [glyph]);
+    const uri = await W.view(d.glyphs, F.glyphs.tokenURI, [BigInt(id)]);
+    assert.ok(glyph >= 1 && glyph <= 1024);
+    assert.ok(uri.startsWith('data:application/json;base64,'));
+    const json = JSON.parse(Buffer.from(uri.slice('data:application/json;base64,'.length), 'base64').toString());
+    assert.equal(json.name, `${name} (glyph ${glyph})`);
+    assert.ok(json.image.startsWith('data:image/svg+xml;base64,'));
+    console.log(`     token #${id} shows glyph ${glyph}, "${name}"`);
+  }
 
   step('The close passes: anyone settles, and settling sends the 1/1 to the winner. The treasury withdraws the winning bid in ETH');
   await alice.refresh();
@@ -205,8 +208,12 @@ try {
   const winner = [alice, carol].find((c) => c.auction().youWin);
   await winner.refresh();
   assert.equal(winner.phase(), 'settled');
-  assert.ok(winner.account().hasMasterpiece, 'the 1/1 is in the winner\'s wallet');
+  assert.ok(winner.account().hasOneOfOne, 'the 1/1 is in the winner\'s wallet');
   assert.equal(winner.auction().prizeClaimed, true);
+  assert.equal((await W.view(d.oneOfOne, F.oneOfOne.ownerOf, [1n])).toLowerCase(), winner.account().address.toLowerCase());
+  const uri = await W.view(d.oneOfOne, F.oneOfOne.tokenURI, [1n]);
+  assert.ok(uri.startsWith('data:application/json;utf8,{"name":"What the weave remembers"'));
+  console.log(`     the 1/1's tokenURI is ${uri.length.toLocaleString('en-US')} bytes, served from the chain`);
   await expectName(winner.claimPrize(), 'PrizeAlreadyClaimed');
   await treasury.refresh();
   const due = treasury.auction().proceedsDue;
@@ -221,8 +228,8 @@ try {
   await W.anvil.stop();
 }
 
-step('A second deployment with a 5-symbol pool: once it is used up, bids still count and pass 0 and 0');
-const S = await world({ symbolCap: 5n, maxSymbolsPerBid: 5n });
+step('A second deployment with a 5-glyph pool: once it is used up, bids still count and pass 0 and 0');
+const S = await world({ glyphCap: 5n, maxGlyphsPerBid: 5n });
 try {
   await openBidding(S.rpc, S.d);
   const alice = await S.as(1), bob = await S.as(2);

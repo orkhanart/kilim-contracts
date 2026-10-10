@@ -3,8 +3,9 @@
 //   pnpm site-config --chain 11155111 --auction 0x… --block 12345678 [--rpc https://…] [--allow-started]
 //   (--config <file> targets another config file with the same shape; the tests use it)
 //
-// Reads the chain's own config (site/chains/<id>.json), verifies the auction on that chain, and
-// writes auction, collection and deployBlock into the config. Then rebuild: python3 site/build.py
+// Reads the chain's own config (site/chains/<id>.json), verifies the auction and its two token
+// contracts on that chain, and writes auction, glyphs, oneOfOne and deployBlock into the config.
+// Then rebuild: python3 site/build.py
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +13,7 @@ import { loadSite } from '../../site/tools/node-load.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const site = resolve(here, '../../site');
-const { KILIM_ABI: A, KILIM_RPC: R } = loadSite();
+const { KILIM_ABI: A, KILIM_RPC: R } = loadSite(['vendor/js-sha3-0.8.0/sha3.min.js', 'abi.js', 'rpc.js']);
 const args = process.argv.slice(2);
 const value = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 function die(msg) { console.error(`site-config: ${msg}`); process.exit(1); }
@@ -29,6 +30,8 @@ const cfg = JSON.parse(readFileSync(path, 'utf8'));
 if (cfg.chainId !== chainId) die(`${path} is for chain ${cfg.chainId}`);
 const rpc = R.http([value('--rpc') ?? cfg.rpcUrls[0]]);
 const hex = (n) => '0x' + n.toString(16);
+// The functions this check reads, by signature: independent of the site's own ABI table.
+const fn = (sig) => A.fn(sig);
 async function call(to, f, args = [], tag = 'latest') {
   return f.decode(await rpc.request({ method: 'eth_call', params: [{ to, data: f.encode(args) }, tag] }))[0];
 }
@@ -40,33 +43,41 @@ const codeAt = (addr, tag) => rpc.request({ method: 'eth_getCode', params: [addr
 if ((await codeAt(a, 'latest')) === '0x') die('no contract at the auction address');
 if ((await codeAt(a, hex(block))) === '0x') die(`no auction code at block ${block}: that is not the deployment block`);
 if ((await codeAt(a, hex(block - 1))) !== '0x') die(`the auction already existed at block ${block - 1}: pass the deployment block`);
-const F = A.F;
-const collection = (await call(a, F.auction.collection)).toLowerCase();
-if ((await codeAt(collection, 'latest')) === '0x') die('auction.collection() has no code');
-const unit = await call(a, F.auction.SYMBOL_PRICE);
-if (unit !== 1_000_000_000_000_000n) die(`SYMBOL_PRICE() is ${unit}, not 0.001 ETH`);
-const endsAt = await call(a, F.auction.endsAt);
+const glyphs = (await call(a, fn('glyphs() returns (address)'))).toLowerCase();
+const oneOfOne = (await call(a, fn('oneOfOne() returns (address)'))).toLowerCase();
+if ((await codeAt(glyphs, 'latest')) === '0x') die('auction.glyphs() has no code');
+if ((await codeAt(oneOfOne, 'latest')) === '0x') die('auction.oneOfOne() has no code');
+const minter = fn('minter() returns (address)');
+if ((await call(glyphs, minter)).toLowerCase() !== a) die('glyphs.minter() is not the auction');
+if ((await call(oneOfOne, minter)).toLowerCase() !== a) die('oneOfOne.minter() is not the auction');
+if ((await call(oneOfOne, fn('glyphs() returns (address)'))).toLowerCase() !== glyphs) die('oneOfOne.glyphs() is not auction.glyphs()');
+const unit = await call(a, fn('GLYPH_PRICE() returns (uint256)'));
+if (unit !== 1_000_000_000_000_000n) die(`GLYPH_PRICE() is ${unit}, not 0.001 ETH`);
+const endsAt = await call(a, fn('endsAt() returns (uint64)'));
 if (endsAt !== 0n && !args.includes('--allow-started')) die('endsAt() is not 0: the auction already has bids (pass --allow-started to accept)');
-const motifs = Number(await call(collection, F.collection.motifCount));
-if (motifs !== 812) die(`collection.motifCount() is ${motifs}; the site draws 812`);
+const count = Number(await call(glyphs, fn('GLYPH_COUNT() returns (uint256)')));
+if (count !== 1024) die(`glyphs.GLYPH_COUNT() is ${count}; the site draws 1,024`);
+if (await call(oneOfOne, fn('minted() returns (bool)'))) die('the 1/1 is already minted');
 
 const facts = {
-  startsAt: new Date(Number(await call(a, F.auction.startsAt)) * 1000).toISOString(),
-  duration: `${Number(await call(a, F.auction.duration))} s`,
-  extensionWindow: `${Number(await call(a, F.auction.extensionWindow))} s`,
-  incrementBps: Number(await call(a, F.auction.incrementBps)),
-  reservePrice: `${Number(await call(a, F.auction.reservePrice)) / 1e18} ETH`,
-  registered: `${Number(await call(a, F.auction.registrationCount))} of 100 wallets`,
-  symbolCap: String(await call(a, F.auction.symbolCap)),
-  maxSymbolsPerBid: String(await call(a, F.auction.maxSymbolsPerBid)),
-  treasury: A.checksum(await call(a, F.auction.treasury)),
-  maxCells: Number(await call(collection, F.collection.maxCells)),
+  startsAt: new Date(Number(await call(a, fn('startsAt() returns (uint64)'))) * 1000).toISOString(),
+  duration: `${Number(await call(a, fn('duration() returns (uint64)')))} s`,
+  extensionWindow: `${Number(await call(a, fn('extensionWindow() returns (uint64)')))} s`,
+  incrementBps: Number(await call(a, fn('incrementBps() returns (uint16)'))),
+  reservePrice: `${Number(await call(a, fn('reservePrice() returns (uint256)'))) / 1e18} ETH`,
+  registered: `${Number(await call(a, fn('registrationCount() returns (uint256)')))} of 100 wallets`,
+  glyphCap: String(await call(a, fn('glyphCap() returns (uint256)'))),
+  maxGlyphsPerBid: String(await call(a, fn('maxGlyphsPerBid() returns (uint256)'))),
+  treasury: A.checksum(await call(a, fn('treasury() returns (address)'))),
+  glyphs: A.checksum(glyphs),
+  oneOfOne: `${A.checksum(oneOfOne)} (${await call(oneOfOne, fn('name() returns (string)'))})`,
 };
 console.table(facts);
 
 cfg.auction = A.checksum(a);
-cfg.collection = A.checksum(collection);
+cfg.glyphs = A.checksum(glyphs);
+cfg.oneOfOne = A.checksum(oneOfOne);
 cfg.deployBlock = block;
 writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
-console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html, auction.html and weave.html.`
+console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html and auction.html.`
   + (chainId === 1 ? '\nFor orkhan.art (the pages go live there too): pnpm site:sync-orkhanart on its local branch kilim/unified-site, then review and commit there.' : ''));

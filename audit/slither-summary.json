@@ -3,10 +3,16 @@
   "error": null,
   "findings": [
     {
+      "check": "missing-zero-check",
+      "impact": "Low",
+      "confidence": "Medium",
+      "description": "KilimGlyphs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimGlyphs.sol#58) lacks a zero-check on :\n\t\t- namesChunk = namesChunk_ (src/KilimGlyphs.sol#85)\n"
+    },
+    {
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#153-180) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#177)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimSymbols(uint256,address)\n"
+      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#151-178) has external calls inside a loop: glyphs.mintGlyphs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#175)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimGlyphs(uint256,address)\n"
     },
     {
       "check": "reentrancy-benign",
@@ -18,7 +24,7 @@
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#205-211):\n\tExternal calls:\n\t- collection.mintMasterpiece(winner) (src/KilimAuction.sol#209)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#210)\n"
+      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#203-209):\n\tExternal calls:\n\t- oneOfOne.mint(winner) (src/KilimAuction.sol#207)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#208)\n"
     },
     {
       "check": "reentrancy-events",
@@ -60,145 +66,73 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.b64(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#166-205) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#169-201)\n"
+      "description": "KilimOneOfOne._chunkSize(address) (src/KilimOneOfOne.sol#386-395) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#389-392)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.w(uint256,bytes32,uint256) (src/render/KilimWriter.sol#92-98) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#93-96)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.copyChunks() (src/KilimOneOfOne.sol#134-143) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#134-143)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.path.asm_0.rv() (src/render/KilimWriter.sol#222-231) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#222-231)\n"
+      "description": "KilimOneOfOne._store(address[],address[],bytes32) (src/KilimOneOfOne.sol#365-383) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#376-380)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Kilim.tokenURI(uint256) (src/Kilim.sol#361-381) uses assembly\n\t- INLINE ASM (src/Kilim.sol#374-380)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#181-242) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#181-242)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#193-196)\n\t- INLINE ASM (src/render/KilimRenderer.sol#202-204)\n\t- INLINE ASM (src/render/KilimRenderer.sol#210-213)\n\t- INLINE ASM (src/render/KilimRenderer.sol#238-240)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.sectionSize() (src/KilimOneOfOne.sol#127-132) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#127-132)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.path.asm_0.num() (src/render/KilimWriter.sol#233-263) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#233-263)\n"
+      "description": "KilimGlyphs._grids() (src/KilimGlyphs.sol#285-297) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#291-295)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimRenderer._artworkBound(uint16[],uint256,uint256,bytes32,uint256) (src/render/KilimRenderer.sol#551-580) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#570-572)\n\t- INLINE ASM (src/render/KilimRenderer.sol#574-576)\n"
+      "description": "KilimGlyphs._chunkSize(address) (src/KilimGlyphs.sol#300-309) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#303-306)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.hex32(uint256,bytes32) (src/render/KilimWriter.sol#138-153) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#139-151)\n"
+      "description": "KilimGlyphs.grid(uint16) (src/KilimGlyphs.sol#144-153) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#149-152)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimRenderer._tables() (src/render/KilimRenderer.sol#805-817) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#810-816)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#147-177) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#147-177)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimRenderer._rec(uint256,uint256) (src/render/KilimRenderer.sol#777-783) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#780-782)\n"
+      "description": "KilimOneOfOne.tokenURI(uint256) (src/KilimOneOfOne.sol#117-327) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#125-326)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.s(uint256,bytes) (src/render/KilimWriter.sol#82-88) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#83-86)\n"
+      "description": "KilimGlyphs.name(uint16) (src/KilimGlyphs.sol#156-174) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#161-167)\n\t- INLINE ASM (src/KilimGlyphs.sol#170-172)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimWriter.path(uint256,uint256,uint256,uint256) (src/render/KilimWriter.sol#217-300) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#220-297)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.i(uint256,int256) (src/render/KilimWriter.sol#127-135) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#129-131)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer.constructor(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#157-179) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#162-164)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.buf(uint256) (src/render/KilimWriter.sol#38-43) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#39-42)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer._read(uint256,uint256,uint256) (src/render/KilimRenderer.sol#750-764) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#756-758)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.tables() (src/render/KilimWriter.sol#305-340) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#308-339)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.u(uint256,uint256) (src/render/KilimWriter.sol#110-124) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#111-122)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.ret(uint256,uint256) (src/render/KilimWriter.sol#69-77) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#70-76)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer._readMem(uint256,uint256) (src/render/KilimRenderer.sol#766-773) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#769-771)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer._htmlDoc(uint256,uint256,uint256) (src/render/KilimRenderer.sol#714-739) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#725-727)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimWriter.str(uint256,uint256) (src/render/KilimWriter.sol#58-63) uses assembly\n\t- INLINE ASM (src/render/KilimWriter.sol#59-62)\n"
-    },
-    {
-      "check": "assembly",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer._artworkDefs(uint256,uint16[],uint256) (src/render/KilimRenderer.sol#583-604) uses assembly\n\t- INLINE ASM (src/render/KilimRenderer.sol#592-594)\n\t- INLINE ASM (src/render/KilimRenderer.sol#596-598)\n"
-    },
-    {
-      "check": "cyclomatic-complexity",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "KilimRenderer._verify(address[],bytes32,bytes32,bytes32) (src/render/KilimRenderer.sol#181-249) has a high cyclomatic complexity (21).\n"
+      "description": "KilimGlyphs._copyChunk(address,bytes) (src/KilimGlyphs.sol#311-315) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#312-314)\n"
     },
     {
       "check": "dead-code",
@@ -216,79 +150,67 @@
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Variable KilimRenderer.PAGE_LEN (src/render/KilimRenderer.sol#138) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().list_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#134) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Variable KilimRenderer.SYMBOLS_AT (src/render/KilimRenderer.sol#140) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.base64Block().x_tokenURI_asm_0_base64Block (src/KilimOneOfOne.sol#181) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().t_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.sectionSize().list_tokenURI_asm_0_sectionSize (src/KilimOneOfOne.sol#127) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Variable KilimRenderer.STILL (src/render/KilimRenderer.sol#143) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().dst_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#134) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Variable KilimRenderer.MAX_REC (src/render/KilimRenderer.sol#141) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.hexHalf().x_tokenURI_asm_0_hexHalf (src/KilimOneOfOne.sol#147) is not in mixedCase\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Variable KilimRenderer.PAGE_OFF (src/render/KilimRenderer.sol#137) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#147-177) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 64 | x_tokenURI_asm_0_hexHalf & 0x0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff (src/KilimOneOfOne.sol#148-151)\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Variable KilimRenderer.TABLES (src/render/KilimRenderer.sol#130) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#181-242) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000ffffff0000000000ffffff0000000000ffffff0000000000ffffff | x_tokenURI_asm_0_base64Block << 8 & 0x00ffffff0000000000ffffff0000000000ffffff0000000000ffffff00000000 (src/KilimOneOfOne.sol#190-193)\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().q_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#181-242) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000000000000000000ffffffffffff00000000000000000000ffffffffffff | x_tokenURI_asm_0_base64Block << 16 & 0x0000ffffffffffff00000000000000000000ffffffffffff0000000000000000 (src/KilimOneOfOne.sol#186-189)\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.rv().q_path_asm_0_rv (src/render/KilimWriter.sol#222) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#181-242) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff | x_tokenURI_asm_0_base64Block << 32 & 0x00000000ffffffffffffffffffffffff00000000000000000000000000000000 (src/KilimOneOfOne.sol#182-185)\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Variable KilimRenderer.GEO_LEN (src/render/KilimRenderer.sol#135) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#147-177) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 32 | x_tokenURI_asm_0_hexHalf & 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff (src/KilimOneOfOne.sol#152-155)\n"
     },
     {
-      "check": "naming-convention",
+      "check": "too-many-digits",
       "impact": "Informational",
-      "confidence": "High",
-      "description": "Variable KilimRenderer.IDX_OFF (src/render/KilimRenderer.sol#136) is not in mixedCase\n"
-    },
-    {
-      "check": "naming-convention",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "Parameter KilimWriter.path.asm_0.num().pp_path_asm_0_num (src/render/KilimWriter.sol#233) is not in mixedCase\n"
-    },
-    {
-      "check": "naming-convention",
-      "impact": "Informational",
-      "confidence": "High",
-      "description": "Variable KilimRenderer.STILL_AT (src/render/KilimRenderer.sol#139) is not in mixedCase\n"
+      "confidence": "Medium",
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#181-242) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff | x_tokenURI_asm_0_base64Block << 4 & 0x0fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff0000 (src/KilimOneOfOne.sol#194-197)\n"
     }
   ]
 }
