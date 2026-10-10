@@ -1,0 +1,39 @@
+eth_call gas caps, chain 11155111, 2026-10-10
+Measured by pnpm probe:rpc (contracts/scripts/probe-rpc.mjs). Needs: the 1/1 ~8M, a motif ~0.30M.
+
+https://ethereum-sepolia-rpc.publicnode.com
+  default cap (no gas field): 49.85M (49845400)
+  asked 8M: got 7.85M
+  asked 30M: got 16.81M
+  burn 8M: ran it all in 50 ms
+  burn 23M: ran it all in 59 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://sepolia.drpc.org
+  default cap (no gas field): 49.85M (49845400)
+  asked 8M: got 7.85M
+  asked 30M: got 29.85M
+  burn 8M: ran it all in 145 ms
+  burn 23M: ran it all in 147 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://sepolia.gateway.tenderly.co
+  default cap (no gas field): 499.85M (499845400)
+  asked 8M: got 7.85M
+  asked 30M: got 29.85M
+  burn 8M: ran it all in 51 ms
+  burn 23M: ran it all in 56 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://1rpc.io/sepolia
+  default cap (no gas field): error: Rate limit exceeded on Nodies public endpoints. For higher limits, create a free account at https://nodies.app and use a private endpoint. Enterprise: sales@nod
+  asked 8M: got 7.85M
+  asked 30M: got 29.85M
+  burn 8M: ran it all in 593 ms
+  burn 23M: ran it all in 192 ms
+  => the 1/1: renders only for callers that ask for 8M+ gas; the default cap is unknown
+  => a motif: renders only for callers that ask for 0.30M+ gas; the default cap is unknown
+

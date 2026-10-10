@@ -2,7 +2,7 @@
 //
 //   pnpm probe:rpc [--chain 1] [--out audit/rpc-gas-caps.txt] [--no-defaults] [https://… …]
 //
-// tokenURI is an eth_call, not a transaction: the 1/1 needs about 3.9M gas with the stand-in page
+// tokenURI is an eth_call, not a transaction: the 1/1 needs 4.63M gas with the artwork of 10 October
 // (measured by pnpm deploy:dry; the policy ceiling is 8M, docs/STORAGE.md) and a motif about 0.3M.
 // A marketplace or wallet whose node caps eth_call below that shows a blank token. Most callers
 // send no gas field, so the node's default cap is what counts.
@@ -41,6 +41,14 @@ export const DEFAULT_URLS = [
   'https://eth-mainnet.public.blastapi.io',
   'https://cloudflare-eth.com',
   'https://rpc.ankr.com/eth',
+];
+
+/** Public Sepolia endpoints, used instead of the list above with --chain 11155111. */
+export const SEPOLIA_URLS = [
+  'https://ethereum-sepolia-rpc.publicnode.com',
+  'https://sepolia.drpc.org',
+  'https://sepolia.gateway.tenderly.co',
+  'https://1rpc.io/sepolia',
 ];
 
 /** The gas a GASLEFT probe was given, from its 32-byte answer. */
@@ -141,7 +149,7 @@ async function main() {
   const urls = args.filter((a, i) => /^https?:\/\//.test(a) && !flags.has(args[i - 1]));
   const chainId = Number(value('--chain') ?? 1);
   const timeoutMs = Number(value('--timeout') ?? 25) * 1000;
-  const list = [...(args.includes('--no-defaults') ? [] : DEFAULT_URLS), ...urls];
+  const list = [...(args.includes('--no-defaults') ? [] : chainId === 11155111 ? SEPOLIA_URLS : DEFAULT_URLS), ...urls];
   if (!list.length) { console.error('probe-rpc: no endpoints'); process.exit(1); }
   const results = await Promise.all(list.map((u) => probe(u, { chainId, timeoutMs })));
   const text = report(results, { date: new Date().toISOString().slice(0, 10), chainId });

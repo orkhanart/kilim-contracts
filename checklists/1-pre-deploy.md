@@ -136,7 +136,7 @@ Use the exact launch config except the times, on Sepolia (11155111) with test ET
 - [ ] Measure real gas on the chain for the actions in the table above.
 - [ ] Check how both collections display on at least one marketplace or indexer for the chain: a motif token's SVG and name, the 1/1's still and page.
 - [ ] Media: fetch a motif and the 1/1 through the target marketplaces, MetaMask/Rainbow, Etherscan and one indexer; record response times. Open the 1/1 in a sandboxed iframe and on a phone; the loader must find `DecompressionStream`.
-- [ ] Probe the `eth_call` gas cap of the RPC providers those marketplaces use (`node scripts/probe-rpc.mjs`); anything below about 4M would blank the 1/1.
+- [ ] Probe the `eth_call` gas cap of the RPC providers those marketplaces use (`node scripts/probe-rpc.mjs`, `--chain 11155111` for Sepolia); anything below about 5M would blank the 1/1 (it reads at 4.63M). Run once on public endpoints on 10 October (`audit/rpc-gas-caps-mainnet.txt`, `-sepolia.txt`): every endpoint that answered allows 50M or more by default, on mainnet (publicnode, dRPC, MEV Blocker, Tenderly, Blast) and on Sepolia, which already runs Glamsterdam (publicnode, dRPC, Tenderly). Still to do: the marketplaces' own providers.
 
 ## Website
 

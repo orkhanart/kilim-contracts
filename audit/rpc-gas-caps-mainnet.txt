@@ -1,0 +1,78 @@
+eth_call gas caps, chain 1, 2026-10-10
+Measured by pnpm probe:rpc (contracts/scripts/probe-rpc.mjs). Needs: the 1/1 ~8M, a motif ~0.30M.
+
+https://ethereum-rpc.publicnode.com
+  default cap (no gas field): 50M (50000000)
+  asked 8M: got 8M
+  asked 30M: got 30M
+  burn 8M: ran it all in 37 ms
+  burn 23M: ran it all in 49 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://eth.llamarpc.com
+  error: HTTP 403: <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/htm
+
+https://eth.drpc.org
+  default cap (no gas field): 50M (50000000)
+  asked 8M: got 8M
+  asked 30M: got 30M
+  burn 8M: ran it all in 66 ms
+  burn 23M: ran it all in 82 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://1rpc.io/eth
+  error: HTTP 502: <!DOCTYPE html> <!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]--> <!--[if IE 7]> <html class
+
+https://rpc.flashbots.net
+  default cap (no gas field): error: rpc method is not whitelisted
+  asked 8M: error: rpc method is not whitelisted
+  asked 30M: error: rpc method is not whitelisted
+  burn 8M: error: rpc method is not whitelisted in 30 ms
+  burn 23M: error: rpc method is not whitelisted in 31 ms
+  => the 1/1: BLANK here (cannot run 8M of gas)
+  => a motif: BLANK here (cannot run 0.30M of gas)
+
+https://rpc.mevblocker.io
+  default cap (no gas field): 600M (600000000)
+  asked 8M: got 8M
+  asked 30M: got 30M
+  burn 8M: ran it all in 122 ms
+  burn 23M: ran it all in 142 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://eth.merkle.io
+  error: Rate limit exceeded
+
+https://mainnet.gateway.tenderly.co
+  default cap (no gas field): 500M (500000000)
+  asked 8M: got 8M
+  asked 30M: got 30M
+  burn 8M: ran it all in 29 ms
+  burn 23M: ran it all in 41 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://eth-mainnet.public.blastapi.io
+  default cap (no gas field): 550M (550000000)
+  asked 8M: got 8M
+  asked 30M: got 30M
+  burn 8M: ran it all in 36 ms
+  burn 23M: ran it all in 47 ms
+  => the 1/1: renders, even for callers that send no gas field
+  => a motif: renders, even for callers that send no gas field
+
+https://cloudflare-eth.com
+  default cap (no gas field): error: Internal error
+  asked 8M: error: Internal error
+  asked 30M: error: Internal error
+  burn 8M: error: Internal error in 26 ms
+  burn 23M: error: Internal error in 26 ms
+  => the 1/1: BLANK here (cannot run 8M of gas)
+  => a motif: BLANK here (cannot run 0.30M of gas)
+
+https://rpc.ankr.com/eth
+  error: Unauthorized: You must authenticate your request with an API key. Create an account on https://www.ankr.com/rpc/ and generate your personal API key for free.
+
