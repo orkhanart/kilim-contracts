@@ -8,7 +8,7 @@ Everything the two token contracts show is stored on the chain in SSTORE2 data c
 | --- | --- | --- | --- |
 | Grid chunks (2) | 32,768 bytes of motif grids, cut at 24,544 bytes | CREATE2, salt 0, through the deterministic deployer `0x4e59b44847b379578588920cA78FbF26c0B4956C` | No: code cannot change |
 | Names chunk (1) | 13,739 bytes today: the offset table and the names | the same | No |
-| Page chunks (35 today: prefix 1, head 1, tail 33) | The 1/1's token JSON and loader page, cut at 24,575 bytes | the same | No |
+| Page chunks (43 today: prefix 8, head 1, tail 34) | The 1/1's token JSON and loader page, cut at 24,575 bytes | the same | No |
 | `KilimMotifs` (Motif Bazaar) | The grid and names chunk addresses and the two hashes, checked in its constructor | the artist's wallet, nonce n | No: no owner, no setter |
 | `KilimOneOfOne` (The Unwoven Kilim) | The page chunk addresses and the three section hashes, checked in its constructor; the motif contract's address | nonce n + 1 | No |
 | `KilimAuction` | The two token contracts' addresses | nonce n + 2 | No |
@@ -31,15 +31,15 @@ A chunk's runtime code is `0x00` followed by the data (the leading `STOP` keeps 
 
 | Section | Contents | Stored as | Today |
 | --- | --- | --- | --- |
-| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/png;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 393 bytes, 1 chunk (a placeholder still) |
-| HEAD | The loader up to and including `const GRIDS='` | raw bytes | 196 bytes, 1 chunk |
-| TAIL | The rest of the loader, from the `;` after the closing quote, holding `base64(gzip(artwork))` | **already base64** | 808,872 bytes, 33 chunks |
+| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/png;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 188,421 bytes, 8 chunks (the still, 141,183 bytes as a file) |
+| HEAD | The loader up to and including `const GRIDS='` | raw bytes | 197 bytes, 1 chunk |
+| TAIL | The rest of the loader, from the `;` after the closing quote, holding `base64(gzip(artwork))` | **already base64** | 816,856 bytes, 34 chunks |
 
-The loader (`onchain/loader.html`, 894 bytes before the blob goes in) is a small page of its own: it decodes the blob, gunzips it with `DecompressionStream('gzip')`, puts `<script>KILIM_GRIDS="…"</script>` right after the artwork's doctype and writes the result over itself with `document.open`, `write`, `close`. In a browser without `DecompressionStream` it shows one line of text instead. The artwork never carries the grids: the contract hands them in when the token is read, so the 1/1 provably draws the motifs the motif tokens show. `onchain/ARTWORK-ONCHAIN.md` says what the artwork file must do with `KILIM_GRIDS`.
+The loader (`onchain/loader.html`, 896 bytes before the blob goes in; its script is one block, so none of its names stay declared in the artwork's scope) is a small page of its own: it decodes the blob, gunzips it with `DecompressionStream('gzip')`, puts `<script>KILIM_GRIDS="…"</script>` right after the artwork's doctype and writes the result over itself with `document.open`, `write`, `close`. In a browser without `DecompressionStream` it shows one line of text instead. The artwork never carries the grids: the contract hands them in when the token is read, so the 1/1 can provably draw the motifs the motif tokens show: that holds only for an artwork that builds its motifs from `KILIM_GRIDS`. The packer records whether the page names it at all (`artwork.readsGrids` in the manifest) and the deploy script refuses a page that does not on mainnet. `onchain/ARTWORK-ONCHAIN.md` says what the artwork file must do with `KILIM_GRIDS`; the artwork of 10 October does not read it yet.
 
-The packer checks the one piece of arithmetic the contract relies on: `(len(HEAD) + 65,536 + 1 + pad) mod 3 == 0`, with `pad` 0 to 2 spaces, so that the base64 of the middle piece ends on a whole group and concatenates with TAIL into one valid encoding (today `pad` is 0). The contract knows nothing of what is inside HEAD and TAIL beyond that rule and the closing quote.
+The packer checks the one piece of arithmetic the contract relies on: `(len(HEAD) + 65,536 + 1 + pad) mod 3 == 0`, with `pad` 0 to 2 spaces, so that the base64 of the middle piece ends on a whole group and concatenates with TAIL into one valid encoding (today `pad` is 2). The contract knows nothing of what is inside HEAD and TAIL beyond that rule and the closing quote.
 
-Today's store is packed from the stand-in artwork `onchain/test/fixtures/lean.html` (2,097,436 bytes, gzip 454,477 bytes, blob 605,972 characters) with the placeholder still `still-placeholder.png`. The final artwork is re-packed by the procedure at the end of this file.
+Today's store is packed from the artwork as it stood on 10 October, `research/motifs/curate/living-language-v3/mint/artwork.html` (2,185,778 bytes, gzip 458,969 bytes, blob 611,960 characters), with its still `mint/still.png` (1024 x 1024, 141,183 bytes). The final artwork is re-packed by the procedure at the end of this file. The packer refuses an artwork that is not valid UTF-8 (the loader would decode it with losses) and an `animation_url` above 2 MiB, the longest URL Chromium opens (904,526 characters today).
 
 ## The hash chain
 
@@ -47,17 +47,18 @@ Every value is computed off-chain from the files, checked by the constructors ag
 
 | Value | Computed by | From | Checked by |
 | --- | --- | --- | --- |
-| `source.sha256` | `pack_motifs.py` | the artist's page (`research/motifs/curate/living-language-v3/index.html`) | recorded in `onchain/build-motifs/manifest.json`; `--check` rebuilds and compares |
+| `source.sha256`, `artwork.sha256`, `still.sha256`, `loaderTemplate.sha256` | the two packers | the artist's page, its release copy, the still and the loader | recorded in the manifests; `--check` rebuilds and compares; the deploy script compares them with the config's `expected` block (required on chain 1) |
 | `gridsHash`, `namesHash` | `pack_motifs.py` | `grids.bin`, `names.bin` (keccak256) | `KilimMotifs`'s constructor, which copies every chunk and hashes it; the deploy script, from the chunk files |
+| `expected` (the five section hashes, the two goldens, the four files above) | `pnpm -s expected`, from the manifests | the packed stores | the deploy script, in both phases, against the manifests; on chain 1 a config without it is refused. This is what ties a deployment to the content that was signed off: without it any self-consistent store would pass |
 | chunk keccak, initcode keccak, CREATE2 address | `pack_motifs.py`, `pack_page.py` | each chunk file | the deploy script: file size and keccak against the manifest, the address against its own prediction, no foreign code at the address; `_requireStored` before the contracts |
 | `prefixHash`, `headHash`, `tailHash` | `pack_page.py` | the three sections (keccak256) | `KilimOneOfOne`'s constructor; the deploy script |
 | the constructor arguments | the deploy script | the manifests and the config | read back from every immutable after each deployment (`_checkContracts`) |
 | motif golden | `pack_motifs.py` | the sha256 of the `tokenURI` of a token showing motif 1, from the JSON and SVG reproduced in Python byte for byte, with the collection description | the dry run mints such a token as the auction and compares (`motif tokenURI differs from golden`) |
 | 1/1 golden | `pack_page.py` | the sha256 of the whole `tokenURI(1)`, from the three sections plus `grids.bin` | the dry run mints the 1/1 as the auction and compares (`1/1 tokenURI differs from golden`) |
 
-Because the 1/1's golden covers the grids hex, it pins the motif store as well as the page: a store packed from other grids fails it. `motifOf(id)` does not depend on the grids (`keccak256(abi.encode(deploymentChainId, address(this), id)) % 1024 + 1`, with the chain id recorded at deployment), so which motif a token shows is fixed by the motif contract's address, that is, by the deployer and the nonce.
+Because the 1/1's golden covers the grids hex, it pins the motif store as well as the page: a store packed from other grids fails it. The collection's external URL is in no hash or golden; the motif packer records it and the script refuses a config that differs. The gzip stream inside TAIL depends on the zlib build that made it, so the published hashes are those of the store as packed: on a machine with another zlib `--check` rebuilds different bytes, then confirms that the stored blob decompresses to the same artwork and that everything else is identical. `motifOf(id)` does not depend on the grids (`keccak256(abi.encode(deploymentChainId, address(this), id)) % 1024 + 1`, with the chain id recorded at deployment), so which motif a token shows is fixed by the motif contract's address, that is, by the deployer and the nonce.
 
-To check a deployed store independently: at the tagged commit run `pnpm -s pack:motifs -- --check --description "<the deployed description>"` and `pnpm -s pack:page -- … --check` with the deployed name, description and URL, then compare the manifests' addresses and hashes with the chain (`gridChunks()`, `namesChunk()`, `gridsHash()`, `namesHash()`, `prefixChunks()`, `headChunks()`, `tailChunks()`, `prefixHash()`, `headHash()`, `tailHash()`), and `sha256(tokenURI(1))` with the page manifest's golden once the token exists.
+To check a deployed store independently: at the tagged commit run `pnpm -s check:stores --config <the deploy config>` (both packers' `--check` with the deployed texts), then compare the manifests' addresses and hashes with the chain (`gridChunks()`, `namesChunk()`, `gridsHash()`, `namesHash()`, `prefixChunks()`, `headChunks()`, `tailChunks()`, `prefixHash()`, `headHash()`, `tailHash()`), and `sha256(tokenURI(1))` with the page manifest's golden once the token exists.
 
 ## The 1/1's tokenURI, and what it costs
 
@@ -74,30 +75,30 @@ The answer is built in one buffer in assembly (`KilimOneOfOne.tokenURI`):
 
 The call ends in that `return`, so nothing re-encodes the answer and **`tokenURI` must never be called internally**. A byte-at-a-time version of the two encoders costs about nine million gas here; the word-at-a-time version well under one. Memory expansion is the other cost, and it grows faster than linearly with the answer.
 
-Measured on 10 October 2026 (`pnpm -s deploy:dry`, the packed stand-in store, forge's `staticcall` without copying the answer):
+Measured on 10 October 2026 (`pnpm -s deploy:dry`, the store packed from that day's artwork, forge's `staticcall` without copying the answer):
 
 | Read (`eth_call`) | Gas | Answer |
 | --- | --- | --- |
-| `KilimOneOfOne.tokenURI(1)` | **3,838,101** | 896,938 bytes |
-| `KilimMotifs.tokenURI(id)` (a token showing motif 1) | 287,311 | 2,053 bytes |
+| `KilimOneOfOne.tokenURI(1)` | **4,625,534** | 1,092,954 bytes |
+| `KilimMotifs.tokenURI(id)` (a token showing motif 1) | 287,312 | 2,053 bytes |
 
 The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` in the script: half of the 16,777,216 per-transaction cap of EIP-7825, which some nodes also apply to `eth_call`). The dry run refuses a store whose 1/1 reads above it. `test/KilimOneOfOne.t.sol` measures a page of launch size (a 70 KB prefix and a 600 KB tail across 25 chunks) at 3,378,414 gas for a 757,791-byte answer and asserts the ceiling. `scripts/probe-rpc.mjs` measures how much gas each RPC endpoint allows an `eth_call`, without deploying anything.
 
 ## Deployment, and what the script refuses
 
-`script/DeployKilim.s.sol` deploys in the published order: `runStore()` puts every missing chunk on the chain through the CREATE2 deployer (idempotent: a chunk already at its address is verified and skipped, and any funded key can do it), then `runContracts()` deploys `KilimMotifs` at the deployer's nonce `n`, `KilimOneOfOne` at `n + 1`, both with the auction's address predicted at `n + 2` as `minter`, then `KilimAuction` at `n + 2`. `run()` does both, for the local dry run and the Sepolia rehearsal; it is refused on mainnet. The steps are in [../checklists/2-deploy.md](../checklists/2-deploy.md). Measured in the dry run on 10 October 2026, every transaction under the 8M policy:
+`script/DeployKilim.s.sol` deploys in the published order: `runStore()` puts every missing chunk on the chain through the CREATE2 deployer (idempotent: a chunk already at its address is verified and skipped). It is sent by forge's `--sender`, any funded wallet: a chunk's address depends on its bytes alone. The config's deployer may send it only while no nonce is published for it, because every chunk would move the nonce the contracts are promised at. Then `runContracts()` deploys `KilimMotifs` at the deployer's nonce `n`, `KilimOneOfOne` at `n + 1`, both with the auction's address predicted at `n + 2` as `minter`, then `KilimAuction` at `n + 2`. `run()` does both for the local dry run; it is refused on mainnet, and the Sepolia rehearsal uses the two phases as mainnet does. `runAuction()` completes a deployment whose third creation was lost: with the two token contracts at n and n + 1 and the deployer at n + 2 it reads both back against the config, repeats every check and sends only the auction, so the published addresses survive. The steps are in [../checklists/2-deploy.md](../checklists/2-deploy.md). Measured in the dry run on 10 October 2026, every transaction under the 8M policy:
 
 | Transaction | Gas |
 | --- | --- |
-| the first grid chunk (24,544 bytes) | 5,645,861; the second, 8,224 bytes, 1,820,600 |
-| the names chunk | 3,223,987 |
-| the prefix and head chunks | 139,229 and 96,515 |
-| each full tail chunk (24,575 bytes) | 5,731,788 to 5,876,690; the 33 tail chunks 191.1M in all |
-| `KilimMotifs` | 3,226,366 |
-| `KilimOneOfOne` | 5,600,491 |
-| `KilimAuction` | 3,150,749 |
-| the whole store, 38 chunks | about 202.0M |
-| everything | about 214.0M |
+| the two grid chunks (24,544 and 8,224 bytes) | 7,544,982 together |
+| the names chunk | 3,266,603 |
+| the 8 prefix chunks (the still) and the head chunk | 44,655,799 and 96,731 |
+| each full chunk (24,575 bytes) | at most 5,992,449; the 34 tail chunks 196.6M in all |
+| `KilimMotifs` | 3,210,743 |
+| `KilimOneOfOne` | 6,750,528 |
+| `KilimAuction` | 3,396,594 |
+| the whole store, 46 chunks | about 252.2M |
+| everything | about 265.5M |
 
 Code deposit is 200 gas per byte today; EIP-8037 (Glamsterdam) raises it to 1,530, so the store should go on the chain before that fork reaches mainnet.
 
@@ -109,22 +110,27 @@ forge simulates the whole script before sending anything, so a refusal means not
 - the grids are not 32,768 bytes, or the names are not one chunk;
 - a section's chunks, concatenated, do not hash to the manifest's section hash;
 - a chunk address already holds code other than `0x00` followed by that chunk's bytes;
-- the collection description, or the 1/1's name, description or external URL in the config differ from the texts the manifests were packed with (the goldens were computed with them);
+- the collection description or external URL, or the 1/1's name, description or external URL in the config differ from the texts the manifests were packed with;
+- the token JSON (PREFIX) holds a `#` or a `%`, which would cut or change the data: URL;
+- the config carries an `expected` block and any of its eleven values is zero or differs from the manifests;
+- the store phase would be sent by the config's deployer while a nonce is published for it and a chunk is missing;
 - a chunk's dry-run deployment needs more than 8M gas or lands at another address;
-- in the contracts phase: the store is not fully deployed yet, the reserve price is not 0.01 ETH, `startsAt` is inside the inspection window or more than a year out, the treasury is the zero address, the deployer's nonce is not the published one, the dry-run auction's address differs from the prediction, any read-back immutable differs, either tokenURI differs from its golden, or a deployment or a tokenURI read needs more than 8M gas;
-- on chain 1: the deployer is not orkhanart.eth, the 1/1's name is not "The Unwoven Kilim", any auction setting differs from the decided launch value, the nonce check is skipped, or `minLeadSeconds` is zero.
+- in the contracts phase: the store is not fully deployed yet, the reserve price is not 0.01 ETH, `startsAt` is inside the inspection window or more than a year out, the treasury is the zero address, the deployer's nonce is not the published one, a transaction from the deployer is pending (its pending nonce differs from the latest), the dry-run auction's address differs from the prediction, any read-back immutable differs, either tokenURI differs from its golden, or a deployment or a tokenURI read needs more than 8M gas;
+- on chain 1: the deployer is not orkhanart.eth, the 1/1's name is not "The Unwoven Kilim", any auction setting differs from the decided launch value, the nonce check is skipped, `minLeadSeconds` is zero, the config has no `expected` block, or the page manifest does not say the artwork reads `KILIM_GRIDS`;
+- in `runAuction()`: the deployer is not at the published nonce plus two, a token contract is missing at n or n + 1, the auction already exists, or either token reads back differently from what this config deploys.
 
-`test/DeployKilim.t.sol` runs both phases against the local chain and triggers each refusal, then switches the chain ID to 1 for the pinned values and to Sepolia's to show they are not pinned there, and checks that both templates carry the pinned values.
+`test/DeployKilim.t.sol` runs both phases against the local chain and triggers each refusal, then switches the chain ID to 1 for the pinned values and to Sepolia's to show they are not pinned there, and checks that both templates carry the pinned values and an `expected` block of zeros. Its chain-1 deployments use the small fixture page stores in `onchain/test/fixtures/`, one of which reads `KILIM_GRIDS` and one of which does not; the one call that needs a live node, the pending nonce, is replaced in the test harness.
 
 ## Re-packing when the artwork changes
 
 Nothing can change after deployment: the hashes are immutable, and a different motif set would change every chunk address and the 1/1's golden. Before deployment, re-pack whenever the artist's page, the still image, the loader or any token text changes:
 
-1. **Motifs.** `pnpm -s pack:motifs -- --description "<collection description>"` reads the `<script>const DATA=…</script>` block of `research/motifs/curate/living-language-v3/index.html` and writes `onchain/build-motifs/` (`grids.bin`, `names.bin`, `chunks/`, `manifest.json`). It refuses a page without exactly 1,024 motifs numbered 1..1,024, a name that is not printable ASCII, or rows that are not 16 strings of 16 `0`/`1`. Then `python3 site/tools/pack_motifs.py` rewrites `site/motifs.js` through the same packer, so the site draws the bytes the chain stores.
-2. **Page.** `pnpm -s pack:page -- <artwork.html> <still.png> ../onchain/build-page --grids ../onchain/build-motifs/grids.bin --name "The Unwoven Kilim" --description "<text>" [--external-url <url>]`. The artwork must start with a doctype and read `KILIM_GRIDS`; the still must be a PNG. The outputs are `prefix.bin`, `head.bin`, `tail.bin`, `chunks/`, `animation.html` (the decoded page, to open locally) and `manifest.json`.
-3. **Config.** Put the same description, name and external URL into `deploy/*.json`; the script refuses a config whose texts differ from the manifests'.
-4. **Check.** `pnpm -s test:pack` (the packers' invariants on synthetic pages), `pnpm -s test:page` (the exact `animation_url` the contract would return, opened in headless Chrome: the artwork must start), `pnpm -s test:contracts`, then `pnpm -s deploy:dry`, which deploys the new store in forge's memory, compares both tokenURIs with the new goldens and prints the gas of every transaction and of both reads. Both packers take `--check` with the same arguments to confirm that an existing out directory is what the inputs produce.
-5. **Publish** the chunk addresses and the five hashes from the manifests before deploy day ([../checklists/1-pre-deploy.md](../checklists/1-pre-deploy.md)).
+0. **Both at once.** `pnpm -s stores [--config deploy/<file>.json]` runs steps 1 and 2 with the texts of the config (default `deploy/local.json`), from the artist's page, its release copy `mint/artwork.html` (refused unless it is the page, byte for byte) and `mint/still.png`, and rewrites the fixture stores the deploy tests read. The two steps below are what it runs.
+1. **Motifs.** `python3 ../onchain/pack_motifs.py <page> ../onchain/build-motifs --description "<collection description>" --external-url "<collection link>"` reads the `<script>const DATA=…</script>` block of `research/motifs/curate/living-language-v3/index.html` and writes `onchain/build-motifs/` (`grids.bin`, `names.bin`, `chunks/`, `manifest.json`). It refuses a page without exactly 1,024 motifs numbered 1..1,024, a name that is not printable ASCII, or rows that are not 16 strings of 16 `0`/`1`; it reports, and records in the manifest, motifs that are drawn identically (three pairs today: 147/590, 246/483, 482/613). Then `python3 site/tools/pack_motifs.py` rewrites `site/motifs.js` through the same packer, so the site draws the bytes the chain stores.
+2. **Page.** `pnpm -s pack:page <artwork.html> <still.png> ../onchain/build-page --grids ../onchain/build-motifs/grids.bin --name "The Unwoven Kilim" --description "<text>" [--external-url <url>]`. The artwork must start with a doctype and read `KILIM_GRIDS`; the still must be a PNG. The outputs are `prefix.bin`, `head.bin`, `tail.bin`, `chunks/`, `animation.html` (the decoded page, to open locally) and `manifest.json`.
+3. **Config.** Put the same descriptions, name and external URLs into `deploy/*.json`, and the output of `pnpm -s expected` as its `expected` block; the script refuses a config whose texts or hashes differ from the manifests'.
+4. **Check.** `pnpm -s test:pack` (the packers' invariants on synthetic pages), `pnpm -s test:page` (the exact `animation_url` the contract would return, opened in headless Chrome: the artwork must start), `pnpm -s test:contracts`, then `pnpm -s deploy:dry`, which first checks that both stores are what the inputs give (`check:stores`: a stale store is refused), then deploys the new store in forge's memory, compares both tokenURIs with the new goldens and prints the gas of every transaction and of both reads. Both packers take `--check` with the same arguments to confirm that an existing out directory is what the inputs produce.
+5. **Publish** the chunk addresses and the `expected` block before deploy day ([../checklists/1-pre-deploy.md](../checklists/1-pre-deploy.md)).
 
 Only the artist's drawings may go on the chain; the motif packer never writes into `research/`.
 

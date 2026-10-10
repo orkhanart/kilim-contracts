@@ -221,6 +221,20 @@ contract KilimAuction is EnglishAuction {
         emit PrizeClaimed(winner, to);
     }
 
+    /// @notice Only needed if settlement could not send it: anyone may send the 1/1 to the winner again,
+    ///         with as much gas as the caller gives. It goes to the winner's own address and nowhere else.
+    /// @dev Settlement gives the delivery a fixed PRIZE_GAS. A winning contract whose receiver needs
+    ///      more, and that cannot call `claimPrize` itself, would otherwise never get the 1/1. If the
+    ///      winner's wallet refuses the token the call reverts and nothing changes.
+    function deliverPrizeToWinner() external nonReentrant {
+        if (!settled) revert NotSettled();
+        if (prizeClaimed) revert PrizeAlreadyClaimed();
+        address winner = highestBidder;
+        prizeClaimed = true;
+        oneOfOne.mint(winner);
+        emit PrizeClaimed(winner, winner);
+    }
+
     function _validateRecipient(address to) internal view override {
         super._validateRecipient(to);
         if (to == address(motifs) || to == address(oneOfOne)) revert InvalidRecipient();

@@ -82,9 +82,11 @@ contract KilimOneOfOne is ERC721 {
     }
 
     /// @notice The auction mints the 1/1 to the winner, once.
-    /// @dev Deliberately NOT nonReentrant: only the auction calls it, it is one-shot, and the auction
-    ///      holds its own guard. A guard here could be entered from a receiver callback and make the
-    ///      prize delivery fail with settlement already recorded (audit finding R-06).
+    /// @dev Deliberately NOT nonReentrant: only the auction calls it, it is one-shot (`minted` is set
+    ///      before the token moves), and the auction holds its own guard. Audit finding R-06 was made on
+    ///      the earlier single collection, whose shared guard let a holder settle from inside a token
+    ///      callback and so made the prize delivery fail with settlement already recorded. This contract
+    ///      has no other guarded function to be inside of; leaving the guard out keeps it that way.
     function mint(address to) external {
         if (msg.sender != minter) revert Unauthorized();
         if (to == address(0) || to == address(this) || to == minter) revert InvalidRecipient();

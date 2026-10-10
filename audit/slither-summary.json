@@ -6,7 +6,7 @@
       "check": "missing-zero-check",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimMotifs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimMotifs.sol#59) lacks a zero-check on :\n\t\t- namesChunk = namesChunk_ (src/KilimMotifs.sol#86)\n"
+      "description": "KilimMotifs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimMotifs.sol#62) lacks a zero-check on :\n\t\t- namesChunk = namesChunk_ (src/KilimMotifs.sol#92)\n"
     },
     {
       "check": "calls-loop",
@@ -66,73 +66,73 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne.tokenURI(uint256) (src/KilimOneOfOne.sol#118-328) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#126-327)\n"
+      "description": "KilimOneOfOne._store(address[],address[],bytes32) (src/KilimOneOfOne.sol#368-386) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#379-383)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimMotifs._chunkSize(address) (src/KilimMotifs.sol#301-310) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#304-307)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#150-180)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#182-243) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#182-243)\n"
+      "description": "KilimMotifs._chunkSize(address) (src/KilimMotifs.sol#309-318) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#312-315)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne._store(address[],address[],bytes32) (src/KilimOneOfOne.sol#366-384) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#377-381)\n"
+      "description": "KilimMotifs.grid(uint16) (src/KilimMotifs.sol#152-161) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#157-160)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimMotifs.name(uint16) (src/KilimMotifs.sol#157-175) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#162-168)\n\t- INLINE ASM (src/KilimMotifs.sol#171-173)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#184-245)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne.tokenURI.asm_0.copyChunks() (src/KilimOneOfOne.sol#135-144) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#135-144)\n"
+      "description": "KilimMotifs._grids() (src/KilimMotifs.sol#294-306) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#300-304)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne._chunkSize(address) (src/KilimOneOfOne.sol#387-396) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#390-393)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.sectionSize() (src/KilimOneOfOne.sol#130-135) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#130-135)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimMotifs._grids() (src/KilimMotifs.sol#286-298) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#292-296)\n"
+      "description": "KilimMotifs._copyChunk(address,bytes) (src/KilimMotifs.sol#320-324) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#321-323)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimMotifs.grid(uint16) (src/KilimMotifs.sol#145-154) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#150-153)\n"
+      "description": "KilimOneOfOne.tokenURI(uint256) (src/KilimOneOfOne.sol#120-330) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#128-329)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimMotifs._copyChunk(address,bytes) (src/KilimMotifs.sol#312-316) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#313-315)\n"
+      "description": "KilimMotifs.motifName(uint16) (src/KilimMotifs.sol#165-183) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#170-176)\n\t- INLINE ASM (src/KilimMotifs.sol#179-181)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#148-178) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#148-178)\n"
+      "description": "KilimOneOfOne._chunkSize(address) (src/KilimOneOfOne.sol#389-398) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#392-395)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimOneOfOne.tokenURI.asm_0.sectionSize() (src/KilimOneOfOne.sol#128-133) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#128-133)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.copyChunks() (src/KilimOneOfOne.sol#137-146) uses assembly\n\t- INLINE ASM (src/KilimOneOfOne.sol#137-146)\n"
     },
     {
       "check": "dead-code",
@@ -150,67 +150,67 @@
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().list_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#135) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().list_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#137) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.base64Block().x_tokenURI_asm_0_base64Block (src/KilimOneOfOne.sol#182) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.base64Block().x_tokenURI_asm_0_base64Block (src/KilimOneOfOne.sol#184) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.sectionSize().list_tokenURI_asm_0_sectionSize (src/KilimOneOfOne.sol#128) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.sectionSize().list_tokenURI_asm_0_sectionSize (src/KilimOneOfOne.sol#130) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().dst_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#135) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.copyChunks().dst_tokenURI_asm_0_copyChunks (src/KilimOneOfOne.sol#137) is not in mixedCase\n"
     },
     {
       "check": "naming-convention",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.hexHalf().x_tokenURI_asm_0_hexHalf (src/KilimOneOfOne.sol#148) is not in mixedCase\n"
+      "description": "Parameter KilimOneOfOne.tokenURI.asm_0.hexHalf().x_tokenURI_asm_0_hexHalf (src/KilimOneOfOne.sol#150) is not in mixedCase\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#182-243) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff | x_tokenURI_asm_0_base64Block << 4 & 0x0fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff0000 (src/KilimOneOfOne.sol#195-198)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 64 | x_tokenURI_asm_0_hexHalf & 0x0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff (src/KilimOneOfOne.sol#151-154)\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#182-243) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff | x_tokenURI_asm_0_base64Block << 32 & 0x00000000ffffffffffffffffffffffff00000000000000000000000000000000 (src/KilimOneOfOne.sol#183-186)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff | x_tokenURI_asm_0_base64Block << 4 & 0x0fff00000fff00000fff00000fff00000fff00000fff00000fff00000fff0000 (src/KilimOneOfOne.sol#197-200)\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#182-243) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000000000000000000ffffffffffff00000000000000000000ffffffffffff | x_tokenURI_asm_0_base64Block << 16 & 0x0000ffffffffffff00000000000000000000ffffffffffff0000000000000000 (src/KilimOneOfOne.sol#187-190)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x00000000000000000000ffffffffffff00000000000000000000ffffffffffff | x_tokenURI_asm_0_base64Block << 16 & 0x0000ffffffffffff00000000000000000000ffffffffffff0000000000000000 (src/KilimOneOfOne.sol#189-192)\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#148-178) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 64 | x_tokenURI_asm_0_hexHalf & 0x0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff (src/KilimOneOfOne.sol#149-152)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 32 | x_tokenURI_asm_0_hexHalf & 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff (src/KilimOneOfOne.sol#155-158)\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#148-178) uses literals with too many digits:\n\t- x_tokenURI_asm_0_hexHalf = x_tokenURI_asm_0_hexHalf << 32 | x_tokenURI_asm_0_hexHalf & 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff (src/KilimOneOfOne.sol#153-156)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff | x_tokenURI_asm_0_base64Block << 32 & 0x00000000ffffffffffffffffffffffff00000000000000000000000000000000 (src/KilimOneOfOne.sol#185-188)\n"
     },
     {
       "check": "too-many-digits",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#182-243) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000ffffff0000000000ffffff0000000000ffffff0000000000ffffff | x_tokenURI_asm_0_base64Block << 8 & 0x00ffffff0000000000ffffff0000000000ffffff0000000000ffffff00000000 (src/KilimOneOfOne.sol#191-194)\n"
+      "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:\n\t- x_tokenURI_asm_0_base64Block = x_tokenURI_asm_0_base64Block & 0x0000000000ffffff0000000000ffffff0000000000ffffff0000000000ffffff | x_tokenURI_asm_0_base64Block << 8 & 0x00ffffff0000000000ffffff0000000000ffffff0000000000ffffff00000000 (src/KilimOneOfOne.sol#193-196)\n"
     }
   ]
 }

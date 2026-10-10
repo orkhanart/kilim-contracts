@@ -23,11 +23,11 @@ The contracts have **no admin, pause, upgrade or metadata setter**, and a deploy
 | Maximum motif tokens ever | `motifCap`, a constructor argument of `KilimMotifs`; the auction reads it from there | 1,000,000 | 1 to 2^32 − 1. Token ids are 1..motifCap. |
 | Maximum per bid | `maxMotifsPerBid` | No smaller cap (= `motifCap`) | 1..motifCap. A bid of N motifs takes ceil(N / 64) claim transactions. |
 | The motifs | `MOTIF_COUNT` = 1,024; the grids and names in chunks | **1,024**, from the artist's page (`research/motifs/curate/living-language-v3/index.html`). No additions or edits after deploy. | Packed by `onchain/pack_motifs.py`; the packer and the script refuse any other count. **Open:** the artist's final file. |
-| Content hashes | `gridsHash`, `namesHash` (motifs); `prefixHash`, `headHash`, `tailHash` (the 1/1) | **Open**: final once the artwork file and the still are; today's values are for the stand-in page | Recipe in [docs/STORAGE.md](../docs/STORAGE.md). Each constructor re-reads its chunks and refuses a mismatch. |
+| Content hashes | `gridsHash`, `namesHash` (motifs); `prefixHash`, `headHash`, `tailHash` (the 1/1); in the config's `expected` block with the two goldens and the four source files' sha256 (`pnpm -s expected`) | **Open**: final once the artwork file is; today's values are for the page of 10 October, which does not read `KILIM_GRIDS` yet | Recipe in [docs/STORAGE.md](../docs/STORAGE.md). Each constructor re-reads its chunks and refuses a mismatch. |
 | Names | The code (`KilimMotifs`) and the config (`oneOfOne.name`) | **Motif Bazaar** / `MOTIF`; **The Unwoven Kilim** / `UNWOVEN` (the artist, 10 October). `KILIM` is reserved for Kilim Bazaar. | The script refuses any other 1/1 name on chain 1, and on every chain a name that differs from the packed page. |
 | Images | — | **Fully on-chain**: a contract-drawn SVG per motif (built) | 20 × 20 units, white paper, the motif at (2, 2) in `#141414`. |
 | 1/1 media | — | The page served from the chain (built): a PNG still as `image`, the loader with the gzipped artwork as `animation_url` | The grids come live from the motif contract when the token is read. |
-| On-chain data | — | Grids 32,768 B (2 chunks) + names 13,739 B (1) + page prefix 393 B, head 196 B, tail 808,872 B (1 + 1 + 33 chunks), with the stand-in page | 38 chunks, about 202.0M gas, deployed by CREATE2 **before** the contracts. Changes with the final page. |
+| On-chain data | — | Grids 32,768 B (2 chunks) + names 13,739 B (1) + page prefix 188,421 B (the still), head 197 B, tail 816,856 B (8 + 1 + 34 chunks), with the artwork of 10 October | 46 chunks, about 252.2M gas, deployed by CREATE2 **before** the contracts. Changes with the final page. |
 | Royalties | `ROYALTY_BPS` | 5% to the treasury (ERC-2981) on both contracts (built) | Fixed. Marketplaces may ignore royalty settings. |
 
 What these settings mean, accepted by the artist on October 9, 2026:
@@ -42,19 +42,19 @@ What these settings mean, accepted by the artist on October 9, 2026:
   - Back up the recovery phrase offline, in two places. If this key is lost, the proceeds are unrecoverable, and the address can never be changed.
   - Decide where the key lives (a hardware wallet or an app): the three contract deployments are signed with it, through `forge script --ledger` or an equivalent that never exports the key. The deployer must be a plain account: a Safe or another contract wallet cannot be the deployer with this script.
   - Decide in advance where proceeds will go (`withdrawProceeds(to)`): an address that can receive ETH, and not an exchange deposit address that only credits plain transfers.
-- [ ] Check live Ethereum gas shortly before the date and tell bidders what to expect. Gas per action, measured locally on 10 October 2026 (forge, the packed stand-in store) and to be re-measured on Sepolia:
+- [ ] Check live Ethereum gas shortly before the date and tell bidders what to expect. Gas per action, measured locally on 10 October 2026 (forge, the store packed from the artwork of that day) and to be re-measured on Sepolia:
 
   | Action | Gas |
   | --- | --- |
   | Register | about 80,000 (sponsored registration of a plain account, measured October 8) |
   | Place the first bid (nobody to refund) | under 250,000 |
-  | Place a bid that outbids someone | **succeeds from 523,590**; below that it reverts with `InsufficientGas` (it must reach the refund with 452,380 left: the 150,000 allowance, 1/64 for EIP-150 and the 300,000 kept back for a deferred refund). The site sends a fixed 1,500,000; unused gas is not charged |
+  | Place a bid that outbids someone | **succeeds from about 524,000 on the call, about 545,000 as a transaction**; below that it reverts with `InsufficientGas` (it must reach the refund with 452,380 left: the 150,000 allowance, 1/64 for EIP-150 and the 300,000 kept back for a deferred refund). The site sends a fixed 1,500,000; unused gas is not charged |
   | Claim 64 motifs | 1,790,852 across three bids (execution, before refunds); about 28,000 per motif |
-  | Settle | **succeeds from 585,900** (557,936 must be left at the prize step); the site sends 1,200,000 |
+  | Settle | **succeeds from 585,836 on the call, about 607,000 as a transaction** (557,936 must be left at the prize step); the site sends 1,200,000 |
   | Burn a motif (its owner) | not measured; one ERC-721 burn and a bitmap write |
-  | Deploy the store (once, 38 chunks) | about 202.0M in all, the largest chunk 5,876,690 |
-  | Deploy the three contracts (once) | 3,226,366 + 5,600,491 + 3,150,749 |
-  | Read `tokenURI` (an `eth_call`, not a transaction) | a motif 287,311; the 1/1 3,838,101 |
+  | Deploy the store (once, 46 chunks) | about 252.2M in all (the page 196.6M, the still 44.7M, the motifs 10.8M), the largest chunk 5,992,449 |
+  | Deploy the three contracts (once) | 3,210,743 + 6,750,528 + 3,396,594 |
+  | Read `tokenURI` (an `eth_call`, not a transaction) | a motif 287,312; the 1/1 4,625,534 for 1,092,954 bytes |
 
   At busy gas a single motif costs more to claim than the 0.001 ETH it stands for. Claims never expire, so bidders can wait for cheap gas; the site must say so.
 
@@ -65,11 +65,11 @@ What these settings mean, accepted by the artist on October 9, 2026:
 - [x] Motif token: `image` a contract-drawn SVG; `name` "<Name> (motif <n>)"; `attributes` Motif (1..1024) and Name; the collection `description`.
 - [x] The 1/1: the still as `image`, the page as `animation_url`, assembled on-chain in one buffer; `contractURI()` and fixed 5% ERC-2981 royalties on both contracts; no owner role (F-13 closed).
 - [x] A hash recipe and a re-pack procedure: [docs/STORAGE.md](../docs/STORAGE.md). Every chunk's CREATE2 address is known before deploy; the deploy dry run checks both tokenURIs against the packers' goldens.
-- [x] The chunks are deployed before the contracts (`runStore`), by any funded key, idempotently.
-- [x] Sizes checked against `audit/build-manifest.json` (creation / runtime bytes; limits 49,152 / 24,576): `KilimMotifs` 13,343 / 10,808, `KilimOneOfOne` 12,062 / 9,921, `KilimAuction` 13,635 / 10,885. Check again at the freeze.
-- [ ] **The final artwork file** (the artist; `onchain/ARTWORK-ONCHAIN.md` says what it must do: read `KILIM_GRIDS`, start with a doctype, be as small as the work allows) and **the still image** (which frame). Today's store holds the stand-in `onchain/test/fixtures/lean.html` and a placeholder PNG. Then re-pack (STORAGE.md), update the config texts, rerun `pnpm -s test:pack`, `test:page`, `test:contracts` and `deploy:dry`, and republish the hashes and chunk addresses.
-- [ ] Artist review of the tokens before the freeze: the motif token's look (paper, ink, offset), the names as the page gives them (29 distinct names, not unique), the collection and 1/1 descriptions and external URLs (packed into the goldens, fixed at deployment), the still.
-- [ ] Confirm with the target marketplace that it accepts these contracts and how the two collection pages are claimed. Get written confirmation that it renders a `data:text/html` `animation_url` of about 600 KB and a `tokenURI` of about 900 KB served as `data:application/json;utf8,` (not base64), and that the 1/1 loads in its frame (the loader needs `DecompressionStream`).
+- [x] The chunks are deployed before the contracts (`runStore`), idempotently, by any funded wallet except the deployer once its nonce is published.
+- [x] Sizes checked against `audit/build-manifest.json` (creation / runtime bytes; limits 49,152 / 24,576): `KilimMotifs` 13,517 / 10,891, `KilimOneOfOne` 12,131 / 9,981, `KilimAuction` 13,973 / 11,216. Check again at the freeze.
+- [ ] **The final artwork file** (the artist; `onchain/ARTWORK-ONCHAIN.md` says what it must do: read `KILIM_GRIDS`, start with a doctype, be as small as the work allows). The still is decided: the opening frame, `mint/still.png`. Today's store is packed from the artwork of 10 October, which **does not read `KILIM_GRIDS`**: the mainnet deploy refuses it until it does. The artist also decides on the three pairs of identically drawn motifs (147/590, 246/483, 482/613). Then re-pack (`pnpm -s stores`), update the config texts and the `expected` block, rerun `pnpm -s test:pack`, `test:page`, `test:contracts` and `deploy:dry`, and republish the hashes and chunk addresses.
+- [ ] Artist review of the tokens before the freeze: the motif token's look (paper, ink, offset), the names as the page gives them (29 distinct names, not unique), the collection and 1/1 descriptions and the 1/1's external URL (packed into the goldens), the collection's external URL (in no golden: recorded by the packer and compared by the deploy script), all fixed at deployment, and the still.
+- [ ] Confirm with the target marketplace that it accepts these contracts and how the two collection pages are claimed. Get written confirmation that it renders a `data:text/html` `animation_url` of about 900 KB and a `tokenURI` of about 1.1 MB served as `data:application/json;utf8,` (not base64), and that the 1/1 loads in its frame (the loader needs `DecompressionStream`).
 
 ## Code freeze and verification
 
@@ -87,10 +87,10 @@ What these settings mean, accepted by the artist on October 9, 2026:
 - [x] The missing tests are in `test/AuditGaps.t.sol` (October 10): the gas a hostile refund receiver or winner can cost (F-05), the registration signature domain rebuilt independently (F-18), and eleven more. Twenty-five mutants of those checks all fail the suite.
 - [x] Internal review round and mutation testing on the ETH-only auction (October 10, `audit/eth-only-reaudit-2026-10-10.md`), then tested against the October 2026 attack research (`test/AttackPatterns.t.sol`).
 - [x] The split of 10 October: `KilimMotifs`, `KilimOneOfOne`, the auction minting into both, the packers and the deploy script; the whole auction suite re-targeted and its measured numbers re-measured ([AUDIT.md](../AUDIT.md), "10 October 2026"). 188 forge tests at the rewrite commit, 78 site tests, Slither without medium or high, `pnpm -s deploy:dry` green.
-- [ ] **Adversarial review round of the split** (pending; [AUDIT.md](../AUDIT.md), "Review round"). `KilimMotifs`, `KilimOneOfOne`, the packers and the loader have not been read by any reviewer. Repeat after any further contract change.
+- [x] **Adversarial review round of the split** (10 October; [AUDIT.md](../AUDIT.md), "Review round"): six lenses, 72 findings and checks, the contract, packer and deploy-script ones fixed with tests, the site ones handed to the web session. It was run by Claude instances and several of its verifications were cut short; it does not replace the independent audit. Repeat after any further contract change.
 - [ ] Tag the frozen version once the artwork and settings are final.
 - [ ] Rerun on the frozen commit: `pnpm -s verify:upstream`, `build`, `test:ci`, `fmt`, `audit:static`, `artifacts`, `test:pack`, `test:page`, `deploy:dry`. Confirm `audit/build-manifest.json` matches the tag.
-- [x] Each heavy transaction fits the **per-transaction gas cap**, 16,777,216 (EIP-7825), with margin, and every deployment transaction the 8M policy: the largest chunk 5,876,690, the 1/1 contract 5,600,491, a 64-motif claim 1,790,852 (re-measure on Sepolia, into a contract wallet with a receiver hook). `tokenURI` is an `eth_call`: the 1/1 3,838,101, a motif 287,311, both under the line some nodes apply to reads (decided 10 October: every token stays readable under 16,777,216; the script refuses a 1/1 above 8M).
+- [x] Each heavy transaction fits the **per-transaction gas cap**, 16,777,216 (EIP-7825), with margin, and every deployment transaction the 8M policy: the largest chunk 5,992,449, the 1/1 contract 6,750,528, a 64-motif claim 1,790,852 (re-measure on Sepolia, into a contract wallet with a receiver hook). `tokenURI` is an `eth_call`: the 1/1 4,625,534, a motif 287,312, both under the line some nodes apply to reads (decided 10 October: every token stays readable under 16,777,216; the script refuses a 1/1 above 8M).
 - [ ] **Independent human audit** of the frozen commit. Fix the findings, then repeat this section. This is a launch blocker (K-08).
 - [ ] On freeze day, recheck the Solidity 0.8.37 bug list and OpenZeppelin 5.6.1 advisories.
 
@@ -147,12 +147,12 @@ The pages inline their scripts, so after editing rebuild with `python3 site/buil
   - `minimumBid()` gives the next valid amount, in wei.
   - `rewardForBid(amount)` gives the motif count, which is capped and can be 0. Pass it as `minimumReward`.
   - If the page does not show which motif ids a bid reserves, pass `expectedFirstMotifId = 0`. If it does, pass `1 + motifsAllocated()` while `rewardForBid(amount) > 0`, and re-quote on `MotifRangeMoved`.
-- [ ] **Bid transaction.** One payable call from the bidder's own account with `value` equal to the amount, and a fixed gas limit of 1,500,000 (R-08; an outbidding bid needs at least 523,590) rather than a bare estimate. Check the wallet's ETH balance against the full new bid plus gas: a re-bid is not netted against the bidder's own earlier bid.
+- [ ] **Bid transaction.** One payable call from the bidder's own account with `value` equal to the amount, and a fixed gas limit of 1,500,000 (R-08; an outbidding bid needs about 545,000 as a transaction) rather than a bare estimate. Check the wallet's ETH balance against the full new bid plus gas: a re-bid is not netted against the bidder's own earlier bid.
 - [ ] **Clock.** Read `startsAt`, `duration` and `endsAt` from the chain, and compare them with the latest block time.
   - Before 100 registrations: show the count, no countdown.
   - After 100 and before the first bid, `endsAt` is 0: show "Bidding open — the 24-hour clock starts with the first bid".
   - Start the countdown from `AuctionStarted`, and update `endsAt` from each `BidPlaced`. There is no latest possible close.
-  - After `endsAt`, show "Ended, awaiting settlement" with a `settle()` button that sends a fixed 1,200,000 gas (at least 585,900 is needed).
+  - After `endsAt`, show "Ended, awaiting settlement" with a `settle()` button that sends a fixed 1,200,000 gas (a transaction needs about 607,000).
 - [ ] **Claims.** Motifs are claimed by the bidder: loop `claimMotifs(min(64, credits), to)` until `motifCredits` reaches 0. Show the number of transactions and the estimated gas before a large bid.
   - Take minted ids from the collection's `MotifsMinted` event, one per range. Ranges aren't contiguous, and `MotifsClaimed.firstTokenId` is only the first id.
   - Treat `BidPlaced.firstMotifId == 0` as "no ids reserved".
@@ -187,7 +187,7 @@ The pages inline their scripts, so after editing rebuild with `python3 site/buil
   - the clock starts at the first bid and late bids extend it without limit; the auction ends only after 10 minutes with no new bid, and never ends if nobody bids;
   - a pending bid has no deadline and can land later at the amount signed (F-24);
   - burning a motif is permanent and only its owner can do it; Kilim Bazaar's rules are not part of this auction.
-- [ ] Bid only from a wallet that can send transactions later: an EOA, a Safe or a smart wallet. A contract that can neither receive ETH nor call `withdrawRefund`, or cannot call `claimMotifs` or `claimPrize`, locks its own funds and NFTs (F-19).
+- [ ] Bid only from a wallet that can send transactions later: an EOA, a Safe or a smart wallet. A contract that can neither receive ETH nor call `withdrawRefund`, or cannot call `claimMotifs`, locks its own funds and motifs (F-19). The 1/1 is the exception since the review round: if a winning contract's receiver only needed more gas than settlement gives it, anyone can send it again with `deliverPrizeToWinner()`; a winner that refuses NFTs outright still has to call `claimPrize(to)` itself.
 - [ ] State what the 1/1 gives the winner: token id 1 of The Unwoven Kilim with its page served from the chain, how the winner opens it full-window (the `animation_url` saved as an `.html` file; browsers block top-level navigation to `data:` URLs), and what license comes with it.
 - [ ] Legal review of the terms and of running this auction in your jurisdiction.
 
@@ -208,9 +208,9 @@ The pages inline their scripts, so after editing rebuild with `python3 site/buil
 
 Source: `reports/Auction contract attack patterns 2026.md` (67 items). The contract items are tested in `test/AttackPatterns.t.sol`; these are the decisions and steps that remain.
 
-- [x] **`tokenURI` and the 16,777,216-gas line.** Decided 10 October (the secure option): every token stays readable under the line. The 1/1 reads at 3,838,101 gas and a motif at 287,311 on the packed stand-in store, and the deploy script refuses a 1/1 above 8,000,000. Re-measure on the final page (`pnpm -s deploy:dry` prints it).
-- [ ] **After 2026-11-01** (EIP-8037 leaves Last Call): re-run the Glamsterdam projections in `test/AttackPatterns.t.sol` with the final prices, then run the whole lifecycle on Sepolia, which already runs Glamsterdam: register, bid, outbid an EOA, a Safe and a refusing wallet, settle to a first-time holder, claim 64, burn one. Re-measure the page's bid and settle gas limits and the relayer's `gasLimit` and budget (a registration writes one new slot).
-- [ ] **Deploy the chunks before Glamsterdam reaches mainnet.** Code deposit rises from 200 to 1,530 gas per byte: the store's 202M gas would become about 1.5G.
+- [x] **`tokenURI` and the 16,777,216-gas line.** Decided 10 October (the secure option): every token stays readable under the line. The 1/1 reads at 4,625,534 gas and a motif at 287,312 on the store packed from the artwork of 10 October, and the deploy script refuses a 1/1 above 8,000,000. Re-measure on the final page (`pnpm -s deploy:dry` prints it).
+- [ ] **After 2026-11-01** (EIP-8037 leaves Last Call): re-run the Glamsterdam projections in `test/AttackPatterns.t.sol` and `test/review/PrizeGasBudget.t.sol` with the final prices and decide whether `PRIZE_GAS` stays 500,000 (measured cold, as a mainnet `settle()` meets it: a winner's receiver may use 387,122 gas today and a projected 34,542 after the fork, against at most 22,334 for a Safe; a receiver that writes one new storage slot will not fit then and is covered by `deliverPrizeToWinner()`), then run the whole lifecycle on Sepolia, which already runs Glamsterdam: register, bid, outbid an EOA, a Safe and a refusing wallet, settle to a first-time holder, claim 64, burn one. Re-measure the page's bid and settle gas limits and the relayer's `gasLimit` and budget (a registration writes one new slot).
+- [ ] **Deploy the chunks before Glamsterdam reaches mainnet.** Code deposit rises from 200 to 1,530 gas per byte: the store's 252M gas would become about 1.9G.
 - [ ] **Keys.** Decided 10 October: orkhanart.eth deploys, receives the proceeds and the royalties; there is no page-owner role any more. Anything automated (the registration sponsor, alerts) gets its own small wallet. No key used for the launch may carry an EIP-7702 delegation.
 - [ ] **Domain.** Registrar with no account recovery by support, registry lock on, DNSSEC validating, CAA records set; monitor NS, A and DS records and certificate-transparency logs; announce a fallback (direct contract instructions) beforehand. Every 2025 and 2026 front-end theft in the report began with a persuaded support agent.
 - [ ] **Site hardening not built yet:** a scheduled check that each served page hashes to the tagged build; a check after sending that the mined transaction's `to`, `value` and `data` are what the page built; two independent RPC providers that must agree before the bid button is live; a raised priority fee and a high max fee for bids in the last ten minutes, sent to the public mempool.

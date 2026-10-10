@@ -153,6 +153,16 @@ contract AuctionHandler is TestBase {
         auction.claimPrize(to);
         ++prizeCalls;
     }
+
+    /// @dev Anyone may send the 1/1 to the winner again once the winner's wallet takes NFTs.
+    function sendPrizeAgain(uint8 callerSeed) external {
+        address winner = auction.highestBidder();
+        if (!auction.settled() || auction.prizeClaimed() || !_takesNfts(winner)) return;
+        vm.prank(actors[callerSeed % 3]);
+        auction.deliverPrizeToWinner();
+        assertEq(auction.oneOfOne().ownerOf(1), winner);
+        ++prizeCalls;
+    }
 }
 
 contract AuctionInvariants is InvariantBase {

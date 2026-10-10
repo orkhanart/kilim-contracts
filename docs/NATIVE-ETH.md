@@ -74,7 +74,7 @@ The bid that beats yours pays you back in the same transaction. The auction call
 
 If that payment fails, for example because the address is a contract that rejects ETH or burns the gas, the new bid still goes through. The amount is added to `refunds(yourAddress)`, `RefundDeferred` is emitted, and you collect it with `withdrawRefund(to)` whenever you like, to any address except the zero address, the auction and the two token contracts. Nothing expires.
 
-A bid that outbids someone must reach the refund with enough gas for the refund's full allowance and for recording a deferred refund (`REFUND_GAS + REFUND_GAS / 63 + 300_000`, that is 452,380). With less it reverts with `InsufficientGas` and nothing changes. This is why the gas a bid needs does not depend on what the outbid wallet's code does. Measured as a whole transaction on 10 October 2026, an outbidding bid succeeds from 523,590 gas; the site sends a fixed 1,500,000, and unused gas is not charged. A first bid, with nobody to refund, needs no such floor.
+A bid that outbids someone must reach the refund with enough gas for the refund's full allowance and for recording a deferred refund (`REFUND_GAS + REFUND_GAS / 63 + 300_000`, that is 452,380). With less it reverts with `InsufficientGas` and nothing changes. This is why the gas a bid needs does not depend on what the outbid wallet's code does. Measured on 10 October 2026, an outbidding bid succeeds from a gas limit of about 524,000 on the call itself, about 545,000 as a transaction; the site sends a fixed 1,500,000, and unused gas is not charged. A first bid, with nobody to refund, needs no such floor.
 
 Gas is never refunded.
 
@@ -100,9 +100,9 @@ Two guards protect a bidder from another bid landing first:
 At or after `endsAt`, anyone calls `settle()`. It records the winner and the proceeds, emits `AuctionSettled`, then mints the 1/1 (token id 1 of The Unwoven Kilim, through `KilimOneOfOne.mint`) to the winner in a self-call (`deliverPrize`) with 500,000 gas.
 
 - If the winner's wallet accepts it, `PrizeClaimed(winner, winner)` is emitted and nothing more is needed.
-- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims).
+- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims). If the wallet only needed more gas than the 500,000, anyone can also call `deliverPrizeToWinner()`: it sends the 1/1 to the winner's own address with the gas the caller gives, and reverts, changing nothing, if the wallet still refuses it. A winning contract that cannot call `claimPrize` itself is therefore not left without the 1/1.
 
-`settle()` must have enough gas for the delivery's full allowance (`PRIZE_GAS + PRIZE_GAS / 63 + 50_000`, that is 557,936). With less it reverts with `InsufficientGas`, nothing is settled, and anyone can call it again. A low-gas call therefore cannot skip the delivery. Measured as a whole transaction on 10 October 2026, `settle()` succeeds from 585,900 gas; the site sends a fixed 1,200,000.
+`settle()` must have enough gas for the delivery's full allowance (`PRIZE_GAS + PRIZE_GAS / 63 + 50_000`, that is 557,936). With less it reverts with `InsufficientGas`, nothing is settled, and anyone can call it again. A low-gas call therefore cannot skip the delivery. Measured on 10 October 2026, `settle()` succeeds from a gas limit of 585,836 on the call itself, about 607,000 as a transaction (the 21,000 base cost and the call data come on top); the site sends a fixed 1,200,000.
 
 ## 7. Proceeds
 

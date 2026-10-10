@@ -5,6 +5,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {TestBase} from "./TestBase.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
+import {ProbeWallet} from "./AuditGaps.t.sol";
 
 /// @dev A leader whose refund receiver is cheap until armed, then burns every unit of gas it is given.
 contract SwitchingLeader {
@@ -43,11 +44,32 @@ contract PoolWinner is IERC721Receiver {
     }
 }
 
+/// @dev A pool whose bookkeeping on receipt needs more than the 500,000 gas settlement gives the
+///      delivery (thirty new slots, about 670k), and that has no way to call claimPrize.
+contract HeavyPoolWinner is IERC721Receiver {
+    uint256 public received;
+    mapping(uint256 => uint256) public ledger;
+
+    function bid(KilimAuction auction, uint256 amount) external payable {
+        auction.bid{value: amount}(amount, 0, 0);
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
+        ++received;
+        for (uint256 i; i < 30; ++i) {
+            ledger[i] = block.number + 1;
+        }
+        return IERC721Receiver.onERC721Received.selector;
+    }
+}
+
 /// @notice The October 9 audit's two gas findings, as attacks that must fail.
 ///         F-01: the leader cannot make a rival's bid run out of gas by changing what its refund
 ///         receiver costs. F-02: a low-gas settle() cannot skip sending the 1/1.
 contract GasFloorsTest is TestBase {
     KilimAuction auction;
+
+    event log_named_uint(string key, uint256 value);
 
     function setUp() public {
         KilimAuction.Config memory c = config();
@@ -86,6 +108,7 @@ contract GasFloorsTest is TestBase {
 
         // Alice's wallet estimates while the leader's receiver is cheap, with no safety margin at all.
         uint256 limit = _estimate(0.011 ether);
+        emit log_named_uint("smallest call gas for a bid that outbids someone (500-gas steps)", limit);
 
         // The leader arms the receiver before Alice's bid lands. The bid still lands; the refund waits.
         mallory.arm(true);
@@ -135,6 +158,83 @@ contract GasFloorsTest is TestBase {
     /// @dev The 1/1 has no reentrancy guard of its own and shares none with the motifs or the auction.
     ///      A holder who settles from inside a motif transfer callback must not be able to make the
     ///      prize delivery fail (audit finding R-06, re-targeted at the three contracts).
+    /// @dev Review round, 10 October 2026: a winner whose receiver needs more gas than settlement gives
+    ///      the delivery, and that cannot call claimPrize, is not left without the 1/1. Anyone can send
+    ///      it again with more gas, and it can only go to the winner.
+    function testAnyoneCanSendThePrizeAgainToAWinnerThatNeedsMoreGas() public {
+        HeavyPoolWinner pool = new HeavyPoolWinner();
+        vm.deal(address(this), 1 ether);
+        pool.bid{value: RESERVE}(auction, RESERVE);
+        vm.expectRevert(EnglishAuction.NotSettled.selector);
+        auction.deliverPrizeToWinner();
+        vm.warp(auction.endsAt());
+        vm.expectEmit();
+        emit KilimAuction.PrizeDeliveryFailed(address(pool));
+        auction.settle();
+        assertTrue(auction.settled());
+        assertTrue(!auction.prizeClaimed());
+        assertEq(pool.received(), 0);
+        // Nobody but the winner can choose where it goes.
+        vm.expectRevert(EnglishAuction.Unauthorized.selector);
+        vm.prank(CAROL);
+        auction.claimPrize(CAROL);
+
+        vm.expectEmit();
+        emit KilimAuction.PrizeClaimed(address(pool), address(pool));
+        vm.prank(CAROL);
+        auction.deliverPrizeToWinner();
+        assertTrue(auction.prizeClaimed());
+        assertEq(auction.oneOfOne().ownerOf(1), address(pool));
+        assertEq(pool.received(), 1);
+        vm.expectRevert(KilimAuction.PrizeAlreadyClaimed.selector);
+        auction.deliverPrizeToWinner();
+        // The proceeds were never held up by any of it.
+        vm.prank(TREASURY);
+        auction.withdrawProceeds(TREASURY);
+        assertEq(address(auction).balance, auction.liabilities());
+    }
+
+    /// @dev Sending it again to a winner that refuses the token changes nothing, cannot be used to enter
+    ///      the auction from the winner's callback, and leaves the winner's own claim open.
+    function testSendingThePrizeAgainToAWinnerThatRefusesChangesNothing() public {
+        ProbeWallet winner = new ProbeWallet(auction);
+        vm.deal(address(winner), 1 ether);
+        winner.set(true, 0, 0, "");
+        winner.bid(RESERVE);
+        vm.warp(auction.endsAt());
+        auction.settle();
+        assertTrue(!auction.prizeClaimed());
+        vm.expectRevert();
+        auction.deliverPrizeToWinner();
+        assertTrue(!auction.prizeClaimed());
+        assertTrue(!auction.oneOfOne().minted());
+
+        // Accepting now, and trying to claim motifs from inside the callback: the guard holds.
+        winner.set(false, 0, 0, abi.encodeCall(auction.claimMotifs, (1, CAROL)));
+        uint256 credits = auction.motifCredits(address(winner));
+        vm.prank(BOB);
+        auction.deliverPrizeToWinner();
+        assertTrue(!winner.reentered());
+        assertEq(auction.motifCredits(address(winner)), credits);
+        assertEq(auction.oneOfOne().ownerOf(1), address(winner));
+        // The winner's own claim is spent with it.
+        assertTrue(!winner.run(abi.encodeCall(auction.claimPrize, (ALICE))));
+    }
+
+    /// @dev After the winner claimed the 1/1 to another address, nobody can send it "again".
+    function testThePrizeIsNotSentAgainAfterTheWinnerClaimedIt() public {
+        ProbeWallet winner = new ProbeWallet(auction);
+        vm.deal(address(winner), 1 ether);
+        winner.set(true, 0, 0, "");
+        winner.bid(RESERVE);
+        vm.warp(auction.endsAt());
+        auction.settle();
+        assertTrue(winner.run(abi.encodeCall(auction.claimPrize, (ALICE))));
+        assertEq(auction.oneOfOne().ownerOf(1), ALICE);
+        vm.expectRevert(KilimAuction.PrizeAlreadyClaimed.selector);
+        auction.deliverPrizeToWinner();
+    }
+
     function testSettlingFromInsideAMotifCallbackStillSendsThePrize() public {
         PoolWinner pool = new PoolWinner();
         TransferSettler mallory = new TransferSettler(auction);

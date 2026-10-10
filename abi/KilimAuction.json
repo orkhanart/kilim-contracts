@@ -159,6 +159,13 @@
   },
   {
     "type": "function",
+    "name": "deliverPrizeToWinner",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "duration",
     "inputs": [],
     "outputs": [

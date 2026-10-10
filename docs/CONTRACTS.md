@@ -81,7 +81,7 @@ As today (ETH-only, registrations, +10% raises, push refunds with a pull fallbac
 - `Config` loses `collectionOwner, motifCount, maxCells, geometryHash, rendererHash, renderer, symbolCap` and gains `address motifs, address oneOfOne`. `maxSymbolsPerBid` becomes `maxMotifsPerBid`.
 - The constructor no longer creates the collection. It checks: both addresses have code; `KilimMotifs(motifs).minter() == address(this)`; `KilimOneOfOne(oneOfOne).minter() == address(this)`; `KilimOneOfOne(oneOfOne).motifs() == motifs`; the treasury is neither token contract; `maxMotifsPerBid` in `1..motifCap` where `motifCap = KilimMotifs(motifs).motifCap()` (read from the collection, not configured twice).
 - Names: `MOTIF_PRICE` (in `EnglishAuction`, was `SYMBOL_PRICE`), `motifCap`, `maxMotifsPerBid`, `motifsAllocated`, `motifsClaimed`, `motifCredits`, `claimMotifs`, `unclaimedMotifRanges`, `MotifsClaimed`, `MotifRangeMoved`, `expectedFirstMotifId`, `firstMotifId`, `motifReward`. The first motif id is 1 (no `FIRST_SYMBOL_ID` offset: ids are `1..motifCap`). `MAX_MINT_BATCH` is read from the motifs contract.
-- `deliverPrize` / `claimPrize` call `oneOfOne.mint(to)`.
+- `deliverPrize` / `claimPrize` call `oneOfOne.mint(to)`. `deliverPrizeToWinner()` (review round, 10 October) lets anyone send the 1/1 to the winner again after a settlement that could not deliver it: `nonReentrant`, only when `settled && !prizeClaimed`, only to `highestBidder`, with the caller's gas.
 - The audited behaviour of `EnglishAuction` (gas floors, refunds, registration, EIP-712 `registerFor`) is untouched apart from the constant's name.
 
 ## Deployment (from the artist's wallet, no admin keys)
