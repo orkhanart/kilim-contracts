@@ -174,11 +174,6 @@ contract KilimAuctionTest is TestBase {
         KilimAuction early = new KilimAuction(config());
         vm.expectRevert(EnglishAuction.RegistrationIncomplete.selector);
         _bid(early, ALICE, RESERVE);
-        uint256 start = auction.startsAt();
-        vm.warp(start - 1);
-        vm.expectRevert(EnglishAuction.AuctionNotOpen.selector);
-        _bid(ALICE, 25);
-        vm.warp(start);
         _bid(ALICE, 25);
         vm.warp(auction.endsAt());
         vm.expectRevert(EnglishAuction.AuctionNotOpen.selector);

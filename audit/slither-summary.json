@@ -6,55 +6,55 @@
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(address,uint256,address) (src/KilimAuction.sol#152-178) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#175)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimSymbols(uint256,address)\n"
+      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#153-180) has external calls inside a loop: collection.mintSymbols(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#177)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimSymbols(uint256,address)\n"
     },
     {
       "check": "reentrancy-benign",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#236-249):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/EnglishAuction.sol#242-248)\n\tState variables written after the call(s):\n\t- refundLiability += amount (src/auction/EnglishAuction.sol#246)\n\t- refunds[bidder] += amount (src/auction/EnglishAuction.sol#245)\n"
+      "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#238-251):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/EnglishAuction.sol#244-250)\n\tState variables written after the call(s):\n\t- refundLiability += amount (src/auction/EnglishAuction.sol#248)\n\t- refunds[bidder] += amount (src/auction/EnglishAuction.sol#247)\n"
     },
     {
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#203-209):\n\tExternal calls:\n\t- collection.mintMasterpiece(winner) (src/KilimAuction.sol#207)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#208)\n"
+      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#205-211):\n\tExternal calls:\n\t- collection.mintMasterpiece(winner) (src/KilimAuction.sol#209)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#210)\n"
     },
     {
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#236-249):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/EnglishAuction.sol#242-248)\n\tEvent emitted after the call(s):\n\t- RefundDeferred(bidder,amount) (src/auction/EnglishAuction.sol#247)\n\t- RefundPaid(bidder,amount) (src/auction/EnglishAuction.sol#243)\n"
+      "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#238-251):\n\tExternal calls:\n\t- this.payOutbidRefund{gas: REFUND_GAS}(bidder,amount) (src/auction/EnglishAuction.sol#244-250)\n\tEvent emitted after the call(s):\n\t- RefundDeferred(bidder,amount) (src/auction/EnglishAuction.sol#249)\n\t- RefundPaid(bidder,amount) (src/auction/EnglishAuction.sol#245)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "EnglishAuction._register(address) (src/auction/EnglishAuction.sol#135-144) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < startsAt || registrationCount >= REGISTRATION_TARGET (src/auction/EnglishAuction.sol#136)\n"
+      "description": "EnglishAuction.registerFor(address,uint256,bytes) (src/auction/EnglishAuction.sol#121-130) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > deadline (src/auction/EnglishAuction.sol#122)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "EnglishAuction.settle() (src/auction/EnglishAuction.sol#166-174) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < endsAt (src/auction/EnglishAuction.sol#169)\n"
+      "description": "EnglishAuction._handleBid(uint256) (src/auction/EnglishAuction.sol#202-229) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- started && block.timestamp >= endsAt (src/auction/EnglishAuction.sol#209)\n\t- extended > endsAt (src/auction/EnglishAuction.sol#227)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "EnglishAuction.constructor(EnglishAuction.AuctionConfig) (src/auction/EnglishAuction.sol#93-109) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS || config.reservePrice != REGISTRATION_BALANCE (src/auction/EnglishAuction.sol#97-101)\n"
+      "description": "EnglishAuction.settle() (src/auction/EnglishAuction.sol#167-175) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < endsAt (src/auction/EnglishAuction.sol#170)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "EnglishAuction.registerFor(address,uint256,bytes) (src/auction/EnglishAuction.sol#120-129) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > deadline (src/auction/EnglishAuction.sol#121)\n"
+      "description": "EnglishAuction.constructor(EnglishAuction.AuctionConfig) (src/auction/EnglishAuction.sol#93-110) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- config.treasury == address(0) || config.treasury == address(this) || config.startsAt <= block.timestamp || config.duration > 2592000 || config.extensionWindow == 0 || config.extensionWindow > config.duration || config.incrementBps == 0 || config.incrementBps > MAX_BPS || config.reservePrice != REGISTRATION_BALANCE (src/auction/EnglishAuction.sol#98-102)\n"
     },
     {
       "check": "timestamp",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "EnglishAuction._handleBid(uint256) (src/auction/EnglishAuction.sol#200-227) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt) (src/auction/EnglishAuction.sol#205)\n\t- extended > endsAt (src/auction/EnglishAuction.sol#225)\n"
+      "description": "EnglishAuction._register(address) (src/auction/EnglishAuction.sol#136-145) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp < startsAt || registrationCount >= REGISTRATION_TARGET (src/auction/EnglishAuction.sol#137)\n"
     },
     {
       "check": "assembly",
@@ -204,13 +204,13 @@
       "check": "dead-code",
       "impact": "Informational",
       "confidence": "Medium",
-      "description": "EnglishAuction._afterSettle() (src/auction/EnglishAuction.sol#177) is never used and should be removed\n"
+      "description": "EnglishAuction._afterSettle() (src/auction/EnglishAuction.sol#179) is never used and should be removed\n"
     },
     {
       "check": "low-level-calls",
       "impact": "Informational",
       "confidence": "High",
-      "description": "Low level call in EnglishAuction._pay(address,uint256) (src/auction/EnglishAuction.sol#279-282):\n\t- (paid,None) = address(to).call{value: amount}() (src/auction/EnglishAuction.sol#280)\n"
+      "description": "Low level call in EnglishAuction._pay(address,uint256) (src/auction/EnglishAuction.sol#281-284):\n\t- (paid,None) = address(to).call{value: amount}() (src/auction/EnglishAuction.sol#282)\n"
     },
     {
       "check": "naming-convention",

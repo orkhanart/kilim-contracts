@@ -75,8 +75,9 @@ contract KilimAuction is EnglishAuction {
             }))
     {
         if (
-            config.symbolCap == 0 || config.symbolCap > type(uint64).max || config.maxSymbolsPerBid == 0
-                || config.maxSymbolsPerBid > config.symbolCap
+            // A zero cap cannot pass either: the per-bid limit is at least 1 and at most the cap. The
+            // collection, created below, refuses a cap above uint32 max.
+            config.maxSymbolsPerBid == 0 || config.maxSymbolsPerBid > config.symbolCap
         ) revert InvalidConfiguration();
         symbolCap = config.symbolCap;
         maxSymbolsPerBid = config.maxSymbolsPerBid;
@@ -100,7 +101,7 @@ contract KilimAuction is EnglishAuction {
     /// @param expectedFirstSymbolId Revert unless the reward starts at this symbol ID, i.e. the
     ///        quoted traits; 0 accepts whatever IDs are next. Pass 0 when the quoted reward is 0:
     ///        a bid that earns no symbols reserves no IDs, so any nonzero value reverts.
-    /// @dev All accounting precedes external calls; a wrong msg.value rolls back credits and the bid.
+    /// @dev All accounting precedes the refund, the only call out; a wrong msg.value rolls back credits and the bid.
     ///      The reward reserves the next symbol IDs in allocation order, so their traits are fixed
     ///      now and cannot change with claim time, claim order, or recipient.
     function bid(uint256 amount, uint256 minimumReward, uint256 expectedFirstSymbolId)
@@ -121,7 +122,7 @@ contract KilimAuction is EnglishAuction {
             revert SymbolRangeMoved(firstSymbolId);
         }
         if (reward != 0) {
-            // Both values are bounded by symbolCap <= uint64 max.
+            // Both values are bounded by symbolCap, which the collection keeps under uint32 max.
             _creditRanges[msg.sender].push(CreditRange(uint128(firstSymbolId), uint128(reward)));
             symbolCredits[msg.sender] += reward;
             symbolsAllocated += reward;
@@ -145,11 +146,12 @@ contract KilimAuction is EnglishAuction {
         if (quantity == 0 || quantity > collection.MAX_MINT_BATCH() || quantity > symbolCredits[msg.sender]) {
             revert InvalidQuantity();
         }
-        _claim(msg.sender, quantity, to);
+        _claim(quantity, to);
     }
 
-    /// @dev Mint `quantity` of `bidder`'s reserved IDs to `to`. The caller checked the quantity.
-    function _claim(address bidder, uint256 quantity, address to) private {
+    /// @dev Mint `quantity` of the caller's reserved IDs to `to`. The caller checked the quantity.
+    function _claim(uint256 quantity, address to) private {
+        address bidder = msg.sender;
         symbolCredits[bidder] -= quantity;
         symbolsClaimed += quantity;
         // Unclaimed ranges from the cursor onward are nonempty and sum to the caller's credits.

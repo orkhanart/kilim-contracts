@@ -92,10 +92,11 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
 
     constructor(AuctionConfig memory config) EIP712("Kilim Registration", "1") {
         // The only accepted reserve is REGISTRATION_BALANCE: nonzero, a whole number of bid units and
-        // far below the uint128 bound on bids.
+        // far below the uint128 bound on bids. A zero duration needs no clause of its own: the window
+        // must be nonzero and no longer than the duration.
         if (
             config.treasury == address(0) || config.treasury == address(this)
-                || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 30 days
+                || config.startsAt <= block.timestamp || config.duration > 30 days
                 || config.extensionWindow == 0 || config.extensionWindow > config.duration
                 || config.incrementBps == 0 || config.incrementBps > MAX_BPS
                 || config.reservePrice != REGISTRATION_BALANCE
@@ -173,7 +174,8 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         _afterSettle();
     }
 
-    /// @dev Runs at the end of settle(), after the outcome is recorded. Must never revert.
+    /// @dev Runs at the end of settle(), after the outcome is recorded. It may revert only to refuse a
+    ///      settlement sent with too little gas; that undoes the settlement and anyone can retry.
     function _afterSettle() internal virtual {}
 
     function withdrawProceeds(address to) external nonReentrant {
@@ -193,8 +195,8 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
     }
 
     /// @dev Adaptation of thirdweb _handleBid's ascending-bid branch. Called only inside Kilim's
-    ///      nonReentrant bid entry point, which allocates rewards and MUST call _collectBid and then
-    ///      _refundOutbid(previous bidder, previous bid) atomically. Returns the outbid bid, if any.
+    ///      nonReentrant bid entry point, which allocates rewards and MUST then call _collectBid and
+    ///      _refundOutbid(previous bidder, previous bid) in the same call. Returns the outbid bid, if any.
     ///      The seller's treasury cannot bid. Other wallets it controls are not detectable.
     ///      The first accepted bid starts the clock; later bids inside the window extend it, forever.
     function _handleBid(uint256 amount) internal returns (address outbid, uint256 outbidAmount) {
@@ -202,9 +204,9 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         if (registrationCount != REGISTRATION_TARGET) revert RegistrationIncomplete();
         // No highest bidder means the clock has not started, so there is no close to be past.
         bool started = highestBidder != address(0);
-        if (settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt)) {
-            revert AuctionNotOpen();
-        }
+        // Open from the hundredth registration (which cannot happen before startsAt) until the close.
+        // Settlement needs the close to have passed, and the close cannot move afterwards.
+        if (started && block.timestamp >= endsAt) revert AuctionNotOpen();
         // Bound BEFORE the unchanged upstream predicate: its difference * MAX_BPS cannot overflow.
         if (amount > type(uint128).max || !_isNewWinningBid(reservePrice, highestBid, amount, incrementBps)) {
             revert BidTooLow(minimumBid());
@@ -226,7 +228,7 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         }
     }
 
-    /// @dev The ETH sent must be exactly the recorded amount; no buyout clamp or currency wrapper.
+    /// @dev The ETH sent must be exactly the recorded amount.
     function _collectBid(uint256 amount) internal view {
         if (msg.value != amount) revert IncorrectPayment();
     }

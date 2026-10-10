@@ -22,9 +22,9 @@
         "runs": 200
       },
       "viaIR": false,
-      "creationBytecodeBytes": 30321,
-      "runtimeTemplateBytes": 10969,
-      "creationBytecodeSha256": "16234f2fb019753c637d8499130b955dffbc3b3d2f2d07427faf3cd240071d5d",
+      "creationBytecodeBytes": 30180,
+      "runtimeTemplateBytes": 10891,
+      "creationBytecodeSha256": "f00d9b7b866574f17cf2eb90ab09ed6ad9859e0b0472f092a4874aa2e0f0f17b",
       "abiSha256": "745a7af3b5d1f19957432a68e2dcb45ca75cc35ab2a6ee22264bc1933d417067"
     }
   },
@@ -57,8 +57,8 @@
     "node_modules/@openzeppelin/contracts/utils/cryptography/EIP712.sol": "0x8440117ea216b97a7bad690a67449fd372c840d073c8375822667e14702782b4",
     "node_modules/@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol": "0x6d8579873b9650426bfbd2a754092d1725049ca05e4e3c8c2c82dd9f3453129d",
     "node_modules/@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol": "0x0d53049a9969f2bc5cb88b32c909e2729a5fa157d258305b42b502427ad492c6",
-    "src/KilimAuction.sol": "0x154298b0d53a53ac1fe60ec823e23a67b8da600e62bd0b294a3f3324e5d61547",
-    "src/auction/EnglishAuction.sol": "0x71318160def8e6feeabce8a74b0bca13a1d4adcf8d26fe904b794d8031757109"
+    "src/KilimAuction.sol": "0xe670f6b5d4cca017c130b3ca972b7d6ba899a34181b0edb68fdee0bc3e0bbf98",
+    "src/auction/EnglishAuction.sol": "0xbcd0e6515da428c7b133e299a429d5b45e628089001cfc0f4cffe47feb80174d"
   },
   "sourceSha256": {
     "audit/requirements.txt": "6604a6ff4d6bcc72c7a7e445d1a86e89a823d73cfb61d11ac027cca912eaccd4",
@@ -87,8 +87,8 @@
     "scripts/verify-upstream.mjs": "2e40068aedd87491d4f51456a346d544a2b141e6a442c52b90891f1f67a54884",
     "scripts/walkthrough.mjs": "e7d9ddc3469dfaedc069b77b240e047a3f60335215adb9e1bb1030d011b44135",
     "src/Kilim.sol": "9ccf966404766ade81d5e38e9265eda260227dca2bb2f2268c7ebddcff921114",
-    "src/KilimAuction.sol": "6a55d1dc41f76209dfa21f92dbe30e41e137be4435e327e6689de40b6b617b1c",
-    "src/auction/EnglishAuction.sol": "41dd00654c619d7d5e425597091cfe528948779fe3329e56055b57e511ce3bcc",
+    "src/KilimAuction.sol": "eedb4f8ac90de172c3f82e71e6de108c33d1aaa96e179f67eeddc7fe1204e1e2",
+    "src/auction/EnglishAuction.sol": "a5143741136cc31c9583029af23f5287dc16bd418a621f19d94d9109371621d8",
     "src/render/IKilimRenderer.sol": "798edb58e0933976b9a72982fa031e4f2ee3ab41ed6524c07801447acefc3519",
     "src/render/KilimRenderer.sol": "625499e540c099be86161e0a1a73f89472ed60265021fbb7905f1cc78e1ed226",
     "src/render/KilimWriter.sol": "203ae3457a2a1f3cfa0514c166d7eb3d8038c20d050511bac422882a762146a4",
@@ -99,7 +99,7 @@
     "test/GasFloors.t.sol": "06e679686b4afaaf3e684648eb0aba73a39699d0dd842de9878e928c70f57287",
     "test/GasLimits.t.sol": "b62716a29e3cea38f851f4fa1d520c61a3f395ed056ebe4fb2a165a88a8a05ae",
     "test/Kilim.t.sol": "99ae554f121670b111f069dcb164ea109536ea32a3b1e7a43f30f959c83b5a12",
-    "test/KilimAuction.t.sol": "3ea8d3bdb98ce21f64af0120b7e53e58bb8f16c25f509e2703d1f82239ea4638",
+    "test/KilimAuction.t.sol": "65a93298cf042bf5e15ac63c96deb3293348c6c7be1b8eac33a8a683696ee324",
     "test/LaunchConfig.t.sol": "66562ca7d7cff78497c72d99651c0fcc899efd314418625a7f4bf5a586433635",
     "test/Lifecycle.t.sol": "08724bb915ca17f2611c41d3552169a2bf542cbee83e252dbfd24a25ccdbe6e2",
     "test/NativeRegistration.t.sol": "81512b84cd54e3f406d9f063308731612d4cf27da36f8be068e0062ff749466b",
