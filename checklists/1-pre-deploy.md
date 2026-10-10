@@ -82,10 +82,10 @@ What these settings mean, accepted by the artist on October 9, 2026:
   - 5% royalties and the page-only owner role.
 - [x] Internal review rounds of September 18 and 26 (collection and renderer unchanged since).
 - [x] Full internal audit of the ETH auction, October 9: F-01 and F-02 fixed with tests in `test/GasFloors.t.sol`; F-03, F-04 and F-10 accepted by the artist.
-- [ ] Decide each open item in the October 9 list ([AUDIT.md](../AUDIT.md), "Open"): fix it, test it, or write down why not. F-05 (no test pins the two gas caps) and F-06 (the refund cap is larger than needed) can only be changed before deployment.
+- [x] Every item of the October 9 list is decided ([AUDIT.md](../AUDIT.md)): F-01 and F-02 fixed, F-03, F-04 and F-10 accepted by the artist, the test gaps closed, the leftover code removed (October 10). Still a decision: the collection-page key (F-13) and the motif pin in the deploy script (F-14), both listed below.
 - [x] Every auction test runs against the ETH-only contracts: bid rules, extension and close, settlement, deferred-refund accounting, the constructor rule, the deploy script's refusals, registration before `startsAt` and by the treasury, and stateful invariants with hostile receivers (F-15, F-16, F-17). On October 9 the forge suite passed 236 tests in the working tree.
-- [ ] Add the tests still missing: a ceiling on the gas a hostile refund receiver or winner can cost (F-05) and an independent rebuild of the registration signature domain (F-18).
-- [ ] Internal review round and mutation testing on the ETH-only auction. Nothing has read the code since the removal.
+- [x] The missing tests are in `test/AuditGaps.t.sol` (October 10): the gas a hostile refund receiver or winner can cost (F-05), the registration signature domain rebuilt independently (F-18), and eleven more. Twenty-five mutants of those checks all fail the suite.
+- [x] Internal review round and mutation testing on the ETH-only auction (October 10, `audit/eth-only-reaudit-2026-10-10.md`), then tested against the October 2026 attack research (`test/AttackPatterns.t.sol`). Repeat after any further contract change.
 - [ ] Tag the frozen version once the symbol set and settings are final.
 - [ ] Rerun on the frozen commit: `pnpm verify:upstream`, `build`, `test:ci`, `fmt`, `audit:static`, `artifacts`. Confirm `audit/build-manifest.json` matches the tag.
 - [x] Locally confirmed on September 26 (weave 9.77M, expand 9.47M, worst claim about 6.75M; re-measure on Sepolia) that each heavy transaction fits the **per-transaction gas cap**, not just the block limit. On Ethereum that cap is 16,777,216 (EIP-7825). With margin for receiver callbacks, check:
