@@ -4,7 +4,6 @@ pragma solidity 0.8.37;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // REFUTE-EXPERIMENT
 import {KilimMotifs} from "./KilimMotifs.sol";
 
 /// @notice The 1/1, The Unwoven Kilim: exactly one token, id 1, minted by the auction. The token name is a
@@ -12,7 +11,7 @@ import {KilimMotifs} from "./KilimMotifs.sol";
 /// @dev No admin, pause, upgrade or metadata setter. The page is stored in SSTORE2 chunks (runtime code
 ///      `0x00 || data`) hashed at construction; the only part read live is the motif grids, taken from
 ///      the motif collection, so the 1/1 provably draws the same motifs the motif tokens show.
-contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
+contract KilimOneOfOne is ERC721 {
     using Strings for uint256;
 
     /// @dev The stored page in three sections. PREFIX is the raw JSON up to and including
@@ -86,7 +85,7 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
     /// @dev Deliberately NOT nonReentrant: only the auction calls it, it is one-shot, and the auction
     ///      holds its own guard. A guard here could be entered from a receiver callback and make the
     ///      prize delivery fail with settlement already recorded (audit finding R-06).
-    function mint(address to) external nonReentrant { // REFUTE-EXPERIMENT
+    function mint(address to) external {
         if (msg.sender != minter) revert Unauthorized();
         if (to == address(0) || to == address(this) || to == minter) revert InvalidRecipient();
         if (minted) revert AlreadyMinted();
