@@ -93,6 +93,7 @@
     "src/render/KilimRenderer.sol": "625499e540c099be86161e0a1a73f89472ed60265021fbb7905f1cc78e1ed226",
     "src/render/KilimWriter.sol": "203ae3457a2a1f3cfa0514c166d7eb3d8038c20d050511bac422882a762146a4",
     "test/AuctionInvariants.t.sol": "c319b41f7ab4d9bb4fd6cda6b83c69715b42878ea69bf19131be2e32e5469bbd",
+    "test/AuditGaps.t.sol": "dc6709a2ef016459ba26f52a825acebcf6530db7d9d500a38c5fefae17670c03",
     "test/CompositionInvariants.t.sol": "a25b616805d83f6196589d839e8c22b8ebc85a5cdbeec44dc9b89530359d2854",
     "test/DeployKilim.t.sol": "57adc8f91b891cae8d8dc3d02b9551d712e911b260d2a839fa972cbdcee0f129",
     "test/GasFloors.t.sol": "06e679686b4afaaf3e684648eb0aba73a39699d0dd842de9878e928c70f57287",
