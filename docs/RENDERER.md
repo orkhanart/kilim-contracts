@@ -79,15 +79,14 @@ Every transaction stays under 8M gas (the per-transaction cap is 16,777,216). Me
 
 `run()` does both phases in one go, for the testnet rehearsal.
 
-The config file holds the chain ID, the store directory, the deployer and its published nonce, the expected hashes and motif count, the payment token and its decimals, the minimum inspection window (`minLeadSeconds`) and the auction settings. Start from `deploy/mainnet.example.json` for Ethereum mainnet or `deploy/sepolia.example.json` for the rehearsal: both carry the decided launch settings, and neither loads until every TODO is filled in. A `deployerNonce` of `2^256 - 1` (`NO_NONCE_CHECK`) skips the nonce check; `deploy/local.json` uses it for the dry run.
+The config file holds the chain ID, the store directory, the deployer and its published nonce, the expected hashes and motif count, the minimum inspection window (`minLeadSeconds`) and the auction settings. Start from `deploy/mainnet.example.json` for Ethereum mainnet or `deploy/sepolia.example.json` for the rehearsal: both carry the decided launch settings, and neither loads until every TODO is filled in. A `deployerNonce` of `2^256 - 1` (`NO_NONCE_CHECK`) skips the nonce check; `deploy/local.json` uses it for the dry run.
 
 The auction phase prints every setting it deploys with, and flags each one that differs from the decided launch value. On **chain 1** those values are pinned in the script, and it refuses anything else:
 
 | Setting | Chain 1 value |
 | --- | --- |
-| `paymentToken`, `tokenDecimals` | USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`, 6 |
 | `treasury`, `collectionOwner` | `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac` (orkhanart.eth) |
-| `reservePrice` | `1000000` ($1) |
+| `reservePrice` | `10000000000000000` (0.01 ETH) |
 | `incrementBps` | `1000` (+10%) |
 | `duration` | `86400` (24 hours from the first bid) |
 | `extensionWindow` | `600` (10 minutes, no limit on extensions) |
@@ -96,7 +95,7 @@ The auction phase prints every setting it deploys with, and flags each one that 
 | `deployerNonce` | the published nonce; the skip value is refused |
 | `minLeadSeconds` | nonzero |
 
-On Sepolia and the local chain any valid value is accepted, so the rehearsal can shorten times or try other settings; the printout shows what differs.
+On Sepolia and the local chain any valid value is accepted, so the rehearsal can shorten times or try other settings; the printout shows what differs. The one exception is `reservePrice`: it must be 0.01 ETH on every chain, because the auction constructor accepts nothing else.
 
 ### What the script refuses
 
@@ -110,7 +109,7 @@ forge simulates the whole script before it sends anything, so any refusal below 
 - a dry run of any deployment needs more than 8M gas, or returns a different address;
 - the renderer's immutables, chunk list, 1/1 URI, first golden symbol URI or first golden artwork URI differ from the config and `golden.json`. A renderer already at its address is checked exactly like a fresh dry-run one; CREATE2 means code there can only have come from the same initcode;
 - the renderer's code hash, fresh or already deployed, differs from a published `rendererHash`;
-- in the auction phase: the renderer is missing or differs, the payment token has no code or other decimals, the reserve price is not whole units, `startsAt` falls inside the inspection window or more than a year out, an address is zero, the deployer's nonce is not the published one, or any read-back value of the deployed auction or collection differs;
+- in the auction phase: the renderer is missing or differs, the reserve price is not 0.01 ETH, `startsAt` falls inside the inspection window or more than a year out, an address is zero, the deployer's nonce is not the published one, or any read-back value of the deployed auction or collection differs;
 - in the auction phase on chain 1: any setting in the table above differs, the nonce check is skipped, or `minLeadSeconds` is zero.
 
 `test/DeployKilim.t.sol` runs both phases against the local chain and triggers each refusal, then switches the chain ID to 1 for the pinned settings and to Sepolia's to show they are not pinned there. It also checks that both templates carry the pinned values.

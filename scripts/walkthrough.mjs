@@ -1,22 +1,21 @@
 // A narrated run of the whole auction on a fresh local anvil, driven through the site's own
 // adapter (site/chain.js) exactly as the pages drive it. Every step prints the snapshot the
-// page would show and asserts it.   pnpm walkthrough
+// page would show and asserts it. Everything is native ETH.   pnpm walkthrough
 import assert from 'node:assert/strict';
 import { startAnvil } from './dev/anvil.mjs';
-import { deployLocal, siteConfig, rpcClient, A } from './dev/deploy.mjs';
+import { deployLocal, siteConfig, rpcClient, registerWallets, openBidding, A, UNIT } from './dev/deploy.mjs';
 import { loadSite, CORE } from '../../site/tools/node-load.mjs';
 
-const USD = 1_000_000n;
 let n = 0;
 function step(title) { n++; console.log(`\n${String(n).padStart(2, ' ')}. ${title}`); }
 function show(chain, extra = {}) {
   const a = chain.auction(), acct = chain.account();
   const row = {
-    phase: a.phase, high: a.high ? `$${a.high}` : '—', minNext: `$${a.minNext}`,
+    phase: a.phase, registered: `${a.registrationCount}/100`, high: a.high ? `${a.high} ETH` : '—', minNext: `${a.minNext} ETH`,
     endsAt: a.endsAt ? new Date(a.endsAt * 1000).toISOString() : '(not started)',
-    reserved: a.symbolsReserved, poolLeft: a.poolLeft, bids: a.bids.length,
+    reserved: a.symbolsReserved, claimed: a.symbolsClaimed, poolLeft: a.poolLeft, bids: a.bids.length,
   };
-  if (acct) Object.assign(row, { you: acct.address.slice(0, 8), credits: acct.credits, refund: KILIM_CHAIN.fmtUsd(acct.refund), held: chain.holdings().length });
+  if (acct) Object.assign(row, { you: acct.address.slice(0, 8), credits: acct.credits, refund: KILIM_CHAIN.fmtEth(acct.refund), held: chain.holdings().length });
   console.log('   ', JSON.stringify({ ...row, ...extra }));
 }
 async function expectName(promise, name) {
@@ -36,60 +35,83 @@ async function world(overrides = {}) {
   const ctx = loadSite([...CORE, 'dev/devwallet.js', 'chain.js'], {
     KILIM_CHAINS: { 31337: cfg }, KILIM_DEFAULT_CHAIN: 31337, KILIM_NO_AUTO: true, KILIM_DEV_NO_AUTO: true,
   });
-  const as = async (account, batch = false, lockSymbolIds = false) => {
-    const provider = ctx.KILIM_DEV.createWallet({ rpcUrl: anvil.rpcUrl, account, batch });
+  // `account`: an anvil account index, or any address (the dev wallet impersonates it).
+  const as = async (account, lockSymbolIds = false) => {
+    const provider = ctx.KILIM_DEV.createWallet({ rpcUrl: anvil.rpcUrl, account });
     const chain = ctx.KILIM_CHAIN.create({ chainId: 31337, provider, poll: false, receiptMs: 20, lockSymbolIds });
     await chain.ready;
     return chain;
   };
   const warp = async (ts) => { await rpc.call('evm_setNextBlockTimestamp', [Number(ts)]); await rpc.call('evm_mine'); };
-  return { anvil, rpc, d, cfg, ctx, as, warp };
+  const balance = async (who) => BigInt(await rpc.call('eth_getBalance', [who, 'latest']));
+  return { anvil, rpc, d, cfg, ctx, as, warp, balance };
 }
-const bid = async (chain, usd, opts) => chain.bid(await chain.quote(usd), opts);
+const bid = async (chain, eth, opts) => chain.bid(await chain.quote(eth), opts);
 let KILIM_CHAIN;
 
 const W = await world();
 KILIM_CHAIN = W.ctx.KILIM_CHAIN;
 const { d, rpc } = W;
 try {
-  const alice = await W.as(1), bob = await W.as(2, true), carol = await W.as(3, false, true), treasury = await W.as(9);
+  const alice = await W.as(1), bob = await W.as(2), carol = await W.as(3, true), treasury = await W.as(9);
 
-  step('Before startsAt: the page counts down; a bid is simulated and refused');
+  step('Before startsAt: the page counts down; nobody can register or bid yet');
   assert.equal(alice.phase(), 'before');
-  await expectName(bid(alice, 1), 'AuctionNotOpen');
+  await expectName(alice.register(), 'RegistrationClosed');
+  await expectName(bid(alice, '0.01'), 'RegistrationIncomplete');
   show(alice);
 
-  step('startsAt passes: bidding is open, the 24h clock waits for the first bid');
+  step('startsAt passes: registration opens. Alice registers: no deposit, she only has to hold 0.01 ETH');
   await W.warp(d.startsAt);
   await alice.refresh();
   assert.equal(alice.phase(), 'waiting');
-  assert.equal(alice.auction().endsAt, 0);
+  const beforeRegistering = await W.balance(d.auction);
+  await alice.register();
+  assert.equal(alice.auction().registrationCount, 1);
+  assert.equal(alice.auction().registered, true);
+  assert.equal(await W.balance(d.auction), beforeRegistering, 'registration paid the auction nothing');
+  await expectName(alice.register(), 'AlreadyRegistered');
+  const noTreasury = await expectName(treasury.register(), 'TreasuryCannotBid');
+  console.log('    ', treasury.explain(noTreasury).message);
+  const locked = await expectName(bid(alice, '0.01'), 'RegistrationIncomplete');
+  console.log('    ', alice.explain(locked).message);
   show(alice);
 
-  step('Alice bids $1 in USDC (approve, then bid): the clock starts');
-  const a1 = await bid(alice, 1);
-  assert.equal(a1.reward, 1);
+  step('98 more wallets register; Bob is the 100th. Bidding is unlocked and registration is closed');
+  assert.equal(await registerWallets(rpc, d, 99), 99);
+  await bob.refresh();
+  await bob.register();
+  assert.equal(bob.auction().registrationCount, 100);
+  assert.equal(bob.auction().endsAt, 0, 'registering placed no bid: the clock has not started');
+  await carol.refresh();
+  await expectName(carol.register(), 'RegistrationClosed');
+  show(bob);
+
+  step('Alice bids 0.01 ETH, the reserve: one payable transaction. The 24h clock starts');
+  const a1 = await bid(alice, '0.01');
+  assert.equal(a1.reward, 10, 'one symbol per 0.001 ETH');
   assert.equal(alice.phase(), 'open');
-  show(alice, { reservedIds: `#${a1.firstId}` });
+  assert.equal(await W.balance(d.auction), 10n * UNIT);
+  show(alice, { reservedIds: `#${a1.firstId}–#${a1.lastId}` });
 
-  step('Bob bids $2 with ETH, batched: swap ETH to exactly $2 USDC in his wallet, approve, bid');
-  const drain = A.fn('transfer(address,uint256) returns (bool)');
-  const bobUsdc = (await rpc.view(d.usdc, A.F.erc20.balanceOf, [d.accounts[2]]))[0];
-  await rpc.send({ from: d.accounts[2], to: d.usdc, data: drain.encode([d.deployer, bobUsdc]) });
-  const bq = await bob.quote(2);
-  const eq = await bob.quoteEth(bq.shortfall);
-  const b1 = await bob.bid(bq, { payWith: 'eth', ethQuote: eq });
-  assert.equal(b1.batched, true);
-  assert.equal(b1.payWith, 'eth');
-  show(bob, { paidUpTo: KILIM_CHAIN.fmtEth(eq.ethMax), quoted: KILIM_CHAIN.fmtEth(eq.amountIn) });
+  step('Bob bids 0.02 ETH: Alice gets her 0.01 ETH back inside his transaction, and keeps her symbols');
+  const aliceBefore = await W.balance(d.accounts[1]);
+  const b1 = await bid(bob, '0.02');
+  assert.equal(b1.reward, 20);
+  assert.equal(await W.balance(d.accounts[1]), aliceBefore + 10n * UNIT, 'the refund arrived as ETH');
+  await alice.refresh();
+  assert.equal(alice.account().refund, 0n, 'nothing waits to be withdrawn');
+  assert.equal(alice.account().credits, 10);
+  assert.equal(await W.balance(d.auction), 20n * UNIT, 'the auction holds only the highest bid');
+  show(alice);
 
-  step('Carol’s quote goes stale twice: SymbolRangeMoved, then BidTooLow; each time she requotes');
-  let cq = await carol.quote(5);
-  await bid(alice, 3);
+  step('Carol (never registered: anyone may bid once 100 have) finds her quote stale twice: SymbolRangeMoved, then BidTooLow');
+  let cq = await carol.quote('0.05');
+  await bid(alice, '0.03');
   const moved = await expectName(carol.bid(cq), 'SymbolRangeMoved');
   console.log('    ', carol.explain(moved).message);
-  cq = await carol.quote(5);
-  await bid(alice, 6);
+  cq = await carol.quote('0.05');
+  await bid(alice, '0.06');
   const low = await expectName(carol.bid(cq), 'BidTooLow');
   console.log('    ', carol.explain(low).message);
   await carol.refresh();
@@ -102,8 +124,27 @@ try {
   const t = await expectName(bid(treasury, treasury.auction().minNext), 'TreasuryCannotBid');
   console.log('    ', treasury.explain(t).message);
 
+  step('A contract that cannot receive ETH bids. When Alice outbids it the refund is deferred, and it withdraws it to another address');
+  // The renderer contract has no receive function: the dev wallet impersonates it as a bidder.
+  await rpc.call('anvil_setBalance', [d.renderer, '0xde0b6b3a7640000']);
+  const vault = await W.as(d.renderer);
+  const v1 = await bid(vault, vault.auction().minNext);
+  await alice.refresh();
+  await bid(alice, alice.auction().minNext);
+  await vault.refresh();
+  const owed = vault.account().refund;
+  assert.equal(owed, BigInt(Math.round(v1.bid * 1000)) * UNIT, 'the push refund failed, so the whole bid waits');
+  assert.equal(vault.account().credits, v1.reward, 'its symbols stay');
+  show(vault);
+  const safe = d.accounts[5], safeBefore = await W.balance(safe);
+  await vault.withdrawRefund(safe);
+  assert.equal(await W.balance(safe), safeBefore + owed);
+  assert.equal(vault.account().refund, 0n);
+  await expectName(vault.withdrawRefund(safe), 'NothingToWithdraw');
+  console.log('    ', `withdrew ${KILIM_CHAIN.fmtEth(owed)} to ${safe.slice(0, 8)}`);
+
   step('Three late bids, each in the last 10 minutes: each moves the close to 10 minutes after it');
-  for (const who of [alice, carol, alice]) {
+  for (const who of [carol, alice, carol]) {
     await who.refresh();
     await W.warp(who.auction().endsAt - 300);
     await who.refresh();
@@ -113,30 +154,30 @@ try {
     show(who);
   }
 
-  step('Bob, outbid, was refunded in USDC inside the bid that beat him; his symbols stay');
-  await bob.refresh();
-  assert.equal(bob.account().refund, 0n, 'nothing waits to be withdrawn');
-  assert.equal(bob.account().credits, 2);
-  show(bob);
-
-  step('Carol tries to claim by hand to a contract that cannot hold NFTs: caught before signing');
-  const bad = await expectName(carol.claim({ to: d.usdc }), 'ERC721InvalidReceiver');
+  step('Carol tries to claim to a contract that cannot hold NFTs: caught before signing');
+  const bad = await expectName(carol.claim({ to: d.renderer }), 'ERC721InvalidReceiver');
   console.log('    ', carol.explain(bad).message);
 
-  step('The artist delivers every reserved symbol to its bidder, up to 64 per transaction');
-  await treasury.refresh();
-  let sent = 0;
-  for (;;) {
-    const a = treasury.auction();
-    if (a.symbolsReserved - a.symbolsClaimed <= 0) break;
-    const r = await treasury.deliver();
-    console.log(`     delivered ${r.delivered}`);
-    sent += r.delivered;
-    if (!r.delivered) break;
+  step('Nothing is sent automatically: each bidder claims their own symbols with claimSymbols, up to 64 per transaction');
+  await alice.refresh();
+  assert.equal(alice.auction().symbolsClaimed, 0, 'no symbol exists until its bidder claims it');
+  let minted = 0;
+  for (const who of [alice, bob, carol]) {
+    await who.refresh();
+    const credits = who.account().credits;
+    const r = await who.claimAll();
+    assert.equal(r.count, credits);
+    assert.equal(who.account().credits, 0);
+    assert.equal(who.holdings().length, credits);
+    console.log(`     ${who.account().address.slice(0, 8)} claimed ${r.count} in ${Math.ceil(r.count / 64)} transaction${r.count > 64 ? 's' : ''}`);
+    minted += r.count;
   }
-  for (const who of [alice, bob, carol]) { await who.refresh(); assert.equal(who.account().credits, 0); }
-  assert.equal(treasury.auction().symbolsReserved, treasury.auction().symbolsClaimed);
-  assert.equal(alice.holdings().length + bob.holdings().length + carol.holdings().length, sent);
+  // The contract bidder cannot hold NFTs either, so it claims to the address it withdrew to.
+  await vault.refresh();
+  minted += (await vault.claimAll({ to: safe })).count;
+  await alice.refresh(); await carol.refresh();
+  assert.equal(alice.auction().symbolsReserved, alice.auction().symbolsClaimed);
+  assert.equal(alice.auction().symbolsClaimed, minted);
   show(alice);
   show(carol);
 
@@ -154,8 +195,9 @@ try {
   assert.equal(carol.nameOf(g.id), 'Kilim Artwork #1');
   console.log('    ', `${carol.nameOf(g.id)} (token ${g.id}) · ${g.cols} × ${g.rows} · revision ${g.revision} · ${g.frozen ? 'frozen' : 'editable'}`);
 
-  step('The close passes: settling sends the 1/1 to the winner; the treasury withdraws');
+  step('The close passes: anyone settles, and settling sends the 1/1 to the winner. The treasury withdraws the winning bid in ETH');
   await alice.refresh();
+  await expectName(bob.settle(), 'AuctionNotEnded');
   await W.warp(alice.auction().endsAt);
   await bob.refresh();
   assert.equal(bob.phase(), 'ended');
@@ -163,11 +205,18 @@ try {
   const winner = [alice, carol].find((c) => c.auction().youWin);
   await winner.refresh();
   assert.equal(winner.phase(), 'settled');
-  assert.ok(winner.account().hasMasterpiece);
+  assert.ok(winner.account().hasMasterpiece, 'the 1/1 is in the winner\'s wallet');
+  assert.equal(winner.auction().prizeClaimed, true);
+  await expectName(winner.claimPrize(), 'PrizeAlreadyClaimed');
   await treasury.refresh();
   const due = treasury.auction().proceedsDue;
-  await treasury.withdrawProceeds();
-  show(winner, { proceedsWithdrawn: KILIM_CHAIN.fmtUsd(due) });
+  assert.equal(due, winner.auction().highRaw);
+  assert.equal(await W.balance(d.auction), due, 'every outbid bid went back: only the winning bid is left');
+  const payout = d.accounts[6], payoutBefore = await W.balance(payout);
+  await treasury.withdrawProceeds(payout);
+  assert.equal(await W.balance(payout), payoutBefore + due);
+  assert.equal(await W.balance(d.auction), 0n, 'the auction holds nothing');
+  show(winner, { proceedsWithdrawn: KILIM_CHAIN.fmtEth(due) });
 } finally {
   await W.anvil.stop();
 }
@@ -175,9 +224,10 @@ try {
 step('A second deployment with a 5-symbol pool: once it is used up, bids still count and pass 0 and 0');
 const S = await world({ symbolCap: 5n, maxSymbolsPerBid: 5n });
 try {
-  await S.warp(S.d.startsAt);
+  await openBidding(S.rpc, S.d);
   const alice = await S.as(1), bob = await S.as(2);
-  await bid(alice, 5);
+  const first = await bid(alice, '0.01');
+  assert.equal(first.reward, 5, 'the pool caps the reward');
   await bob.refresh();
   const q = await bob.quote(bob.auction().minNext);
   assert.equal(q.reward, 0n); assert.equal(q.minimumReward, 0n); assert.equal(q.expected, 0n);

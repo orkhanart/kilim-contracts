@@ -9,7 +9,7 @@
   "licenseSha256": "5168faffb767f4c28bf8c78ed189011870e452f58fb04a34a1f546f575d7608e",
   "auditUrl": "https://0xmacro.com/library/audits/thirdweb-15",
   "snapshot": "EnglishAuctionsLogic.sol.txt",
-  "adaptation": "src/auction/ERC20EnglishAuction.sol",
+  "adaptation": "src/auction/EnglishAuction.sol",
   "unchangedFunctions": [
     "_isNewWinningBid"
   ],

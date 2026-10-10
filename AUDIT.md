@@ -1,34 +1,105 @@
-> 8 October sponsored-registration update: see [NATIVE-ETH.md](docs/NATIVE-ETH.md). 232 contract tests, 29 site checks and 3 sponsor/browser tests passed locally. Fresh Slither results retain 1 High, 12 Low and 39 Informational findings. Sponsorship is not activated; independent final review and testnet rehearsal remain pending.
-
 # Kilim internal security review
 
-> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
-
-**Review dates:** September 18 and 26, 2026 UTC.  
-**Disposition:** Development implementation. **Not approved for a real-money launch.**  
+**Review dates:** September 18 and 26, 2026 and October 9, 2026 UTC.
+**Disposition:** Development implementation. **Not approved for a real-money launch.**
 **Reviewers:** Claude instances only: the agent that implemented the contracts, then separate review sessions and multi-agent review rounds with adversarial verification and mutation testing. This is not an independent audit, formal verification, or a guarantee of zero vulnerabilities. An independent human audit of the frozen commit is required before funding (K-08).
+
+The auction is native ETH only. Bids, refunds and proceeds are ETH; there is no other currency in the contracts. [docs/NATIVE-ETH.md](docs/NATIVE-ETH.md) describes the behaviour.
 
 ## Scope and evidence
 
-Reviewed, on the September 26 round, everything changed since the September 18 design (`git diff b731288..main`):
-
-- `src/auction/ERC20EnglishAuction.sol`: the auction base, with the thirdweb bid predicate.
+- `src/auction/EnglishAuction.sol`: the auction base, with registration, ETH escrow, refunds and the thirdweb bid predicate.
 - `src/KilimAuction.sol`: symbol credits, bid-time ID reservation, claims, the 1/1.
 - `src/Kilim.sol`: the ERC-721 collection, composition, royalties, the page-only owner role, renderer forwarding.
 - `src/render/KilimRenderer.sol`, `src/render/KilimWriter.sol`, `src/render/IKilimRenderer.sol`: the on-chain renderer and its data store.
 - `script/DeployKilim.s.sol` and `deploy/*.json`: deployment and its preflight refusals.
 - `onchain/pack_store.py` and `onchain/render_ref.py`: the store packer and the byte-exact reference renderer.
-- `site/` chain layer: bidding, pay-with-ETH, claims, weaving, as it calls the contracts.
 
 Exact source and build hashes are in `audit/build-manifest.json`. The auction base retains thirdweb's `_isNewWinningBid` predicate from the source identified in the 0xMacro A-15 report; the build checks that the retained function and denominator have not changed. [REUSE.md](REUSE.md) records provenance, license and behavioural changes.
 
-Methods: manual review; six independent review lenses (auction, collection, renderer, deploy, site, mutation) with two adversarial verifiers per medium-or-higher finding; stateful fuzzing including hostile re-entrant receivers; differential testing of the renderer against the Python reference; pixel comparison of the renderer's images with the site's drawing code in headless Chrome; mainnet-fork tests of the pay-with-ETH path; Slither 0.11.5; npm advisory scanning; the Solidity compiler's published bug list.
+Three rounds, each on the code as it stood then:
+
+- **September 18 and 26.** Manual review; six review lenses (auction, collection, renderer, deploy, site, mutation) with two adversarial verifiers per medium-or-higher finding; stateful fuzzing with hostile re-entrant receivers; differential testing of the renderer against the Python reference; pixel comparison of the renderer's images with the site's drawing code; Slither 0.11.5; npm advisory scanning; the Solidity compiler's published bug list. The collection and the renderer have not changed since. The auction has.
+- **October 9.** The full audit of the native-ETH auction: eight lenses, 27 merged findings, each checked by a refuter and, above info, a Foundry reproduction. See the next section and [audit/full-audit-2026-10-09.md](audit/full-audit-2026-10-09.md).
+- **After October 9.** The auction was reduced to ETH only: everything the audit had read that did not belong to the ETH path was deleted, and the queue that minted symbols on a bidder's behalf went with it. That removal was checked by the build, the tests, the formatter and Slither. **No review round has read the result.**
 
 Not covered: deployed bytecode, live wallets beyond the test wallet, marketplace rendering on a real marketplace, legal terms, or a mainnet deployment. No transaction was broadcast and no private key was used.
 
 ## Launch configuration under review
 
-Ethereum mainnet (chain 1). Payment in USDC (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`, 6 decimals); the site can swap ETH to USDC into the bidder's own wallet first. Opening bid $1, each new bid at least 10% higher, rounded up to whole dollars. The 24-hour clock starts at the first bid; a bid in the last 10 minutes resets the close to 10 minutes after it, with no limit; with no bids the auction never ends. Every accepted bid earns $1 = 1 symbol, including bids later outbid; supply cap 1,000,000 and no per-bid cap. Treasury and collection page owner: orkhanart.eth, `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`. Royalties 5% (ERC-2981). Art fully on-chain. The deploy script refuses any other values on chain 1.
+Ethereum mainnet (chain 1), native ETH.
+
+- **Registration.** From `startsAt`, the first 100 wallets register with `register()` or, through a sponsor, `registerFor(wallet, deadline, signature)`. A wallet must hold at least 0.01 ETH when it registers; nothing is deposited. Bidding opens only when the count is exactly 100.
+- **Bids.** `bid` is payable and `msg.value` must equal the bid. The opening bid is 0.01 ETH. Each new bid is at least 10% higher, rounded up to a whole 0.001 ETH: 0.01, 0.011, 0.013, 0.015, 0.017 and so on.
+- **Clock.** The 24-hour clock starts at the first bid. A bid in the last 10 minutes moves the close to 10 minutes after it, with no limit. With no bids the auction never ends.
+- **Symbols.** Every accepted bid earns one symbol credit per 0.001 ETH, including bids later outbid, up to 1,000,000 symbols in total and with no smaller per-bid cap. The bidder mints them with `claimSymbols`, up to 64 per transaction. Nothing mints symbols for a bidder.
+- **Refunds and the 1/1.** The outbid bidder is paid back inside the bid that beats theirs; `withdrawRefund` is the fallback. `settle()` sends the 1/1 to the winner; `claimPrize` is the fallback.
+- **Roles.** Treasury and collection page owner: orkhanart.eth, `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`. The treasury withdraws the winning bid and cannot bid. Royalties 5% (ERC-2981). Art fully on-chain.
+
+The deploy script refuses any other auction setting on chain 1.
+
+## October 9, 2026 audit
+
+Source: [audit/full-audit-2026-10-09.md](audit/full-audit-2026-10-09.md), with evidence, proof-of-concept sources and suggested fixes in `audit/full-audit-2026-10-09.json`. Finding numbers below are that report's.
+
+### Fixed, with tests
+
+| ID | Severity | Finding | Fix | Test |
+| --- | --- | --- | --- | --- |
+| F-01 | High | The current top bidder could make a rival's bid run out of gas by switching its refund receiver between cheap and gas-burning after the rival's wallet had estimated gas. | `_refundOutbid` reverts with `InsufficientGas` unless the bid still carries `REFUND_GAS + REFUND_GAS / 63 + 60_000` gas. The gas a bid needs no longer depends on the outbid wallet's code. | `test/GasFloors.t.sol`: `testLeaderCannotMakeARivalsBidRunOutOfGas`, `testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes` |
+| F-02 | Medium | A `settle()` call with little gas skipped sending the 1/1. A contract winner that cannot call `claimPrize` would have lost it. | `_afterSettle` reverts with `InsufficientGas` unless `PRIZE_GAS + PRIZE_GAS / 63 + 50_000` gas is left. The revert undoes the settlement and anyone can call `settle()` again. | `test/GasFloors.t.sol`: `testLowGasSettleCannotSkipThePrize` |
+
+`REFUND_GAS` is 150,000 and `PRIZE_GAS` is 500,000.
+
+### Accepted by the artist on October 9
+
+These are properties of the design. They were confirmed, reproduced and left as they are. Each must be said plainly to bidders.
+
+- **F-04 (Medium): one wallet can take the whole symbol pool for gas.** A wallet that outbids itself gets its ETH back when outbid and keeps every symbol it reserved. Climbing the minimum steps from 0.01 ETH, 93 bids reserve all 1,000,000 symbols and end with a top bid of about 93.9 ETH. A wallet that does this and is then outbid has paid only gas. If nobody outbids it, it has bought the 1/1 at that price. This is K-01 with the ETH numbers.
+- **F-03 (Medium): one actor can fill the 100 registrations and choose when the clock starts.** Registration checks a balance, not a person. The same 0.01 ETH can be passed through 100 addresses in one transaction the moment `startsAt` passes, and the opening bid can follow in that transaction. Registration therefore protects nothing and reserves no place for real supporters.
+- **F-10 (Low): bidding never opens below 100 registrations.** There is no fallback date. If the count stops at 99, the auction stays closed for good. The artist will keep promoting until the count is reached.
+
+### Open
+
+Not fixed. Each is either a decision to take before the code is frozen, a test to add, or something the site, the sponsor service or the runbook must handle.
+
+| ID | Severity | Finding |
+| --- | --- | --- |
+| F-05 | Medium | No test pins the upper bound of `REFUND_GAS` or `PRIZE_GAS`. Tests now show that a gas-burning refund receiver is deferred and a gas-burning winner falls back to `claimPrize`, but none asserts a ceiling on the gas used, so both caps could still be raised and the tests would pass. |
+| F-06 | Low | An outbid contract bidder can make each rival pay about 140,000 to 180,000 extra gas per bid, because `REFUND_GAS` is far more than a normal ETH receiver needs. |
+| F-07 | Low | A self-outbid ladder placed in front of someone's pending jump bid farms symbols at no risk. Follows from F-04. |
+| F-08 | Low | `registerFor`: the ERC-1271 check has no gas cap and signatures can be copied from the mempool, so an attacker can burn the sponsor's gas and budget. A matter for the sponsor service. |
+| F-09 | Low | Wallets with code (EIP-7702-delegated accounts, some smart accounts) cannot use the sponsored path, and the site offers no direct `register()` button when a sponsor is configured. |
+| F-11 | Low | The `registered` flag means nothing on-chain and can be captured by one actor. Never build a perk or an allowlist on it. |
+| F-13 | Low | The page-owner key can change the royalty receiver or point the collection page at a hostile link. |
+| F-14 | Low | The deploy script does not pin the motif set or measure `tokenURI` read gas. The packed store still has 812 motifs while the decision is 1,024. |
+| F-18 | Low | No test rebuilds the EIP-712 domain and type string for `registerFor` independently. |
+| F-19 | Info | Forced ETH is locked for good. So is a refund owed to a bidder contract that can neither receive ETH nor call `withdrawRefund`. |
+| F-21 | Info | `payOutbidRefund` and `deliverPrize` rely only on `msg.sender == address(this)`. `deliverPrize` has no `settled` check of its own. |
+| F-22 | Info | Registration signatures have no upper bound on `deadline` and cannot be revoked. They can only register the signing wallet. |
+| F-23 | Info | Once the count is 100, any wallet except the treasury can bid, registered or not. Intended. |
+| F-24 | Info | A bid has no deadline. A pending transaction can land much later at the amount the bidder signed. |
+| F-26 | Info | On chain 1 the script accepts any nonzero inspection window, and config integers are narrowed without a range check. |
+| F-27 | Info | Small surviving mutants: the deadline boundary, the `Registered` count, a 2,300-gas ETH payout, refund and collect order, the `withdrawProceeds` guard. |
+
+### Closed by tests added after the audit
+
+- **F-15.** `test/KilimAuction.t.sol`, `test/LaunchConfig.t.sol`, `test/Lifecycle.t.sol` and `test/AuctionInvariants.t.sol` now run against the ETH auction: extension and close, increment and unit, the treasury ban, prize delivery and its fallback, deferred-refund accounting, and stateful invariants with receivers that reject ETH, burn gas or refuse NFTs.
+- **F-16.** `testRegistrationIsClosedBeforeStartsAt` and `testTreasuryCannotRegister` in `test/SponsoredRegistration.t.sol`. `register()` and `registerFor()` revert with `RegistrationClosed` one second before `startsAt` and succeed at `startsAt`. A treasury registration reverts with `TreasuryCannotBid` on both paths. Removing either check from the contract makes the matching test fail.
+- **F-17.** `testConstructorRejectsInvalidConfiguration` refuses a reserve above, below and a whole-unit multiple away from 0.01 ETH.
+
+These tests were written by Claude instances after the audit and have not been reviewed.
+
+### Closed by removing code
+
+- **F-12** concerned the queue that minted symbols for bidders. It is deleted.
+- **F-20** concerned the same queue being written on every bid, and a README that said symbols arrive by themselves. The queue is deleted and the docs say bidders claim.
+- **F-25** concerned checklists that described another launch. They are rewritten for ETH: see `checklists/`.
+- The parts of F-16 and F-17 that named the removed mode no longer apply.
+
+### Still a launch blocker
+
+**An independent human audit.** The October 9 audit was done by Claude instances. It is not independent, and it read the code before the removal. See K-08.
 
 ## Open findings
 
@@ -36,29 +107,9 @@ Ethereum mainnet (chain 1). Payment in USDC (`0xA0b86991c6218b36c1d19D4a2e9Eb0cE
 
 Location: `KilimAuction.bid()` and `rewardForBid()`.
 
-A bidder keeps symbol credits after getting all of their losing principal back. Cooperating wallets can alternate increasing bids and recycle refunds, and a single wallet can outbid itself. With the launch settings there is no binding cap, so this cannot exhaust a pool; it inflates supply instead. One wallet adds symbols only by holding the top bid, which it pays for if nobody outbids it. When bids climb in minimum steps, total supply ends up about 11 times the final price.
+A bidder keeps symbol credits after getting all of their losing ETH back. Cooperating wallets can alternate rising bids and recycle refunds, and a single wallet can outbid itself. The 1,000,000 cap is binding: along the minimum steps the pool is exhausted at the 93rd bid, about 93.9 ETH (F-04 above). After that, bids still count for the 1/1 and earn no symbols. When bids climb in minimum steps, the symbols issued are about 11 times the final price counted in 0.001 ETH.
 
-**Status:** Accepted by the owner (September 18 and 25, 2026) as the intended incentive. Nonrefundable purchases, increment-only rewards and winner-only rewards were offered and declined. Disclose the mechanism plainly; do not advertise $1 of net revenue per symbol.
-
-### K-09 — Launch blocker: automatic refunds and prize delivery are new and unreviewed; symbol delivery is off for the ETH launch
-
-> **Corrected 9 October 2026.** For the native-ETH launch, symbols are **not** delivered automatically. Since 8 October `deliverSymbols` refuses to run when the payment asset is ETH (`KilimAuction.sol:177-179`, reverting `Unauthorized`), and bidders mint their own symbols with `claimSymbols`. `test/NativeRegistration.t.sol:160-161` holds it to that, and a full run on the local test bench (`scripts/bench.mjs`) showed a bidder owning no symbols until they claimed. See [NATIVE-ETH.md](docs/NATIVE-ETH.md), "Custody and claims".
->
-> What is still automatic in ETH mode, and so still in scope for this finding: the refund of an outbid bid, paid inside the bid that beats it, and the hand-over of the 1/1 at settlement. Both keep their pull fallback (`withdrawRefund`, `claimPrize`).
->
-> The delivery code (`deliverSymbols`, `deliverTo`, the queue and its cursor) is still compiled into the contract for the legacy ERC-20 mode. It is unreachable in ETH mode but remains code an auditor must read. Open decision before the code is frozen: remove it, or keep it and have it reviewed.
->
-> The text below describes the 28 September design, when delivery was automatic in every mode. Its test counts and its "no bidder needs to claim" wording predate the ETH change.
-
-Location: `ERC20EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction.deliverSymbols()` / `deliverTo()`, `KilimAuction._afterSettle()` / `deliverPrize()`.
-
-Settlement also sends the 1/1 to the winner (a self-call capped at 500k gas); if the winner's wallet rejects it, settle still succeeds (`PrizeDeliveryFailed`) and the winner uses `claimPrize(to)`.
-
-Added September 28 at the artist's request, so no bidder needs to claim or withdraw. An outbid bid is paid back inside the bid that beats it, through a gas-capped (150k) call the auction makes to itself; any failure (blacklist, a token that skims payouts, a hook) is caught and the amount becomes a pull refund as before, so an address that cannot receive never blocks bidding. `deliverSymbols(max)` walks a queue of bidders in bid order and mints each one's pending symbols through a self-call capped at 150k gas per symbol; a wallet that rejects the tokens or burns its allowance is skipped (`DeliveryFailed`) and keeps its credits for `claimSymbols`. With too little gas left for the next wallet's full allowance the call stops without skipping, so a low gas limit cannot be used to skip wallets. Anyone may call it; the treasury pays the gas (about 1.93M for 64 symbols).
-
-Residual risks: a caller who under-funds the outer call stops the run early (no harm); the per-symbol gas cap could skip a legitimate contract wallet with an expensive receiver hook, which then claims by hand; the queue grows with every rewarded bid (walking empty entries is bounded at 256 per call). Both self-calls are external functions callable only by the auction (`Unauthorized` otherwise), and every state-changing entry point stays `nonReentrant`.
-
-**Status:** 213 contract tests pass, including new delivery tests and invariants that fuzz deferred refunds and deliveries; Slither has no medium or high findings, with one documented suppression for the delivery cursor written after the guarded self-calls. The September 26 review rounds and mutation testing do **not** cover this code: repeat them before freezing.
+**Status:** Accepted by the owner (September 18 and 25, and again on October 9, 2026, for the ETH numbers) as the intended incentive. Nonrefundable purchases, increment-only rewards and winner-only rewards were offered and declined. Disclose the mechanism plainly; do not advertise 0.001 ETH of net revenue per symbol.
 
 ### K-02 — Medium, reduced: symbol traits are public and deterministic
 
@@ -80,32 +131,24 @@ Open:
 
 - **Assembly.** `KilimWriter` and parts of `KilimRenderer` write memory by pointer for gas reasons. Every writer documents its overrun and slack, and exact-length postconditions guard every document; two review rounds found no defect. This is exactly the code that most needs an independent human review.
 - **Read cost.** Reading the 1/1 costs about 22.4M gas and the heaviest possible artwork about 30.4M. Some public RPC endpoints cap `eth_call` at 25M, so those artworks would show blank there; marketplaces use their own infrastructure. Symbols cost at most about 0.48M.
-- **Content.** The symbol set is not final. The packer enforces format and scale limits and prints the remaining budget: about 90 more median-size symbols before the 1/1 reaches 24M. Only symbols the artist has rights to may go on-chain; some research images are third-party reference material.
+- **Content.** The symbol set is not final: the decision is 1,024 motifs and the packed store holds 812. The packer enforces format and scale limits and prints the remaining budget: about 90 more median-size symbols before the 1/1 reaches 24M, which is far fewer than the 212 still to add. Only symbols the artist has rights to may go on-chain; some research images are third-party reference material.
 - **Look.** The artist has not yet approved the rendered palette, still image, names and descriptions, and no real marketplace has displayed the media yet.
-
-### K-04 — Medium, external: USDC issuer controls
-
-Location: every token transfer in `ERC20EnglishAuction`.
-
-Exact balance-change checks reject fee-on-transfer behaviour, and SafeERC20 handles false return values. Neither protects against issuer action. Checked on-chain on September 25, 2026: USDC is an upgradeable proxy, `paused()` is false, and `isBlacklisted` exists. Circle can pause all transfers, blacklist this escrow, or upgrade the token; an upgrade adding fees or hooks would make every payout revert with `UnsupportedTokenBehavior`. Accounting would stay correct, but refunds and proceeds would be unavailable until the issuer acted. Bidders who pay with ETH depend on Uniswap and the site's read node for the swap price; the site refuses a quote outside a configured ETH/USD band.
-
-**Status:** Accepted external risk, to be disclosed. Monitoring alerts are in the post-deploy checklist.
 
 ### K-05 — Low: timing relies on block timestamps, and extensions have no absolute end
 
-Bidding opens at `startsAt`, the close is set by the first bid, and each late bid moves it to 10 minutes after that bid, with no limit; the only bound is the uint64 timestamp. Timestamps are never used as entropy. A network outage near the close may prevent a bid being answered; there is no administrator restart or cancellation. With no bids, `settle()` reverts with `NoBids` and the 1/1 is never minted.
+Registration opens at `startsAt`, bidding opens at the 100th registration, the close is set by the first bid, and each late bid moves it to 10 minutes after that bid, with no limit; the only bound is the uint64 timestamp. Timestamps are never used as entropy. A network outage near the close may prevent a bid being answered; there is no administrator restart or cancellation. With no bids, `settle()` reverts with `NoBids` and the 1/1 is never minted.
 
-**Status:** Documented behaviour. The three Slither timestamp findings are retained, not suppressed.
+**Status:** Documented behaviour. The Slither timestamp findings are retained, not suppressed.
 
-### K-06 — Low: accidental asset donations have no recovery path
+### K-06 — Low: ETH that arrives outside a bid has no recovery path
 
-Direct ERC-20 transfers and forced ETH create no refunds, credits or proceeds, and there is no rescue function, so they stay locked. This avoids any administrative path to assets backing claims.
+The auction has no `receive` or fallback function, so a plain transfer reverts. ETH forced in (for example by a self-destructing contract) creates no refund, credit or proceeds, and there is no rescue function, so it stays locked. This avoids any administrative path to the ETH that backs refunds and proceeds.
 
-**Status:** Deliberate. The site only uses `bid()` with an exact approval.
+**Status:** Deliberate. The only way to pay is `bid()`.
 
 ### K-07 — Medium trust risk, partly mitigated: seller self-bidding
 
-The treasury address cannot bid (`TreasuryCannotBid`). A seller can still bid from other wallets; that is undetectable on-chain.
+The treasury address cannot bid or register (`TreasuryCannotBid`). A seller can still bid from other wallets; that is undetectable on-chain.
 
 **Status:** Disclosure matter.
 
@@ -113,35 +156,57 @@ The treasury address cannot bid (`TreasuryCannotBid`). A seller can still bid fr
 
 Still required before funding:
 
-- an independent human audit of the frozen commit, with the renderer's assembly as the priority;
-- a Sepolia rehearsal through the website with real wallets;
+- an independent human audit of the frozen commit, covering the ETH auction after the removal and with the renderer's assembly as a priority;
+- a Sepolia rehearsal through the website with real wallets, including the 100 registrations;
 - the final symbol set and the resulting hashes, published before deployment;
 - the published deployer nonce and an inspection window before `startsAt`.
 
-## Protections verified
+### K-09 — Launch blocker, reduced: the automatic refund and prize delivery have had one internal round and no independent one
 
-- **Solvency and liveness.** Stateful fuzzing on the launch rules, at supply caps of 150, 5,000 and 1,000,000, included a hostile receiver that re-enters every entry point. Balance always equals liabilities plus donations, refunds match an independent ledger, and credits are conserved. Every refund, credit, proceeds withdrawal and prize claim can always complete. A blocked or reverting receiver fails only its own call.
-- **Bid rules.** `minimumBid()` is exactly the smallest acceptable whole-unit bid across 0–18 decimals and every increment, and the launch ladder is $1, 2, 3 … 10, 11, 13, 15, 17. The clock starts at the first bid. A late bid never shortens the close, including at the exact one-second boundary. Settlement and bidding cannot overlap. The treasury cannot bid.
+Location: `EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction._afterSettle()` / `deliverPrize()`.
+
+An outbid bid is paid back inside the bid that beats it, through a call the auction makes to itself with 150,000 gas. Any failure (a wallet that rejects ETH, a receiver that burns the gas) is caught: the amount is recorded in `refunds`, `RefundDeferred` is emitted and the bidder calls `withdrawRefund(to)`. An address that cannot receive ETH therefore never blocks bidding. Settlement sends the 1/1 to the winner through a self-call with 500,000 gas; if the winner's wallet rejects it, `settle()` still succeeds, `PrizeDeliveryFailed` is emitted and the winner calls `claimPrize(to)`.
+
+Both self-calls are external functions callable only by the auction (`Unauthorized` otherwise), and every state-changing entry point is `nonReentrant`. Both now have a gas floor (F-01, F-02).
+
+Residual risks: the caps are larger than needed (F-06) and their upper bounds are untested (F-05); a legitimate contract wallet with an expensive receiver is deferred and withdraws or claims by hand.
+
+**Status:** Read by the October 9 audit. Not read by anyone since the removal, and never by an independent reviewer.
+
+## Retired findings
+
+- **K-04, issuer controls of the payment currency** (pause, blacklist, upgrade, transfer fees). Retired. The auction holds ETH only. No issuer can pause, freeze or change what the escrow holds, and there is no transfer that can take a fee.
+- The parts of K-06 and K-09 about donated tokens and about minting symbols on a bidder's behalf. Retired with the code.
+
+## Protections
+
+Verified on the September 26 build and unchanged since, because `Kilim.sol` and `src/render` did not change:
+
 - **Supply and IDs.** Each symbol ID is reserved once at bid time and minted once, and a burned ID can never be minted again. Symbol, artwork and 1/1 IDs are disjoint. Only the immutable auction can mint, and the 1/1 mints at most once.
 - **Composition.** Approved operators cannot weave, expand or freeze someone else's tokens. Duplicate, missing, foreign or already-burned sources revert atomically, and expansion keeps every earlier source exactly once. Artwork cells are packed 8 per storage slot and unpack exactly.
 - **Page owner role.** It can only edit collection text and links, change the royalty receiver, and hand over or renounce the role. It cannot mint, move or burn tokens, change art, or touch funds. Collection JSON is escaped.
 - **Renderer.** It is byte-identical to the Python reference for every motif path, every symbol, 46 artwork layouts in all three looks, the 1/1 still and page, and every metadata document, plus 70 random differential cases. Its images match the site's drawing code within anti-aliasing for all 812 symbols and all 46 artworks. It works unchanged for stores of 700 and 912 motifs, and every store corruption case is refused.
-- **Deployment.** On chain 1 the script refuses any setting other than the launch values. It also refuses a skipped nonce check, a zero inspection window, and the one-shot `run()`. On every chain it refuses mismatched hashes, counts, code or chain.
-- **Site.** Bids go from the bidder's own account, never through a router. Approvals go only to the auction, for the exact amount. The ETH swap is exact-output into the bidder's wallet, bounded by slippage and a price band. Every sequential step re-checks the network and account. Log results are filtered by owner.
+
+Covered by tests that run against the ETH-only auction today:
+
+- **Registration** (`test/NativeRegistration.t.sol`, `test/SponsoredRegistration.t.sol`). A wallet below 0.01 ETH and a duplicate are refused, and so are a registration before `startsAt` and one by the treasury. Bids before the 100th registration revert. The 100th registration takes no deposit, earns nothing and does not start the clock; the 101st reverts. A signature cannot be replayed on another chain or auction, changed to another wallet or deadline, or used after its deadline. Direct and sponsored registration share one replay guard.
+- **Payment.** A bid whose `msg.value` differs from its amount reverts and changes nothing. Refunds and proceeds are paid in full. A receiver that rejects ETH neither blocks bids nor loses its refund. Nobody but the auction can call the refund self-call, and callbacks cannot re-enter.
+- **Gas floors** (`test/GasFloors.t.sol`). See F-01 and F-02 above.
+
+- **Bid rules, clock and settlement** (`test/KilimAuction.t.sol`, `test/LaunchConfig.t.sol`, `test/ReuseRegression.t.sol`). `minimumBid()` is the smallest accepted whole-unit bid; the launch ladder starts 0.01, 0.011, 0.013 ETH; a late bid never brings the close forward, including at the last second; with no bids nothing settles; the treasury cannot bid; a winner that rejects the 1/1 or burns gas cannot block settlement or proceeds.
+- **Solvency** (`test/AuctionInvariants.t.sol`). Under stateful fuzzing with hostile receivers the balance always covers `liabilities()`, credits are never created twice or above the cap, and reserved IDs match credits.
+- **Deployment** (`test/DeployKilim.t.sol`). The script's refusals, and the pinned chain-1 values.
+
+These auction tests were ported from the September suite to the ETH-only contracts after the October 9 audit. They pass; no review round has read them.
 
 ## Verification results
 
-- **Tests: 202 pass in the CI profile.** That includes 13 fuzz tests at 4,096 runs each and 6 invariants at 256 runs × 128 calls, with zero handler reverts. Beyond that:
-  - site: 44 tests pass, plus 1 mainnet-fork test that passes when run against mainnet;
-  - page and image comparison: 21 tests pass;
-  - packer: 8 tests;
-  - alternative geometries: 55 tests on each;
-  - FFI differential: 70 cases.
-- **Mutation testing:** 169 of 177 mutants killed. The other 8 are equivalent, so every non-equivalent mutant is caught. The first run killed 135; tests were then added for every non-equivalent survivor. Per-mutant results are in `audit/mutation.txt`.
-- **Slither:** 30 contracts, 101 detectors. **No high or medium findings.**
-  - 4 low: 3 reviewed timestamp comparisons, and 1 calls-loop in `claimSymbols` (one call per reserved range, bounded by the 64-symbol batch).
-  - 37 informational: mostly the documented assembly and naming.
-- **Gas** (execution before refunds):
+- **Tests, October 9, after the removal:** the forge suite ran 19 suites in the default profile and in the `ci` profile, **236 tests passed, 0 failed** in each. That is a working-tree result, not a frozen commit. Rerun `pnpm test:ci` at the freeze and record it; counts quoted in older logs under `audit/` belong to earlier code.
+- **Slither** on the ETH-only sources: **no high or medium findings**, 9 low and 39 informational.
+  - Low: 5 timestamp comparisons, 2 events emitted after a call, 1 benign reentrancy (the deferred-refund bookkeeping after the guarded self-call) and 1 calls-loop in `claimSymbols` (one call per reserved range, bounded by the 64-symbol batch).
+  - One suppression, on `_pay`: Slither reports that the ETH recipient is chosen by the caller. Every caller pays only what is owed: an outbid bidder's own bid, a refund to the address its owner names, or the proceeds to the address the treasury names.
+- **Mutation testing:** no full run on the ETH-only auction. A hand check on October 9 changed 22 single lines of the auction, one at a time (the payment equality, both gas floors, the refund ledger, the extension rule, bid rounding, the treasury and registration gates, the self-call guards, settlement timing, the reserve rule). Every one fails at least one test; the two registration gates of F-16 survived until its tests were added. The September result (169 of 177 killed, the rest equivalent, in `audit/mutation.txt`) covers the collection and renderer as they are and an auction that has since changed. F-27 lists the mutants the October 9 audit found alive.
+- **Gas**, measured September 26 (execution before refunds). The claim path, the collection and the renderer have not changed since; re-measure on Sepolia.
 
   | Action | Gas |
   | --- | --- |
@@ -149,6 +214,8 @@ Still required before funding:
   | 64-symbol claim across three bids | 1,929,492 |
   | 256-cell weave | 9,771,795 |
   | 4-to-256-cell expansion | 9,469,352 |
+
+  A bid that outbids someone must still have about 212,000 gas left when it reaches the refund, or it reverts with `InsufficientGas`. A `settle()` call must have about 558,000 left at the prize step.
 
   Reads through `tokenURI`:
 
@@ -160,21 +227,32 @@ Still required before funding:
   | The 1/1 | 22.4M |
 
   A full deployment is about 45.9M gas, with every transaction under 8M. Details are in `audit/gas-render.txt`.
-- **Sizes** (runtime bytes; limit 24,576):
+- **Sizes** (bytes; runtime limit 24,576, initcode limit 49,152), from `audit/build-manifest.json`:
 
   | Contract | Runtime | Initcode |
   | --- | --- | --- |
-  | Kilim | 15,314 | — |
+  | Kilim | 15,314 | 17,031 |
   | KilimRenderer | 17,007 | — |
-  | KilimAuction | 8,424 | 27,666 |
+  | KilimAuction | 10,967 | 30,349 |
 
-- **Records:** results are retained in `audit/tests.txt`, `audit/lifecycle.txt`, `audit/slither-summary.json`, `audit/mutation.txt`, `audit/gas-render.txt`, `audit/build.txt`, `audit/dependency-audit.json` and `audit/build-manifest.json`.
+- **Records:** `audit/full-audit-2026-10-09.md` and `.json`, `audit/slither-summary.json`, `audit/build-manifest.json`, `audit/mutation.txt`, `audit/gas-render.txt`, `audit/dependency-audit.json`. The other logs under `audit/` are dated records of earlier builds and are not regenerated.
 
 These are local EVM tests and internal reviews. They do not prove the absence of bugs, and they are not a substitute for K-08.
 
 ## Primary references
 
 - [Solidity 0.8.37 release](https://www.soliditylang.org/blog/2026/09/10/solidity-0.8.37-release-announcement/). The bug list snapshot in `audit/compiler-bugs.json` had no entry applicable to 0.8.37 at review time.
-- [OpenZeppelin ERC-721](https://docs.openzeppelin.com/contracts/5.x/api/token/erc721) and [SafeERC20](https://docs.openzeppelin.com/contracts/5.x/api/token/erc20).
+- [OpenZeppelin ERC-721](https://docs.openzeppelin.com/contracts/5.x/api/token/erc721) and [EIP-712 and signature checking](https://docs.openzeppelin.com/contracts/5.x/api/utils/cryptography).
 - [thirdweb A-15 audit and exact reference hashes](https://0xmacro.com/library/audits/thirdweb-15), its [preceding A-6 review](https://0xmacro.com/library/audits/thirdweb-6), and the [historical buyout incident report](https://blog.thirdweb.com/2023-09-09-vulnerability-auctions-with-a-buyout-price/). None of them audits this adaptation.
 - [EIP-7825](https://eips.ethereum.org/EIPS/eip-7825), the per-transaction gas cap of 16,777,216.
+
+## October 10, 2026 re-audit (ETH-only)
+
+After the token mode was removed, three reviewers re-read the contracts: one compared every ETH path line by line with the version audited on October 9 and found no behaviour change beyond lower gas; one re-derived funds, re-entry and liveness; one mutation-tested the ported suite. Twenty findings, listed in `audit/eth-only-reaudit-2026-10-10.md`. Fixed the same day:
+
+- **R-06 (medium), fixed.** A holder could settle from inside a `weave` callback; the collection's own guard then rejected the prize mint and settlement stood without the 1/1. `Kilim.mintMasterpiece` no longer shares the collection's guard (it is auction-only and one-shot). Test: `testSettlingFromInsideAWeaveCallbackStillSendsThePrize`, which fails with the guard restored.
+- **R-07 (medium, future fork), reduced.** The gas kept back for recording a deferred refund was 60,000 against about 47,000 used; a repricing of new storage (EIP-8037) would exceed it and reopen F-01. The reserve is now 300,000. Re-measure on any new fork's rules before deploying.
+- **R-08 (low), fixed in the site.** The page sets the gas limit itself for a bid (800,000) and for settle (900,000), and explains `InsufficientGas` in plain words.
+- **R-13 (low), fixed.** `testProceedsCannotGoToAnInvalidRecipient`.
+
+Still open, all low or informational: untested upper and lower bounds on the gas constants (R-11, R-12), `nonReentrant` on `withdrawProceeds` and `claimPrize` untested (R-14), the EIP-712 domain not rebuilt independently in a test (R-15), a few events and constructor edges unasserted (R-16 to R-18), and the unreachable `startsAt` clause in `_handleBid` (R-03). None of this code has had an independent human review; that remains a launch blocker.

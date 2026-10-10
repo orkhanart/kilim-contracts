@@ -27,10 +27,6 @@ interface VmDeploy {
     function toString(address) external pure returns (string memory);
 }
 
-interface IERC20Decimals {
-    function decimals() external view returns (uint8);
-}
-
 /// @title DeployKilim
 /// @notice Deploys Kilim in the published order, and refuses before sending anything if a check fails:
 ///           1. runStore():   the STORE chunks through the deterministic CREATE2 deployer (any already
@@ -62,13 +58,10 @@ contract DeployKilim {
 
     // The decided launch settings (checklists/1-pre-deploy.md). On chain 1 any other value is refused.
     uint256 public constant MAINNET_CHAIN_ID = 1;
-    /// @notice Native ETH on Ethereum mainnet, 18 decimals.
-    address public constant LAUNCH_PAYMENT_TOKEN = address(0);
-    uint8 public constant LAUNCH_TOKEN_DECIMALS = 18;
     /// @notice orkhanart.eth: the treasury, royalty receiver and collection-page owner.
     address public constant LAUNCH_TREASURY = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     address public constant LAUNCH_COLLECTION_OWNER = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
-    /// @notice The 100th registration places the 0.01 ETH opening bid.
+    /// @notice The opening bid, 0.01 ETH: the only reserve the auction constructor accepts.
     uint256 public constant LAUNCH_RESERVE_PRICE = 0.01 ether;
     /// @notice Each raise at least +10%.
     uint16 public constant LAUNCH_INCREMENT_BPS = 1000;
@@ -93,7 +86,6 @@ contract DeployKilim {
         bytes32 pageHash;
         /// @dev Zero until the renderer is deployed and its hash published; required by the auction phase.
         bytes32 rendererHash;
-        uint8 tokenDecimals;
         /// @dev The inspection window: `startsAt` must be at least this many seconds after deployment.
         ///      Must be nonzero on chain 1.
         uint256 minLeadSeconds;
@@ -144,9 +136,7 @@ contract DeployKilim {
         c.indexHash = vm.parseJsonBytes32(j, ".expected.indexHash");
         c.pageHash = vm.parseJsonBytes32(j, ".expected.pageHash");
         c.rendererHash = vm.parseJsonBytes32(j, ".expected.rendererHash");
-        c.tokenDecimals = uint8(vm.parseJsonUint(j, ".auction.tokenDecimals"));
         c.minLeadSeconds = vm.parseJsonUint(j, ".minLeadSeconds");
-        c.auction.paymentToken = vm.parseJsonAddress(j, ".auction.paymentToken");
         c.auction.treasury = vm.parseJsonAddress(j, ".auction.treasury");
         c.auction.collectionOwner = vm.parseJsonAddress(j, ".auction.collectionOwner");
         c.auction.startsAt = uint64(vm.parseJsonUint(j, ".auction.startsAt"));
@@ -343,18 +333,8 @@ contract DeployKilim {
         a.geometryHash = c.geometryHash;
         a.rendererHash = c.rendererHash;
         a.renderer = address(renderer);
-        if (a.paymentToken == address(0)) {
-            if (c.tokenDecimals != 18) revert Refused("token decimals");
-        } else {
-            if (a.paymentToken.code.length == 0) revert Refused("payment token has no code");
-            if (IERC20Decimals(a.paymentToken).decimals() != c.tokenDecimals) {
-                revert Refused("token decimals");
-            }
-        }
-        uint256 unit = a.paymentToken == address(0) ? 0.001 ether : 10 ** c.tokenDecimals;
-        if (a.reservePrice == 0 || a.reservePrice % unit != 0) {
-            revert Refused("reserve price");
-        }
+        // On every chain: the auction constructor accepts no other reserve (its REGISTRATION_BALANCE).
+        if (a.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("reserve price");
         if (a.startsAt < block.timestamp + c.minLeadSeconds || a.startsAt > block.timestamp + MAX_LEAD) {
             revert Refused("startsAt outside the inspection window");
         }
@@ -390,11 +370,11 @@ contract DeployKilim {
     {
         Kilim k = auction.collection();
         if (
-            address(auction.paymentToken()) != a.paymentToken || auction.treasury() != a.treasury
-                || auction.startsAt() != a.startsAt || auction.duration() != a.duration
-                || auction.extensionWindow() != a.extensionWindow || auction.incrementBps() != a.incrementBps
-                || auction.reservePrice() != a.reservePrice || auction.symbolCap() != a.symbolCap
-                || auction.maxSymbolsPerBid() != a.maxSymbolsPerBid || auction.endsAt() != 0
+            auction.treasury() != a.treasury || auction.startsAt() != a.startsAt
+                || auction.duration() != a.duration || auction.extensionWindow() != a.extensionWindow
+                || auction.incrementBps() != a.incrementBps || auction.reservePrice() != a.reservePrice
+                || auction.symbolCap() != a.symbolCap || auction.maxSymbolsPerBid() != a.maxSymbolsPerBid
+                || auction.endsAt() != 0
         ) revert Refused("auction read-back");
         if (
             k.minter() != address(auction) || k.owner() != a.collectionOwner
@@ -410,8 +390,6 @@ contract DeployKilim {
     function _requireLaunchSettings(Config memory c) internal view {
         if (block.chainid != MAINNET_CHAIN_ID) return;
         KilimAuction.Config memory a = c.auction;
-        if (a.paymentToken != LAUNCH_PAYMENT_TOKEN) revert Refused("mainnet launch value: paymentToken");
-        if (c.tokenDecimals != LAUNCH_TOKEN_DECIMALS) revert Refused("mainnet launch value: tokenDecimals");
         if (a.treasury != LAUNCH_TREASURY) revert Refused("mainnet launch value: treasury");
         if (a.collectionOwner != LAUNCH_COLLECTION_OWNER) {
             revert Refused("mainnet launch value: collectionOwner");
@@ -432,11 +410,9 @@ contract DeployKilim {
     }
 
     /// @dev Prints every setting the auction phase deploys with. A value that differs from the decided
-    ///      launch value is flagged; on chain 1 it is then refused. The payment token is compared only on
-    ///      chain 1, since each chain has its own USDC address.
+    ///      launch value is flagged; on chain 1 it is then refused.
     function _printSettings(Config memory c, KilimRenderer renderer) internal view {
         KilimAuction.Config memory a = c.auction;
-        bool mainnet = block.chainid == MAINNET_CHAIN_ID;
         _log(string.concat("auction settings for chain ", vm.toString(block.chainid)));
         _log(string.concat("  deployer          ", vm.toString(c.deployer)));
         _log(
@@ -462,8 +438,6 @@ contract DeployKilim {
         _log(string.concat("  rendererHash      ", vm.toString(c.rendererHash)));
         _log(string.concat("  motifCount        ", vm.toString(c.motifCount)));
         _log(string.concat("  geometryHash      ", vm.toString(c.geometryHash)));
-        _show("paymentToken      ", a.paymentToken, mainnet ? LAUNCH_PAYMENT_TOKEN : a.paymentToken);
-        _show("tokenDecimals     ", c.tokenDecimals, LAUNCH_TOKEN_DECIMALS);
         _show("treasury          ", a.treasury, LAUNCH_TREASURY);
         _show("collectionOwner   ", a.collectionOwner, LAUNCH_COLLECTION_OWNER);
         _show("reservePrice      ", a.reservePrice, LAUNCH_RESERVE_PRICE);

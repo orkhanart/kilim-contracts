@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.8.37;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-/// @notice A single immutable auction. Zero paymentToken selects native ETH with registration.
+/// @notice A single immutable auction in native ETH. Bidding opens once 100 wallets have registered.
 /// @dev The clock starts at the FIRST accepted bid, not at a fixed time: `startsAt` only opens
 ///      bidding. Late bids extend the close without any absolute limit, so the auction ends only
 ///      after `extensionWindow` passes with no new bid. With no bids it never ends and never settles.
@@ -17,16 +14,18 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 ///      Original author: thirdweb. Modified for Kilim; see REUSE.md and vendor/thirdweb/NOTICE.
 ///      Only _isNewWinningBid is retained unchanged (apart from formatting). The escrow, scheduling,
 ///      storage, settlement and integration changes are NOT covered by the upstream audit.
-abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
-    using SafeERC20 for IERC20;
-
+abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
     uint64 private constant MAX_BPS = 10_000;
-    /// @dev Gas forwarded to an automatic refund. A plain stablecoin transfer plus the balance checks
-    ///      uses well under this; the cap stops a hostile token path from eating the bidder's gas.
+    /// @dev Gas forwarded to an automatic refund. A plain ETH transfer uses far less; the cap stops a
+    ///      hostile receiver from eating the next bidder's gas.
     uint256 private constant REFUND_GAS = 150_000;
+    /// @dev Gas kept back, after the refund's allowance, for recording a refund that could not be paid:
+    ///      two fresh storage slots, two events and the guard. About 47,000 today; sized several times
+    ///      over so a later repricing of new storage (EIP-8037 puts it near 200,000) cannot reopen the
+    ///      out-of-gas path in a contract that can never be changed. Unused gas is not charged.
+    uint256 private constant DEFERRED_REFUND_RESERVE = 300_000;
 
     struct AuctionConfig {
-        address paymentToken;
         address treasury;
         uint64 startsAt;
         uint64 duration;
@@ -35,15 +34,14 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
         uint256 reservePrice;
     }
 
-    /// @notice address(0) selects native ETH; ERC-20 mode is retained for historical fixtures.
-    IERC20 public immutable paymentToken;
+    /// @notice The bid unit: every bid is a whole multiple of it, and each unit bid earns one symbol.
     uint256 public constant SYMBOL_PRICE = 0.001 ether;
+    /// @notice The ETH a wallet must hold to register. The reserve price must equal it.
     uint256 public constant REGISTRATION_BALANCE = 0.01 ether;
     uint256 public constant REGISTRATION_TARGET = 100;
     uint256 public registrationCount;
     mapping(address => bool) public registered;
     address public immutable treasury;
-    uint256 public immutable tokenUnit;
     uint256 public immutable reservePrice;
     uint64 public immutable startsAt;
     uint64 public immutable duration;
@@ -68,7 +66,6 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
     error NonWholeUnitBid();
     error Unauthorized();
     error NothingToWithdraw();
-    error UnsupportedTokenBehavior();
     error TreasuryCannotBid();
     error RegistrationClosed();
     error AlreadyRegistered();
@@ -87,33 +84,22 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
     event RefundWithdrawn(address indexed bidder, address indexed recipient, uint256 amount);
     /// @notice The outbid amount went straight back to the outbid bidder.
     event RefundPaid(address indexed bidder, uint256 amount);
-    /// @notice The automatic refund failed (for example a blacklisted address); it waits in `refunds`.
+    /// @notice The automatic refund failed (for example a contract that rejects ETH); it waits in `refunds`.
     event RefundDeferred(address indexed bidder, uint256 amount);
     event AuctionStarted(address indexed firstBidder, uint64 endsAt);
     event AuctionSettled(address indexed winner, uint256 amount);
     event ProceedsWithdrawn(address indexed recipient, uint256 amount);
 
     constructor(AuctionConfig memory config) EIP712("Kilim Registration", "1") {
+        // The only accepted reserve is REGISTRATION_BALANCE: nonzero, a whole number of bid units and
+        // far below the uint128 bound on bids.
         if (
-            (config.paymentToken != address(0) && config.paymentToken.code.length == 0)
-                || config.treasury == address(0) || config.treasury == address(this)
+            config.treasury == address(0) || config.treasury == address(this)
                 || config.startsAt <= block.timestamp || config.duration == 0 || config.duration > 30 days
                 || config.extensionWindow == 0 || config.extensionWindow > config.duration
                 || config.incrementBps == 0 || config.incrementBps > MAX_BPS
+                || config.reservePrice != REGISTRATION_BALANCE
         ) revert InvalidConfiguration();
-        uint8 decimals =
-            config.paymentToken == address(0) ? 18 : IERC20Metadata(config.paymentToken).decimals();
-        if (decimals > 18) revert InvalidConfiguration();
-        uint256 unit = config.paymentToken == address(0) ? SYMBOL_PRICE : 10 ** uint256(decimals);
-        if (config.paymentToken == address(0) && config.reservePrice != REGISTRATION_BALANCE) {
-            revert InvalidConfiguration();
-        }
-        if (
-            config.reservePrice == 0 || config.reservePrice % unit != 0
-                || config.reservePrice > type(uint128).max
-        ) revert InvalidConfiguration();
-        tokenUnit = unit;
-        paymentToken = IERC20(config.paymentToken);
         treasury = config.treasury;
         startsAt = config.startsAt;
         duration = config.duration;
@@ -147,10 +133,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
     }
 
     function _register(address wallet) private {
-        if (
-            address(paymentToken) != address(0) || block.timestamp < startsAt
-                || registrationCount >= REGISTRATION_TARGET
-        ) {
+        if (block.timestamp < startsAt || registrationCount >= REGISTRATION_TARGET) {
             revert RegistrationClosed();
         }
         if (wallet == treasury) revert TreasuryCannotBid();
@@ -164,7 +147,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
         if (highestBid == 0) return reservePrice;
         uint256 increment = Math.mulDiv(highestBid, incrementBps, MAX_BPS, Math.Rounding.Ceil);
         uint256 next = highestBid + increment;
-        return Math.ceilDiv(next, tokenUnit) * tokenUnit;
+        return Math.ceilDiv(next, SYMBOL_PRICE) * SYMBOL_PRICE;
     }
 
     /// @notice Only a refund the automatic payment could not make waits here to be withdrawn.
@@ -204,7 +187,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
         emit ProceedsWithdrawn(to, amount);
     }
 
-    /// @notice Minimum payment-asset balance needed to pay every current obligation.
+    /// @notice Minimum ETH balance needed to pay every current obligation.
     function liabilities() external view returns (uint256) {
         return refundLiability + (settled ? proceedsDue : highestBid);
     }
@@ -216,9 +199,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
     ///      The first accepted bid starts the clock; later bids inside the window extend it, forever.
     function _handleBid(uint256 amount) internal returns (address outbid, uint256 outbidAmount) {
         if (msg.sender == treasury) revert TreasuryCannotBid();
-        if (address(paymentToken) == address(0) && registrationCount != REGISTRATION_TARGET) {
-            revert RegistrationIncomplete();
-        }
+        if (registrationCount != REGISTRATION_TARGET) revert RegistrationIncomplete();
         // No highest bidder means the clock has not started, so there is no close to be past.
         bool started = highestBidder != address(0);
         if (settled || block.timestamp < startsAt || (started && block.timestamp >= endsAt)) {
@@ -228,7 +209,7 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
         if (amount > type(uint128).max || !_isNewWinningBid(reservePrice, highestBid, amount, incrementBps)) {
             revert BidTooLow(minimumBid());
         }
-        if (amount % tokenUnit != 0) revert NonWholeUnitBid();
+        if (amount % SYMBOL_PRICE != 0) revert NonWholeUnitBid();
 
         outbid = highestBidder;
         outbidAmount = highestBid;
@@ -245,29 +226,19 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
         }
     }
 
-    /// @dev Collect the full recorded amount; no buyout clamp, currency wrapper or outgoing refund.
-    function _collectBid(uint256 amount) internal {
-        if (address(paymentToken) == address(0)) {
-            if (msg.value != amount) revert IncorrectPayment();
-            return;
-        }
-        if (msg.value != 0) revert IncorrectPayment();
-        uint256 beforeBalance = paymentToken.balanceOf(address(this));
-        paymentToken.safeTransferFrom(msg.sender, address(this), amount);
-        uint256 afterBalance = paymentToken.balanceOf(address(this));
-        if (afterBalance < beforeBalance || afterBalance - beforeBalance != amount) {
-            revert UnsupportedTokenBehavior();
-        }
+    /// @dev The ETH sent must be exactly the recorded amount; no buyout clamp or currency wrapper.
+    function _collectBid(uint256 amount) internal view {
+        if (msg.value != amount) revert IncorrectPayment();
     }
 
     /// @dev Push the outbid amount back; on any failure keep it as a pull refund instead, so an
-    ///      address that cannot receive the token never blocks later bids. State is final before this.
+    ///      address that cannot receive ETH never blocks later bids. State is final before this.
     function _refundOutbid(address bidder, uint256 amount) internal {
         if (bidder == address(0)) return;
         // The refund always gets its full allowance and still leaves enough for the deferred path
         // (EIP-150 keeps back 1/64), so the gas a bid needs never depends on the outbid wallet's code:
         // a leader cannot make a rival's correctly estimated bid run out of gas.
-        if (gasleft() < REFUND_GAS + REFUND_GAS / 63 + 60_000) revert InsufficientGas();
+        if (gasleft() < REFUND_GAS + REFUND_GAS / 63 + DEFERRED_REFUND_RESERVE) revert InsufficientGas();
         try this.payOutbidRefund{gas: REFUND_GAS}(bidder, amount) {
             emit RefundPaid(bidder, amount);
         } catch {
@@ -306,20 +277,8 @@ abstract contract ERC20EnglishAuction is ReentrancyGuard, EIP712 {
     ///      zeroed or final before the call and every entry point is nonReentrant.
     // slither-disable-next-line arbitrary-send-eth
     function _pay(address to, uint256 amount) private {
-        if (address(paymentToken) == address(0)) {
-            (bool paid,) = payable(to).call{value: amount}("");
-            if (!paid) revert EthTransferFailed();
-            return;
-        }
-        uint256 beforeBalance = paymentToken.balanceOf(address(this));
-        uint256 recipientBefore = paymentToken.balanceOf(to);
-        paymentToken.safeTransfer(to, amount);
-        uint256 afterBalance = paymentToken.balanceOf(address(this));
-        uint256 recipientAfter = paymentToken.balanceOf(to);
-        if (
-            afterBalance > beforeBalance || beforeBalance - afterBalance != amount
-                || recipientAfter < recipientBefore || recipientAfter - recipientBefore != amount
-        ) revert UnsupportedTokenBehavior();
+        (bool paid,) = payable(to).call{value: amount}("");
+        if (!paid) revert EthTransferFailed();
     }
 
     function _validateRecipient(address to) internal view virtual {

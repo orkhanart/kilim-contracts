@@ -4,24 +4,25 @@ pragma solidity 0.8.37;
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {Kilim} from "../src/Kilim.sol";
 import {TestBase} from "./TestBase.sol";
-import {MockUSD} from "./mocks/MockUSD.sol";
 
 contract LifecycleTest is TestBase {
     function testRefundedSymbolsComposeExpandAndTransferThenAllClaimsSettle() public {
-        MockUSD usd = new MockUSD(6);
-        KilimAuction auction = new KilimAuction(config(address(usd)));
+        KilimAuction auction = new KilimAuction(config());
         Kilim nft = auction.collection();
-        usd.mint(ALICE, 100 * UNIT);
-        usd.mint(BOB, 100 * UNIT);
-        vm.warp(auction.startsAt());
-        vm.startPrank(ALICE);
-        usd.approve(address(auction), 25 * UNIT);
-        auction.bid(25 * UNIT, 25, 0);
-        vm.stopPrank();
-        vm.startPrank(BOB);
-        usd.approve(address(auction), 27 * UNIT);
-        auction.bid(27 * UNIT, 27, 0);
-        vm.stopPrank();
+        _openBidding(auction);
+        assertEq(address(auction).balance, 0);
+        _fund(ALICE, 100 * UNIT);
+        _fund(BOB, 100 * UNIT);
+        vm.prank(ALICE);
+        auction.bid{value: RESERVE}(RESERVE, 10, 0);
+        assertEq(address(auction).balance, auction.liabilities());
+        vm.prank(BOB);
+        auction.bid{value: 11 * UNIT}(11 * UNIT, 11, 0);
+        // Alice was refunded inside Bob's bid.
+        assertEq(ALICE.balance, 100 * UNIT);
+        assertEq(auction.refunds(ALICE), 0);
+        assertEq(address(auction).balance, 11 * UNIT);
+        assertEq(address(auction).balance, auction.liabilities());
 
         vm.startPrank(ALICE);
         auction.claimSymbols(6, ALICE);
@@ -30,7 +31,8 @@ contract LifecycleTest is TestBase {
         nft.freezeArtwork(artwork);
         nft.transferFrom(ALICE, CAROL, artwork);
         vm.stopPrank();
-        assertEq(usd.balanceOf(ALICE), 100 * UNIT);
+        assertEq(ALICE.balance, 100 * UNIT);
+        assertEq(address(auction).balance, auction.liabilities());
         assertEq(nft.ownerOf(artwork), CAROL);
         Kilim.ArtworkData memory art = nft.artworkData(artwork);
         assertEq(art.revision, 2);
@@ -43,28 +45,30 @@ contract LifecycleTest is TestBase {
         vm.warp(auction.endsAt());
         vm.prank(CAROL);
         auction.settle();
+        assertEq(address(auction).balance, auction.liabilities());
         vm.prank(TREASURY);
         auction.withdrawProceeds(TREASURY);
         assertEq(auction.collection().ownerOf(1), BOB);
-        // Both bidders keep and can claim remaining credits after all cash has been paid out.
+        // Both bidders keep and can claim remaining credits after all ETH has been paid out.
         vm.prank(ALICE);
-        auction.claimSymbols(19, ALICE);
+        auction.claimSymbols(4, ALICE);
         vm.prank(BOB);
-        auction.claimSymbols(27, BOB);
+        auction.claimSymbols(11, BOB);
 
-        assertEq(usd.balanceOf(TREASURY), 27 * UNIT);
-        assertEq(usd.balanceOf(BOB), 73 * UNIT);
-        assertEq(usd.balanceOf(address(auction)), 0);
+        assertEq(TREASURY.balance, 11 * UNIT);
+        assertEq(BOB.balance, 89 * UNIT);
+        assertEq(ALICE.balance, 100 * UNIT);
+        assertEq(address(auction).balance, 0);
         assertEq(auction.liabilities(), 0);
         assertEq(auction.symbolCredits(ALICE), 0);
         assertEq(auction.symbolCredits(BOB), 0);
-        assertEq(auction.symbolsAllocated(), 52);
-        assertEq(auction.symbolsClaimed(), 52);
-        assertEq(nft.symbolsMinted(), 52);
+        assertEq(auction.symbolsAllocated(), 21);
+        assertEq(auction.symbolsClaimed(), 21);
+        assertEq(nft.symbolsMinted(), 21);
         assertEq(nft.symbolsBurned(), 6);
         assertEq(nft.ownerOf(1), BOB);
-        assertEq(nft.balanceOf(ALICE), 19);
-        assertEq(nft.balanceOf(BOB), 28);
+        assertEq(nft.balanceOf(ALICE), 4);
+        assertEq(nft.balanceOf(BOB), 12);
         assertEq(nft.balanceOf(CAROL), 1);
     }
 }

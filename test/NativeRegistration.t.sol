@@ -2,7 +2,7 @@
 pragma solidity 0.8.37;
 import {TestBase} from "./TestBase.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {ERC20EnglishAuction} from "../src/auction/ERC20EnglishAuction.sol";
+import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 
 contract RejectEth {
     receive() external payable {
@@ -27,8 +27,7 @@ contract NativeRegistrationTest is TestBase {
     KilimAuction auction;
 
     function setUp() public {
-        KilimAuction.Config memory c = config(address(0));
-        c.reservePrice = 0.01 ether;
+        KilimAuction.Config memory c = config();
         c.duration = 1 days;
         c.incrementBps = 1000;
         auction = new KilimAuction(c);
@@ -38,12 +37,9 @@ contract NativeRegistrationTest is TestBase {
     }
 
     function register99() internal {
-        for (uint160 i = 1000; i < 1099; ++i) {
-            address user = address(i);
-            vm.deal(user, 0.01 ether);
-            vm.prank(user);
-            auction.register();
-            assertEq(user.balance, 0.01 ether);
+        _registerWallets(auction, 99);
+        for (uint256 i; i < 99; ++i) {
+            assertEq(registrant(i).balance, 0.01 ether);
         }
     }
 
@@ -78,26 +74,26 @@ contract NativeRegistrationTest is TestBase {
 
     function testPoorAndDuplicateRegistration() public {
         vm.deal(ALICE, 0.01 ether - 1);
-        vm.expectRevert(ERC20EnglishAuction.InsufficientRegistrationBalance.selector);
+        vm.expectRevert(EnglishAuction.InsufficientRegistrationBalance.selector);
         vm.prank(ALICE);
         auction.register();
         vm.deal(ALICE, 0.01 ether);
         vm.prank(ALICE);
         auction.register();
-        vm.expectRevert(ERC20EnglishAuction.AlreadyRegistered.selector);
+        vm.expectRevert(EnglishAuction.AlreadyRegistered.selector);
         vm.prank(ALICE);
         auction.register();
         assertEq(auction.registrationCount(), 1);
     }
 
     function testCannotBypassThreshold() public {
-        vm.expectRevert(ERC20EnglishAuction.RegistrationIncomplete.selector);
+        vm.expectRevert(EnglishAuction.RegistrationIncomplete.selector);
         start(ALICE);
         register99();
-        vm.expectRevert(ERC20EnglishAuction.RegistrationIncomplete.selector);
+        vm.expectRevert(EnglishAuction.RegistrationIncomplete.selector);
         start(ALICE);
         unlock();
-        vm.expectRevert(ERC20EnglishAuction.IncorrectPayment.selector);
+        vm.expectRevert(EnglishAuction.IncorrectPayment.selector);
         vm.prank(ALICE);
         auction.bid(0.01 ether, 10, 0);
         assertEq(auction.endsAt(), 0);
@@ -110,7 +106,7 @@ contract NativeRegistrationTest is TestBase {
         assertEq(auction.highestBidder(), address(0));
         assertEq(auction.symbolCredits(CAROL), 0);
         assertEq(CAROL.balance, 0.01 ether);
-        vm.expectRevert(ERC20EnglishAuction.RegistrationClosed.selector);
+        vm.expectRevert(EnglishAuction.RegistrationClosed.selector);
         vm.prank(ALICE);
         auction.register();
         vm.warp(block.timestamp + 7 days);
@@ -120,11 +116,11 @@ contract NativeRegistrationTest is TestBase {
 
     function testRegisteredWalletCanStartAndCompetingOpeningBidReverts() public {
         register99();
-        vm.expectRevert(ERC20EnglishAuction.AlreadyRegistered.selector);
-        vm.prank(address(1000));
+        vm.expectRevert(EnglishAuction.AlreadyRegistered.selector);
+        vm.prank(registrant(0));
         auction.register();
         unlock();
-        start(address(1000));
+        start(registrant(0));
         vm.expectRevert();
         start(BOB);
         assertEq(BOB.balance, 1 ether);
@@ -140,7 +136,7 @@ contract NativeRegistrationTest is TestBase {
         assertEq(auction.registrationCount(), 100);
         assertEq(auction.endsAt(), 0);
         assertEq(address(auction).balance, 0);
-        vm.expectRevert(ERC20EnglishAuction.IncorrectPayment.selector);
+        vm.expectRevert(EnglishAuction.IncorrectPayment.selector);
         vm.prank(ALICE);
         auction.bid{value: 0.02 ether}(0.01 ether, 10, 0);
     }
@@ -157,8 +153,9 @@ contract NativeRegistrationTest is TestBase {
         vm.prank(ALICE);
         auction.claimSymbols(10, ALICE);
         assertEq(auction.collection().balanceOf(ALICE), 10);
-        vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
-        auction.deliverSymbols(10);
+        // Symbols are never sent automatically: the old delivery entry point does not exist.
+        (bool delivered,) = address(auction).call(abi.encodeWithSignature("deliverSymbols(uint256)", 10));
+        assertTrue(!delivered);
         vm.warp(auction.endsAt());
         auction.settle();
         uint256 before = TREASURY.balance;
@@ -178,7 +175,7 @@ contract NativeRegistrationTest is TestBase {
         auction.bid{value: 0.011 ether}(0.011 ether, 0, 0);
         assertEq(auction.refunds(address(wallet)), 0.01 ether);
         assertEq(address(auction).balance, auction.liabilities());
-        vm.expectRevert(ERC20EnglishAuction.EthTransferFailed.selector);
+        vm.expectRevert(EnglishAuction.EthTransferFailed.selector);
         vm.prank(address(wallet));
         auction.withdrawRefund(address(wallet));
         assertEq(auction.refunds(address(wallet)), 0.01 ether);
@@ -195,13 +192,13 @@ contract NativeRegistrationTest is TestBase {
         wallet.configure(auction);
         vm.deal(address(wallet), 0.01 ether);
         start(address(wallet));
-        vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
+        vm.expectRevert(EnglishAuction.Unauthorized.selector);
         vm.prank(BOB);
         auction.payOutbidRefund(BOB, 0.01 ether);
-        vm.expectRevert(ERC20EnglishAuction.Unauthorized.selector);
+        vm.expectRevert(EnglishAuction.Unauthorized.selector);
         vm.prank(BOB);
         auction.withdrawProceeds(BOB);
-        vm.expectRevert(ERC20EnglishAuction.NothingToWithdraw.selector);
+        vm.expectRevert(EnglishAuction.NothingToWithdraw.selector);
         vm.prank(BOB);
         auction.withdrawRefund(BOB);
         vm.prank(ALICE);

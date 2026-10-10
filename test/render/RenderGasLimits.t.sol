@@ -5,7 +5,6 @@ import {RenderBase} from "./RenderBase.sol";
 import {KilimRenderer} from "../../src/render/KilimRenderer.sol";
 import {Kilim} from "../../src/Kilim.sol";
 import {KilimAuction} from "../../src/KilimAuction.sol";
-import {MockUSD} from "../mocks/MockUSD.sol";
 
 /// @notice Gas ceilings for every tokenURI kind on the packed geometry, one measurement per test so no call
 ///         pays for memory an earlier one left behind. Each figure is an eth_call estimate: the callee's gas
@@ -244,15 +243,13 @@ contract RenderGasLimitsTest is RenderBase {
     }
 
     function testGasDeployAuctionAndCollection() public {
-        MockUSD usd = new MockUSD(6);
-        KilimAuction.Config memory c = config(address(usd));
+        KilimAuction.Config memory c = config();
         c.motifCount = uint16(count);
         c.geometryHash = renderer.geometryHash();
         c.rendererHash = address(renderer).codehash;
         c.renderer = address(renderer);
         c.symbolCap = 1_000_000;
         c.maxSymbolsPerBid = 1_000_000;
-        c.reservePrice = UNIT;
         uint256 g0 = gasleft();
         KilimAuction auction = new KilimAuction(c);
         uint256 used = g0 - gasleft();

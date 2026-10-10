@@ -13,8 +13,6 @@
     "rendererHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
   },
   "auction": {
-    "paymentToken": "0x0000000000000000000000000000000000000000",
-    "tokenDecimals": 18,
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "collectionOwner": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "startsAt": "TODO: unix seconds, at least minLeadSeconds after deployment",

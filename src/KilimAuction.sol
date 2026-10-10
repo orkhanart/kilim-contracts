@@ -2,18 +2,17 @@
 pragma solidity 0.8.37;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ERC20EnglishAuction} from "./auction/ERC20EnglishAuction.sol";
+import {EnglishAuction} from "./auction/EnglishAuction.sol";
 import {Kilim} from "./Kilim.sol";
 import {IKilimRenderer} from "./render/IKilimRenderer.sol";
 
-/// @notice Native ETH launch (zero payment token), with legacy ERC-20 regression support.
+/// @notice The Kilim auction: native ETH bids, symbol credits for every bid, the 1/1 to the winner.
 /// @dev Kilim reward/prize extension of the Apache-2.0 auction adaptation. See REUSE.md for provenance.
 ///      Outbid bidders keep their credits by design, to reward continued bidding; a single wallet can
 ///      therefore collect credits for refunded bids. Immutable caps bound issuance. Each bid reserves
 ///      the next symbol IDs, fixing their traits. Upstream audits do not cover this code.
-contract KilimAuction is ERC20EnglishAuction {
+contract KilimAuction is EnglishAuction {
     struct Config {
-        address paymentToken;
         address treasury;
         address collectionOwner;
         uint64 startsAt;
@@ -46,18 +45,7 @@ contract KilimAuction is ERC20EnglishAuction {
     mapping(address => uint256) public symbolCredits;
     mapping(address => CreditRange[]) private _creditRanges;
     mapping(address => uint256) private _nextCreditRange;
-    /// @dev Bidders in bid order, one entry per rewarded bid, for automatic delivery.
-    address[] private _deliveryQueue;
-    /// @notice The next queue entry deliverSymbols looks at.
-    uint256 public deliveryCursor;
 
-    /// @notice Most symbols one deliverSymbols call mints, keeping it well under the per-transaction gas cap.
-    uint256 public constant DELIVERY_BATCH = 64;
-    /// @dev Most queue entries one call walks, so a run of already-delivered entries stays cheap.
-    uint256 private constant DELIVERY_SCAN = 256;
-    /// @dev Gas allowed per symbol for one bidder's mint, receiver callbacks included. A wallet that
-    ///      needs more, or rejects the tokens, is skipped and claims by hand instead.
-    uint256 private constant DELIVERY_GAS_PER_SYMBOL = 150_000;
     /// @dev Gas allowed for sending the 1/1 to the winner at settlement, receiver callback included.
     uint256 private constant PRIZE_GAS = 500_000;
 
@@ -73,14 +61,11 @@ contract KilimAuction is ERC20EnglishAuction {
         address indexed bidder, address indexed recipient, uint256 count, uint256 firstTokenId
     );
     event PrizeClaimed(address indexed winner, address indexed recipient);
-    /// @notice A delivery to this bidder failed; their symbols stay claimable with claimSymbols.
-    event DeliveryFailed(address indexed bidder, uint256 count);
     /// @notice Settlement could not send the 1/1 to the winner; they claim it with claimPrize.
     event PrizeDeliveryFailed(address indexed winner);
 
     constructor(Config memory config)
-        ERC20EnglishAuction(AuctionConfig({
-                paymentToken: config.paymentToken,
+        EnglishAuction(AuctionConfig({
                 treasury: config.treasury,
                 startsAt: config.startsAt,
                 duration: config.duration,
@@ -110,13 +95,12 @@ contract KilimAuction is ERC20EnglishAuction {
         if (config.treasury == address(collection)) revert InvalidConfiguration();
     }
 
-    /// @notice Bid the full amount in wei with matching msg.value in native mode.
-    /// @dev Legacy ERC-20 mode instead requires approval and zero msg.value.
+    /// @notice Bid the full amount in wei; msg.value must equal it.
     /// @param minimumReward Revert if capped credits fall below your expected reward.
     /// @param expectedFirstSymbolId Revert unless the reward starts at this symbol ID, i.e. the
     ///        quoted traits; 0 accepts whatever IDs are next. Pass 0 when the quoted reward is 0:
     ///        a bid that earns no symbols reserves no IDs, so any nonzero value reverts.
-    /// @dev All accounting precedes token calls; a rejected deposit rolls back credits and the bid.
+    /// @dev All accounting precedes external calls; a wrong msg.value rolls back credits and the bid.
     ///      The reward reserves the next symbol IDs in allocation order, so their traits are fixed
     ///      now and cannot change with claim time, claim order, or recipient.
     function bid(uint256 amount, uint256 minimumReward, uint256 expectedFirstSymbolId)
@@ -141,7 +125,6 @@ contract KilimAuction is ERC20EnglishAuction {
             _creditRanges[msg.sender].push(CreditRange(uint128(firstSymbolId), uint128(reward)));
             symbolCredits[msg.sender] += reward;
             symbolsAllocated += reward;
-            _deliveryQueue.push(msg.sender);
         }
         _collectBid(amount);
         _refundOutbid(outbid, outbidAmount);
@@ -150,69 +133,19 @@ contract KilimAuction is ERC20EnglishAuction {
 
     /// @notice Quote credits, not bid validity. Bidding continues after rewards are exhausted.
     function rewardForBid(uint256 amount) public view returns (uint256) {
-        return Math.min(Math.min(amount / tokenUnit, maxSymbolsPerBid), symbolCap - symbolsAllocated);
+        return Math.min(Math.min(amount / SYMBOL_PRICE, maxSymbolsPerBid), symbolCap - symbolsAllocated);
     }
 
     /// @notice Mint your reserved symbol IDs, oldest bid first.
     /// @dev A claim spanning several bids mints several ID ranges; the collection's SymbolsMinted
     ///      events list each one. firstTokenId below is the first ID minted by this claim.
-    ///         Native-ETH bidders claim their symbols here; legacy ERC-20 mode also supports delivery.
+    ///      Symbols are never sent automatically: every bidder claims here.
     function claimSymbols(uint256 quantity, address to) external nonReentrant {
         _validateRecipient(to);
         if (quantity == 0 || quantity > collection.MAX_MINT_BATCH() || quantity > symbolCredits[msg.sender]) {
             revert InvalidQuantity();
         }
         _claim(msg.sender, quantity, to);
-    }
-
-    /// @notice Send reserved symbols to the wallets that bid for them, oldest bid first, up to
-    ///         `maxSymbols` (at most DELIVERY_BATCH). Anyone may call it and pays its gas; the
-    ///         artist runs it until nothing is pending. A wallet that cannot take the tokens is
-    ///         skipped (DeliveryFailed) and keeps its symbols to claim by hand.
-    /// @return delivered How many symbols this call minted.
-    /// @dev The cursor is stored after the self-calls because whether an entry is done depends on
-    ///      their outcome. No re-entry can observe it: every state-changing entry point is
-    ///      nonReentrant and deliverTo only accepts calls from this contract.
-    // slither-disable-next-line reentrancy-no-eth
-    function deliverSymbols(uint256 maxSymbols) external nonReentrant returns (uint256 delivered) {
-        // Native-ETH launch uses collector claims, not automatic symbol delivery.
-        if (address(paymentToken) == address(0)) revert Unauthorized();
-        if (maxSymbols == 0 || maxSymbols > DELIVERY_BATCH) revert InvalidQuantity();
-        uint256 cursor = deliveryCursor;
-        uint256 end = _deliveryQueue.length;
-        for (uint256 scanned; cursor < end && scanned < DELIVERY_SCAN && delivered < maxSymbols; ++scanned) {
-            address bidder = _deliveryQueue[cursor];
-            uint256 take = Math.min(symbolCredits[bidder], maxSymbols - delivered);
-            if (take != 0) {
-                // Too little gas left to give this delivery its full allowance: stop rather than
-                // let it fail for lack of gas and skip a wallet that can receive (EIP-150 keeps 1/64).
-                uint256 allowance = take * DELIVERY_GAS_PER_SYMBOL;
-                if (gasleft() < allowance + allowance / 63 + 50_000) break;
-                // A call to itself, so a failing receiver rolls back only its own delivery.
-                try this.deliverTo{gas: allowance}(bidder, take) {
-                    delivered += take;
-                } catch {
-                    emit DeliveryFailed(bidder, take);
-                    ++cursor;
-                    continue;
-                }
-            }
-            // Move on once this bidder has nothing left; stop here if the batch ran out first.
-            if (symbolCredits[bidder] != 0) break;
-            ++cursor;
-        }
-        deliveryCursor = cursor;
-    }
-
-    /// @notice Internal use only: one bidder's delivery, as a call this contract makes to itself.
-    function deliverTo(address bidder, uint256 quantity) external {
-        if (msg.sender != address(this)) revert Unauthorized();
-        _claim(bidder, quantity, bidder);
-    }
-
-    /// @notice Reserved symbols not yet delivered or claimed.
-    function symbolsPending() external view returns (uint256) {
-        return symbolsAllocated - symbolsClaimed;
     }
 
     /// @dev Mint `quantity` of `bidder`'s reserved IDs to `to`. The caller checked the quantity.

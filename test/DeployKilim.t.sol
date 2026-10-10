@@ -4,9 +4,9 @@ pragma solidity 0.8.37;
 import {DeployKilim} from "../script/DeployKilim.s.sol";
 import {KilimRenderer} from "../src/render/KilimRenderer.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
+import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 import {Kilim} from "../src/Kilim.sol";
 import {TestBase} from "./TestBase.sol";
-import {MockUSD} from "./mocks/MockUSD.sol";
 
 interface VmDeployTest {
     function readFile(string calldata) external view returns (string memory);
@@ -27,18 +27,14 @@ contract DeployKilimTest is TestBase {
         VmDeployTest(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant DEPLOYER = address(0xD3910);
     string internal constant STORE = "../onchain/build";
-    address internal constant MAINNET_USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address internal constant SEPOLIA_USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
     /// orkhanart.eth: treasury and collection-page owner.
     address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
 
     DeployKilim internal script;
-    MockUSD internal usd;
     string internal manifest;
 
     function setUp() public {
         script = new DeployKilim();
-        usd = new MockUSD(6);
         manifest = vmd.readFile(string.concat(STORE, "/manifest.json"));
         vm.warp(1_800_000_000);
     }
@@ -52,16 +48,14 @@ contract DeployKilimTest is TestBase {
         c.geometryHash = vmd.parseJsonBytes32(manifest, ".hashes.geometryHash");
         c.indexHash = vmd.parseJsonBytes32(manifest, ".hashes.indexHash");
         c.pageHash = vmd.parseJsonBytes32(manifest, ".hashes.pageHash");
-        c.tokenDecimals = 6;
         c.minLeadSeconds = 1 days;
-        c.auction.paymentToken = address(usd);
         c.auction.treasury = TREASURY;
         c.auction.collectionOwner = PAGE_OWNER;
         c.auction.startsAt = uint64(block.timestamp + 2 days);
         c.auction.duration = 24 hours;
         c.auction.extensionWindow = 10 minutes;
         c.auction.incrementBps = 1000;
-        c.auction.reservePrice = 1 * UNIT;
+        c.auction.reservePrice = RESERVE;
         c.auction.symbolCap = 1_000_000;
         c.auction.maxSymbolsPerBid = 1_000_000;
         c.auction.maxCells = 256;
@@ -152,15 +146,20 @@ contract DeployKilimTest is TestBase {
         vm.expectPartialRevert(DeployKilim.Refused.selector);
         script.deployAuction(c, renderer);
         c.auction.startsAt = uint64(block.timestamp + 2 days);
-        // the token's decimals and a whole-unit reserve
-        c.tokenDecimals = 18;
-        vm.expectPartialRevert(DeployKilim.Refused.selector);
+        // any reserve but 0.01 ETH: zero, a wei off, one unit, one unit more
+        c.auction.reservePrice = 0;
+        _expectRefused("reserve price");
         script.deployAuction(c, renderer);
-        c.tokenDecimals = 6;
-        c.auction.reservePrice = UNIT + 1;
-        vm.expectPartialRevert(DeployKilim.Refused.selector);
+        c.auction.reservePrice = RESERVE + 1;
+        _expectRefused("reserve price");
         script.deployAuction(c, renderer);
         c.auction.reservePrice = UNIT;
+        _expectRefused("reserve price");
+        script.deployAuction(c, renderer);
+        c.auction.reservePrice = RESERVE + UNIT;
+        _expectRefused("reserve price");
+        script.deployAuction(c, renderer);
+        c.auction.reservePrice = RESERVE;
         // a renderer that is not the published one
         vm.expectPartialRevert(DeployKilim.Refused.selector);
         script.deployAuction(c, KilimRenderer(address(mockRenderer)));
@@ -191,10 +190,9 @@ contract DeployKilimTest is TestBase {
 
     // ------------------------------------------------------------ Ethereum mainnet
 
-    /// @dev The store on the local chain, then chain 1 with a six-decimal token at the USDC address.
+    /// @dev The store on the local chain, then chain 1.
     function _onMainnet() internal returns (KilimRenderer renderer) {
         renderer = script.deployStore(_config());
-        vmd.etch(MAINNET_USDC, address(usd).code);
         vmd.chainId(1);
     }
 
@@ -203,8 +201,6 @@ contract DeployKilimTest is TestBase {
         c = _config();
         c.chainId = 1;
         c.rendererHash = address(renderer).codehash;
-        c.auction.paymentToken = address(0);
-        c.tokenDecimals = 18;
         c.auction.reservePrice = 0.01 ether;
         c.auction.treasury = ARTIST;
         c.auction.collectionOwner = ARTIST;
@@ -220,8 +216,10 @@ contract DeployKilimTest is TestBase {
         KilimRenderer renderer = _onMainnet();
         DeployKilim.Config memory c = _mainnetConfig(renderer);
         KilimAuction auction = script.deployAuction(c, renderer);
-        assertEq(address(auction.paymentToken()), address(0));
-        assertEq(auction.tokenUnit(), 0.001 ether);
+        assertEq(auction.SYMBOL_PRICE(), 0.001 ether);
+        assertEq(auction.REGISTRATION_BALANCE(), 0.01 ether);
+        assertEq(auction.REGISTRATION_TARGET(), 100);
+        assertEq(address(auction).balance, 0);
         assertEq(auction.treasury(), ARTIST);
         assertEq(auction.reservePrice(), 0.01 ether);
         assertEq(auction.incrementBps(), 1000);
@@ -238,16 +236,6 @@ contract DeployKilimTest is TestBase {
     function testMainnetRefusesEverySettingOtherThanTheLaunchValues() public {
         KilimRenderer renderer = _onMainnet();
         DeployKilim.Config memory c = _mainnetConfig(renderer);
-        c.auction.paymentToken = address(usd); // a working six-decimal token, but not USDC
-        _expectRefused("mainnet launch value: paymentToken");
-        script.deployAuction(c, renderer);
-
-        c = _mainnetConfig(renderer);
-        c.tokenDecimals = 6;
-        _expectRefused("mainnet launch value: tokenDecimals");
-        script.deployAuction(c, renderer);
-
-        c = _mainnetConfig(renderer);
         c.auction.treasury = TREASURY;
         _expectRefused("mainnet launch value: treasury");
         script.deployAuction(c, renderer);
@@ -258,7 +246,7 @@ contract DeployKilimTest is TestBase {
         script.deployAuction(c, renderer);
 
         c = _mainnetConfig(renderer);
-        c.auction.reservePrice = 10 * UNIT; // the stale $10 checklist line
+        c.auction.reservePrice = 20 * UNIT; // a whole number of units, but not the reserve
         _expectRefused("mainnet launch value: reservePrice");
         script.deployAuction(c, renderer);
 
@@ -322,27 +310,116 @@ contract DeployKilimTest is TestBase {
         c.deployerNonce = script.NO_NONCE_CHECK();
         c.minLeadSeconds = 0;
         c.auction.startsAt = uint64(block.timestamp + 2 minutes);
-        c.auction.reservePrice = 10 * UNIT;
+        c.auction.treasury = TREASURY;
+        c.auction.collectionOwner = PAGE_OWNER;
+        c.auction.duration = 1 hours;
+        c.auction.extensionWindow = 1 minutes;
         c.auction.incrementBps = 500;
         c.auction.symbolCap = 10_000;
         c.auction.maxSymbolsPerBid = 250;
         KilimAuction auction = script.deployAuction(c, renderer);
-        assertEq(auction.reservePrice(), 10 * UNIT);
+        assertEq(auction.treasury(), TREASURY);
+        assertEq(auction.duration(), 1 hours);
+        assertEq(auction.extensionWindow(), 1 minutes);
         assertEq(auction.incrementBps(), 500);
+        assertEq(auction.symbolCap(), 10_000);
+        assertEq(auction.maxSymbolsPerBid(), 250);
+        assertEq(auction.reservePrice(), RESERVE);
+    }
+
+    /// @dev The reserve is the one setting no chain may change: the constructor accepts only 0.01 ETH.
+    function testEveryChainRefusesAnotherReserve() public {
+        KilimRenderer renderer = script.deployStore(_config());
+        DeployKilim.Config memory c = _config();
+        c.rendererHash = address(renderer).codehash;
+        c.auction.reservePrice = 20 * UNIT;
+        _expectRefused("reserve price");
+        script.deployAuction(c, renderer);
+
+        vmd.chainId(11_155_111);
+        c.chainId = 11_155_111;
+        _expectRefused("reserve price");
+        script.deployAuction(c, renderer);
+    }
+
+    /// @dev The auction the script deploys is the ETH auction: it holds nothing at first, refuses ETH
+    ///      sent with no call, takes a bid paid in full and refunds it when it is outbid.
+    function testTheDeployedAuctionTakesEthBids() public {
+        DeployKilim.Config memory c = _config();
+        KilimRenderer renderer = script.deployStore(c);
+        c.rendererHash = address(renderer).codehash;
+        c.deployerNonce = vmd.getNonce(DEPLOYER);
+        KilimAuction auction = script.deployAuction(c, renderer);
+        assertEq(address(auction).balance, 0);
+        assertEq(auction.liabilities(), 0);
+
+        _openBidding(auction);
+        _fund(ALICE, 1 ether);
+        _fund(BOB, 1 ether);
+        vm.prank(ALICE);
+        (bool sent,) = address(auction).call{value: RESERVE}("");
+        assertTrue(!sent);
+        assertEq(address(auction).balance, 0);
+
+        // msg.value must be the bid, neither less nor more
+        vm.expectRevert(EnglishAuction.IncorrectPayment.selector);
+        vm.prank(ALICE);
+        auction.bid{value: RESERVE - 1}(RESERVE, 0, 0);
+        vm.expectRevert(EnglishAuction.IncorrectPayment.selector);
+        vm.prank(ALICE);
+        auction.bid{value: RESERVE + UNIT}(RESERVE, 0, 0);
+        assertEq(address(auction).balance, 0);
+
+        _bid(auction, ALICE, RESERVE);
+        assertEq(auction.endsAt(), block.timestamp + c.auction.duration);
+        assertEq(address(auction).balance, RESERVE);
+        assertEq(address(auction).balance, auction.liabilities());
+        assertEq(auction.symbolCredits(ALICE), 10);
+
+        // 10% over 0.01 ETH is 0.011 ETH; ALICE gets her bid back inside BOB's transaction
+        assertEq(auction.minimumBid(), 11 * UNIT);
+        _bid(auction, BOB, 11 * UNIT);
+        assertEq(ALICE.balance, 1 ether);
+        assertEq(BOB.balance, 1 ether - 11 * UNIT);
+        assertEq(address(auction).balance, 11 * UNIT);
+        assertEq(address(auction).balance, auction.liabilities());
+
+        vm.warp(auction.endsAt());
+        auction.settle();
+        assertEq(auction.collection().ownerOf(1), BOB);
+        assertEq(address(auction).balance, auction.liabilities());
+        vm.prank(TREASURY);
+        auction.withdrawProceeds(TREASURY);
+        assertEq(TREASURY.balance, 11 * UNIT);
+        assertEq(address(auction).balance, 0);
+        assertEq(auction.liabilities(), 0);
     }
 
     /// @dev The committed templates carry the launch values the script pins, and stay unreadable until
     ///      every TODO is filled in.
     function testTemplatesCarryTheLaunchValuesAndFailClosed() public {
-        _checkTemplate("deploy/mainnet.example.json", 1, address(0));
-        _checkTemplate("deploy/sepolia.example.json", 11_155_111, address(0));
+        _checkTemplate("deploy/mainnet.example.json", 1);
+        _checkTemplate("deploy/sepolia.example.json", 11_155_111);
     }
 
-    function _checkTemplate(string memory path, uint256 chain, address token) internal {
+    /// @dev The local dry-run config has no TODO left: it loads, and carries the same launch values.
+    function testTheLocalConfigLoadsWithTheLaunchValues() public view {
+        DeployKilim.Config memory c = script.loadConfig("deploy/local.json");
+        assertEq(c.chainId, 31_337);
+        assertEq(c.auction.treasury, script.LAUNCH_TREASURY());
+        assertEq(c.auction.collectionOwner, script.LAUNCH_COLLECTION_OWNER());
+        assertEq(c.auction.reservePrice, script.LAUNCH_RESERVE_PRICE());
+        assertEq(c.auction.incrementBps, script.LAUNCH_INCREMENT_BPS());
+        assertEq(c.auction.duration, script.LAUNCH_DURATION());
+        assertEq(c.auction.extensionWindow, script.LAUNCH_EXTENSION_WINDOW());
+        assertEq(c.auction.symbolCap, script.LAUNCH_SYMBOL_CAP());
+        assertEq(c.auction.maxSymbolsPerBid, script.LAUNCH_MAX_SYMBOLS_PER_BID());
+        assertEq(c.auction.maxCells, script.LAUNCH_MAX_CELLS());
+    }
+
+    function _checkTemplate(string memory path, uint256 chain) internal {
         string memory j = vmd.readFile(path);
         assertEq(vmd.parseJsonUint(j, ".chainId"), chain);
-        assertEq(vmd.parseJsonAddress(j, ".auction.paymentToken"), token);
-        assertEq(vmd.parseJsonUint(j, ".auction.tokenDecimals"), script.LAUNCH_TOKEN_DECIMALS());
         assertEq(vmd.parseJsonAddress(j, ".auction.treasury"), script.LAUNCH_TREASURY());
         assertEq(vmd.parseJsonAddress(j, ".auction.collectionOwner"), script.LAUNCH_COLLECTION_OWNER());
         assertEq(vmd.parseJsonUint(j, ".auction.reservePrice"), script.LAUNCH_RESERVE_PRICE());

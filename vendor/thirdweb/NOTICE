@@ -7,14 +7,18 @@ Reference commit: 46e69070978c23b9533edb381e838a5dddf7ed9d
 Original path: contracts/prebuilts/marketplace/english-auctions/EnglishAuctionsLogic.sol
 Reference report: https://0xmacro.com/library/audits/thirdweb-15
 
-Modifications for Kilim, September 2026:
+Modifications for Kilim, September and October 2026 (src/auction/EnglishAuction.sol):
 - Extract the ascending-bid predicate and adapt the bid state-transition flow.
 - Replace marketplace storage and roles with one immutable auction.
-- Replace immediate refunds with independently withdrawable ERC-20 credits.
-- Use OpenZeppelin SafeERC20, exact balance checks, and ReentrancyGuard.
-- Add whole-unit bids, uint128 bounds, and an absolute auction deadline.
+- Take bids in native ETH only, with msg.value equal to the bid and no currency wrapper.
+- Open bidding only after 100 wallets register, directly or by an EIP-712 / ERC-1271 signature.
+- Refund the outbid bidder inside the new bid through a gas-capped call, with a withdrawable
+  refund when that call fails.
+- Use OpenZeppelin ReentrancyGuard, EIP712, SignatureChecker and Math.
+- Add whole-unit bids and uint128 bounds; start the clock at the first bid and extend it on
+  late bids with no absolute deadline.
 - Separate settlement, prize delivery, rewards and proceeds withdrawal.
-- Omit buyouts, native currency, wrappers, fees, royalties, forwarding and upgrades.
+- Omit buyouts, wrappers, fees, royalties, forwarding and upgrades.
 
 Only the _isNewWinningBid function is unchanged except whitespace. The surrounding
 implementation is extensively modified. Neither the upstream audit nor this

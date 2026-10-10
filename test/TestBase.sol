@@ -34,7 +34,12 @@ abstract contract TestBase {
     address internal constant CAROL = address(0xCA401);
     address internal constant TREASURY = address(0x7777);
     address internal constant PAGE_OWNER = address(0x9999);
-    uint256 internal constant UNIT = 1e6;
+    /// @dev The bid unit, the auction's SYMBOL_PRICE: 0.001 ETH earns one symbol.
+    uint256 internal constant UNIT = 0.001 ether;
+    /// @dev The only reserve the auction accepts, its REGISTRATION_BALANCE: 10 units.
+    uint256 internal constant RESERVE = 0.01 ether;
+    /// @dev Throwaway registrants are REGISTRANT_BASE, REGISTRANT_BASE + 1, ...
+    uint160 internal constant REGISTRANT_BASE = 0x5EED0000;
     bytes32 internal constant INK = "flat/ink";
     bytes32 internal constant INDIGO = "flat/indigo";
     bytes32 internal constant VERMILION = "flat/vermilion";
@@ -57,16 +62,15 @@ abstract contract TestBase {
         require(condition, "assertion failed");
     }
 
-    function config(address token) internal view returns (KilimAuction.Config memory c) {
+    function config() internal view returns (KilimAuction.Config memory c) {
         c = KilimAuction.Config({
-            paymentToken: token,
             treasury: TREASURY,
             collectionOwner: PAGE_OWNER,
             startsAt: uint64(block.timestamp + 1 hours),
             duration: 22 hours,
             extensionWindow: 10 minutes,
             incrementBps: 500,
-            reservePrice: 25 * UNIT,
+            reservePrice: RESERVE,
             symbolCap: 10000,
             maxSymbolsPerBid: 1000,
             motifCount: 812,
@@ -75,6 +79,43 @@ abstract contract TestBase {
             rendererHash: address(mockRenderer).codehash,
             renderer: address(mockRenderer)
         });
+    }
+
+    /// @dev The i-th throwaway registrant. No code, and distinct from ALICE, BOB, CAROL and the treasury.
+    function registrant(uint256 i) internal pure returns (address) {
+        return address(REGISTRANT_BASE + uint160(i));
+    }
+
+    /// @dev Registers `count` more throwaway wallets, each funded with exactly the registration balance.
+    ///      The time must already be at or past startsAt. Calls may be repeated: each one continues
+    ///      after the wallets already registered.
+    function _registerWallets(KilimAuction auction, uint256 count) internal {
+        uint256 first = auction.registrationCount();
+        for (uint256 i = first; i < first + count; ++i) {
+            address wallet = registrant(i);
+            vm.deal(wallet, RESERVE);
+            vm.prank(wallet);
+            auction.register();
+        }
+    }
+
+    /// @dev Warps to startsAt if it is still ahead, then fills every remaining registration slot with
+    ///      throwaway wallets. Afterwards any wallet but the treasury can bid; no bid has been placed.
+    function _openBidding(KilimAuction auction) internal {
+        if (block.timestamp < auction.startsAt()) vm.warp(auction.startsAt());
+        _registerWallets(auction, auction.REGISTRATION_TARGET() - auction.registrationCount());
+    }
+
+    /// @dev Sets `who`'s ETH balance to exactly `amount`.
+    function _fund(address who, uint256 amount) internal {
+        vm.deal(who, amount);
+    }
+
+    /// @dev `bidder` bids `amount` wei, paid in full, accepting any reward. The bidder must hold it.
+    ///      Reads nothing first, so it may directly follow vm.expectRevert.
+    function _bid(KilimAuction auction, address bidder, uint256 amount) internal {
+        vm.prank(bidder);
+        auction.bid{value: amount}(amount, 0, 0);
     }
 
     /// @dev One of the three canonical appearances, picked by `seed`.

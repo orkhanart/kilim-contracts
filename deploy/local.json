@@ -13,15 +13,13 @@
     "rendererHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
   },
   "auction": {
-    "paymentToken": "0x0000000000000000000000000000000000000001",
-    "tokenDecimals": 6,
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "collectionOwner": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "startsAt": 0,
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,
-    "reservePrice": 1000000,
+    "reservePrice": 10000000000000000,
     "symbolCap": 1000000,
     "maxSymbolsPerBid": 1000000,
     "maxCells": 256

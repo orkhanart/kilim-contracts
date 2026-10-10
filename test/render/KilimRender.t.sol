@@ -6,7 +6,6 @@ import {KilimRenderer} from "../../src/render/KilimRenderer.sol";
 import {IKilimRenderer} from "../../src/render/IKilimRenderer.sol";
 import {Kilim} from "../../src/Kilim.sol";
 import {KilimAuction} from "../../src/KilimAuction.sol";
-import {MockUSD} from "../mocks/MockUSD.sol";
 import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 /// @notice Kilim wired to the real renderer over the packed store: what Kilim pushes, what comes back, and
@@ -150,8 +149,7 @@ contract KilimRenderTest is RenderBase {
     /// @dev The whole launch path with the real renderer: auction creates Kilim, a bid reserves IDs, a claim
     ///      mints them, and their metadata is drawn.
     function testAuctionCreatesACollectionWiredToTheRenderer() public {
-        MockUSD usd = new MockUSD(6);
-        KilimAuction.Config memory c = config(address(usd));
+        KilimAuction.Config memory c = config();
         c.motifCount = uint16(count);
         c.geometryHash = renderer.geometryHash();
         c.rendererHash = address(renderer).codehash;
@@ -159,11 +157,10 @@ contract KilimRenderTest is RenderBase {
         KilimAuction auction = new KilimAuction(c);
         Kilim collection = auction.collection();
         assertEq(address(collection.renderer()), address(renderer));
-        usd.mint(ALICE, 100 * UNIT);
-        vm.warp(auction.startsAt());
+        _openBidding(auction);
+        _fund(ALICE, 25 * UNIT);
         vm.startPrank(ALICE);
-        usd.approve(address(auction), 25 * UNIT);
-        auction.bid(25 * UNIT, 25, 0);
+        auction.bid{value: 25 * UNIT}(25 * UNIT, 25, 0);
         auction.claimSymbols(4, ALICE);
         vm.stopPrank();
         (bytes32 seed, uint16 motif, uint8 material) = collection.symbolTraits(3);

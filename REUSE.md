@@ -1,20 +1,20 @@
 # Open-source provenance and Kilim adaptation
 
-> **8 October 2026 update:** Native ETH launch and 100-wallet registration supersede the USDC sections below. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for implemented behavior, verification and remaining launch work. Earlier audit results do not certify the changed ETH paths.
+> The auction is native ETH only, with a 100-wallet registration before bidding opens. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for the behavior and [audit/full-audit-2026-10-09.md](audit/full-audit-2026-10-09.md) for the latest internal review.
 
-Checked September 18, 2026 UTC. The build reuses OpenZeppelin directly and a limited, explicitly identified part of thirdweb's English auction implementation. **The complete Kilim contracts have not received an independent audit.**
+Upstream evidence checked September 18, 2026 UTC; the adaptation notes below were updated October 9, 2026 for the ETH-only contracts. The build reuses OpenZeppelin directly and a limited, explicitly identified part of thirdweb's English auction implementation. **The complete Kilim contracts have not received an independent audit.**
 
 ## What is reused
 
 | Component | Source | Boundary |
 | --- | --- | --- |
 | ERC-721 ownership, approvals, transfers and receiver checks | OpenZeppelin Contracts **5.6.1**, imported unchanged | Kilim's mint restrictions, composition, expansion and metadata are custom. |
-| ERC-20 transfers, reentrancy protection, arithmetic and metadata utilities | Same pinned OpenZeppelin package | Exact-transfer checks and auction accounting are Kilim additions. |
-| Ascending bid acceptance | thirdweb `EnglishAuctionsLogic._isNewWinningBid`, retained unchanged apart from whitespace, including its 10,000 denominator | Actual predicate equality and reference-file integrity are checked by `pnpm verify:upstream`. Calls are additionally bounded to uint128 amounts and whole token units. |
-| Auction lifecycle | `src/auction/ERC20EnglishAuction.sol`, a limited adaptation of thirdweb's ascending-bid flow | Escrow, storage, refund, extension and settlement code is extensively changed. This is not an unchanged thirdweb marketplace deployment. |
-| Symbol credits and 1/1 claims | `src/KilimAuction.sol`, built on the auction base | Custom Kilim code; losing bidders retain their credits, with separate claims and immutable caps. |
+| Reentrancy protection, arithmetic, EIP-712 typed data and signature checking (EOA and ERC-1271) | Same pinned OpenZeppelin package | ETH escrow, registration and auction accounting are Kilim additions. |
+| Ascending bid acceptance | thirdweb `EnglishAuctionsLogic._isNewWinningBid`, retained unchanged apart from whitespace, including its 10,000 denominator | Actual predicate equality and reference-file integrity are checked by `pnpm verify:upstream`. Calls are additionally bounded to uint128 amounts and whole bid units of 0.001 ETH. |
+| Auction lifecycle | `src/auction/EnglishAuction.sol`, a limited adaptation of thirdweb's ascending-bid flow | Escrow, storage, registration, refund, extension and settlement code is extensively changed. This is not an unchanged thirdweb marketplace deployment. |
+| Symbol credits and the 1/1 | `src/KilimAuction.sol`, built on the auction base | Custom Kilim code; losing bidders retain their credits, with separate claims and immutable caps. |
 
-The original marketplace cannot be used unchanged for the requested economics: it has immediate outgoing refunds, marketplace storage, native-token wrapping, fees, royalties and upgrades. The `_handleBid` function is not a virtual extension point in this reference. Extracting the relevant rule and adapting the flow makes the changed security boundary explicit; it does not transfer the original audit's assurance to the new escrow code.
+The original marketplace cannot be used unchanged for the requested economics: it has marketplace storage, native-token wrapping, fees, royalties and upgrades, and no registration or retained rewards. The `_handleBid` function is not a virtual extension point in this reference. Extracting the relevant rule and adapting the flow makes the changed security boundary explicit; it does not transfer the original audit's assurance to the new escrow code.
 
 ## Exact upstream evidence
 
@@ -35,23 +35,24 @@ OpenZeppelin is pinned through the package lockfile. Its [5.6.1 source tree](htt
 | Upstream behavior | Kilim behavior | Reason / regression evidence |
 | --- | --- | --- |
 | Multiple auctions in marketplace storage | One constructor-configured auction; no roles or upgrades | Smaller scope; constructor and access-control tests. |
-| Percentage-based winning-bid predicate | Same predicate, plus whole-unit bids and uint128 upper bound | Fuzzed quote acceptance and minimality across 0–18 decimals and 1–10,000 bps; overflow boundary tested. |
-| Refund old bidder during the new bid | Record refund credit; old bidder withdraws separately | A blocked previous recipient cannot stop later bids. |
-| Currency wrapper moves incoming funds | SafeERC20 collects the entire recorded amount; check exact balance change | Fee/false-return/failed-deposit tests and solvency invariants. |
-| Fixed start and end, extended by adding a time buffer | `startsAt` only opens bidding; the first bid starts a `duration` clock. A later bid extends the close to at least now plus the window, with no absolute end, so the auction ends only after a full window with no new bid. With no bids it never ends and cannot settle | First-bid clock, unlimited-extension, no-bids, last-second and stateful tests. |
-| Payable and native-currency support | Nonpayable ERC-20 entry points, no receive function | Attached ETH and direct ETH calls revert. Forced ETH remains unrecoverable. |
+| Percentage-based winning-bid predicate | Same predicate, plus whole-unit bids (0.001 ETH) and uint128 upper bound | Quote acceptance and minimality across 1–10,000 bps; overflow boundary. |
+| Refund old bidder during the new bid | Refund inside the new bid through a self-call capped at 150,000 gas, after a check that the bid carries enough gas for it; a failed refund becomes a credit the old bidder withdraws | A previous bidder that rejects ETH or burns gas cannot stop later bids or make them run out of gas (`test/GasFloors.t.sol`, `test/NativeRegistration.t.sol`). |
+| Currency wrapper moves incoming funds | Payable bid; `msg.value` must equal the recorded amount; no wrapper | Wrong-value and rollback tests; the contract balance equals its liabilities. |
+| Any address may bid at once | Bidding opens only when exactly 100 wallets have registered, directly or by an EIP-712 / ERC-1271 signature. Registration counts addresses, not people, and takes no deposit | `test/NativeRegistration.t.sol`, `test/SponsoredRegistration.t.sol`. One actor can fill the slots; the owner accepted this. |
+| Fixed start and end, extended by adding a time buffer | `startsAt` only opens registration and bidding; the first bid starts a `duration` clock. A later bid extends the close to at least now plus the window, with no absolute end, so the auction ends only after a full window with no new bid. With no bids it never ends and cannot settle | First-bid clock, unlimited-extension, no-bids, last-second and stateful tests. |
+| A currency chosen per auction, moved through a wrapper library | Native ETH only: one payable bid entry point, no receive function | Plain ETH transfers to the auction revert. Forced ETH remains unrecoverable. |
 | Optional immediate buyout | No buyout or amount clamp | Large overbids must be fully collected and remain fully payable. |
-| Marketplace fees, royalty routing and asset delivery | Treasury receives winning principal; winner separately claims one Kilim NFT | Failed NFT receiver cannot block settlement or proceeds. |
+| Marketplace fees, royalty routing and asset delivery | Treasury withdraws the winning bid; settlement sends the 1/1 to the winner through a self-call capped at 500,000 gas, and the winner claims it if that call fails | A failing NFT receiver cannot block settlement or proceeds, and a low-gas settlement cannot skip the 1/1 (`test/GasFloors.t.sol`). |
 | No retained Kilim rewards | Bounded symbol credits for every accepted bid, each reserving specific symbol IDs | Refunds preserve credits by owner decision; exhausted rewards do not stop bidding. Self-outbid credit collection is accepted, not fixed. |
 | Any address may bid | The configured treasury address cannot bid | Treasury bids revert; other seller-controlled wallets are not detectable. |
 
-The upstream A-15 M-1 finding concerned attached native currency becoming trapped on ERC-20 bids. The nonpayable interface excludes that path. thirdweb also published a [September 2023 buyout vulnerability](https://blog.thirdweb.com/2023-09-09-vulnerability-auctions-with-a-buyout-price/); this adaptation has no buyout branch. Historical fixes illustrate why an audit-reference commit is not itself a deployable security guarantee.
+The upstream A-15 M-1 finding concerned native currency attached to a bid in another currency becoming trapped. Kilim has one currency, and a bid whose `msg.value` differs from its amount reverts, which excludes that path. thirdweb also published a [September 2023 buyout vulnerability](https://blog.thirdweb.com/2023-09-09-vulnerability-auctions-with-a-buyout-price/); this adaptation has no buyout branch. Historical fixes illustrate why an audit-reference commit is not itself a deployable security guarantee.
 
-`test/ReuseRegression.t.sol` checks these adaptation boundaries. Existing adversarial and stateful tests cover claims, refund backing, treasury limits and token/NFT callbacks. The build manifest hashes the production sources, tests, scripts and vendored evidence. Source verification on an explorer, open-source publication and security audits remain different checks; no deployment or explorer verification has been performed.
+`test/ReuseRegression.t.sol` checks these adaptation boundaries in ETH: wrong-value bids, plain ETH transfers, a previous bidder that rejects ETH, rollback on a reverted bid, the uint128 bound, quote minimality and full collection of large overbids. `test/AuctionInvariants.t.sol` checks refund backing statefully, with wallets that reject ETH, burn gas or refuse NFTs: the contract balance always covers its liabilities and every wei bid is refunded, paid as proceeds or still owed. The adversarial tests for claims, treasury limits and NFT callbacks are in `test/KilimAuction.t.sol`. The build manifest hashes the production sources, tests, scripts and vendored evidence. Source verification on an explorer, open-source publication and security audits remain different checks; no deployment or explorer verification has been performed.
 
 ## Other candidates considered
 
-- [Nouns Auction House V3](https://github.com/nounsDAO/nouns-monorepo/blob/3779f34e4442cc62f6602bf17460ad334e0208a7/packages/nouns-contracts/contracts/NounsAuctionHouseV3.sol): ETH/WETH and Nouns-specific issuance/history with upgradeable controls; adapting it to this stablecoin design adds unnecessary changes. No Nouns source was copied.
+- [Nouns Auction House V3](https://github.com/nounsDAO/nouns-monorepo/blob/3779f34e4442cc62f6602bf17460ad334e0208a7/packages/nouns-contracts/contracts/NounsAuctionHouseV3.sol): ETH/WETH and Nouns-specific issuance/history with upgradeable controls; adapting it to this design (one immutable auction, registration, retained symbol rewards) adds unnecessary changes. No Nouns source was copied.
 - [Zora legacy Auction House](https://github.com/ourzora/auction-house#deprecation-notice): maintainers explicitly deprecate it; not selected.
 
 Fully refunded bids that retain permanent rewards can be farmed regardless of the auction library. The owner has accepted this as the intended bidding incentive; see [AUDIT.md](AUDIT.md) for the measured exposure and the remaining launch requirements.

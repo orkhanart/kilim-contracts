@@ -19,6 +19,7 @@ const PORT = Number(value('--port', '5199')), RPC_PORT = Number(value('--rpc-por
 
 const ETH = 10n ** 18n;
 const hex = (n) => '0x' + BigInt(n).toString(16);
+const nftBalance = A.fn('balanceOf(address owner) returns (uint256)');   // the collection's ERC-721 balance
 const eth = (wei) => { const s = (BigInt(wei) * 1000000n / ETH).toString().padStart(7, '0'); return (s.slice(0, -6) + '.' + s.slice(-6)).replace(/\.?0+$/, '') || '0'; };
 const toWei = (text) => { const [whole, part = ''] = String(text).trim().split('.'); return BigInt(whole || '0') * ETH + BigInt((part + '0'.repeat(18)).slice(0, 18)); };
 /** Wallet n of the bench: a plain address on the private chain, impersonated by anvil. */
@@ -35,7 +36,7 @@ const log = [];
 const note = (ok, text) => { log.unshift({ ok, text, at: new Date().toISOString().slice(11, 19) }); if (log.length > 200) log.pop(); };
 
 async function deploy() {
-  d = await deployLocal(anvil.rpcUrl, { nativeEth: true });
+  d = await deployLocal(anvil.rpcUrl);
   F = A.F.auction;
   await rpc.call('anvil_autoImpersonateAccount', [true]);
   // Check-in opens at startsAt: go there, so the bench starts where a visitor would.
@@ -150,8 +151,7 @@ async function state() {
     if (n > NAMES.length && !credits && !refund && a !== leader) continue;
     const [registered, balance, owned] = await Promise.all([
       view(F.registered, [a]), rpc.call('eth_getBalance', [a, 'latest']),
-      // The collection is an ERC-721: its balanceOf has the same shape as a token's.
-      rpc.view(d.collection, A.F.erc20.balanceOf, [a]).then((r) => r[0]).catch(() => null),
+      rpc.view(d.collection, nftBalance, [a]).then((r) => r[0]).catch(() => null),
     ]);
     wallets.push({ n, name: who(n), registered, balance: eth(balance), credits: String(credits), refund: eth(refund), owned: owned === null ? '?' : String(owned), leading: a === leader });
   }

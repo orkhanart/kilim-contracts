@@ -33,14 +33,12 @@ async function rpc(url, method, params = []) {
  * gas limit (anvil's default is 30M).
  * @returns {Promise<{rpcUrl: string, port: number, chainId: number, stop: () => Promise<void>}>}
  */
-export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, gasLimit, quiet = true } = {}) {
+export async function startAnvil({ port, chainId = 31337, gasLimit, quiet = true } = {}) {
   const chosen = await freePort(port ?? 0);
   const args = [
     '--host', '127.0.0.1', '--port', String(chosen), '--chain-id', String(chainId),
     '--accounts', '10', '--balance', '10000', '--mnemonic', TEST_MNEMONIC,
   ];
-  if (forkUrl) args.push('--fork-url', forkUrl);
-  if (forkUrl && forkBlock) args.push('--fork-block-number', String(forkBlock));
   // A higher block gas limit also raises anvil's eth_call cap (the heaviest tokenURI needs ~30.4M).
   if (gasLimit) args.push('--gas-limit', String(gasLimit));
   const child = spawn(foundryBinary('anvil'), args, { stdio: ['ignore', quiet ? 'ignore' : 'inherit', 'pipe'] });
@@ -49,7 +47,7 @@ export async function startAnvil({ port, chainId = 31337, forkUrl, forkBlock, ga
   let exited = null;
   child.on('exit', (code) => { exited = code ?? -1; });
   const rpcUrl = `http://127.0.0.1:${chosen}`;
-  const deadline = Date.now() + (forkUrl ? 60_000 : 15_000);
+  const deadline = Date.now() + 15_000;
   for (;;) {
     if (exited !== null) throw new Error(`anvil exited (${exited}): ${stderr.trim()}`);
     try {

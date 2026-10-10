@@ -4,7 +4,7 @@ pragma solidity 0.8.37;
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {TestBase} from "./TestBase.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {ERC20EnglishAuction} from "../src/auction/ERC20EnglishAuction.sol";
+import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 
 /// @dev A leader whose refund receiver is cheap until armed, then burns every unit of gas it is given.
 contract SwitchingLeader {
@@ -50,17 +50,11 @@ contract GasFloorsTest is TestBase {
     KilimAuction auction;
 
     function setUp() public {
-        KilimAuction.Config memory c = config(address(0));
-        c.reservePrice = 0.01 ether;
+        KilimAuction.Config memory c = config();
         c.duration = 1 days;
         c.incrementBps = 1000;
         auction = new KilimAuction(c);
-        vm.warp(c.startsAt);
-        for (uint160 i = 1000; i < 1100; ++i) {
-            vm.deal(address(i), 0.01 ether);
-            vm.prank(address(i));
-            auction.register();
-        }
+        _openBidding(auction);
         vm.deal(ALICE, 10 ether);
     }
 
@@ -110,7 +104,7 @@ contract GasFloorsTest is TestBase {
             mallory.arm(i == 1);
             (bool ok, bytes memory data) = _aliceBids(0.011 ether, 200_000);
             assertTrue(!ok);
-            assertEq(bytes32(data), bytes32(ERC20EnglishAuction.InsufficientGas.selector));
+            assertEq(bytes32(data), bytes32(EnglishAuction.InsufficientGas.selector));
             assertEq(auction.highestBidder(), address(mallory));
         }
     }
@@ -137,4 +131,53 @@ contract GasFloorsTest is TestBase {
         assertEq(auction.collection().ownerOf(1), address(pool));
         assertEq(pool.received(), 1);
     }
+
+    /// @dev The collection and the auction have separate guards. A holder who settles from inside a
+    ///      weave callback must not be able to make the prize delivery fail.
+    function testSettlingFromInsideAWeaveCallbackStillSendsThePrize() public {
+        PoolWinner pool = new PoolWinner();
+        WeavingSettler mallory = new WeavingSettler(auction);
+        vm.deal(address(mallory), 1 ether);
+        mallory.bid(0.01 ether);
+        vm.deal(address(pool), 1 ether);
+        pool.bid(auction, 0.011 ether);
+        mallory.claim(4);
+        vm.warp(auction.endsAt());
+        mallory.weaveAndSettle();
+        assertTrue(auction.settled());
+        assertTrue(auction.prizeClaimed());
+        assertEq(auction.collection().ownerOf(1), address(pool));
+    }
+}
+
+/// @dev Holds four symbols, weaves them, and settles the auction from the artwork's receiver callback.
+contract WeavingSettler is IERC721Receiver {
+    KilimAuction private immutable auction;
+    uint256[] private held;
+    bool private settling;
+
+    constructor(KilimAuction a) {
+        auction = a;
+    }
+
+    function bid(uint256 amount) external {
+        auction.bid{value: amount}(amount, 0, 0);
+    }
+
+    function claim(uint256 quantity) external {
+        auction.claimSymbols(quantity, address(this));
+    }
+
+    function weaveAndSettle() external {
+        settling = true;
+        auction.collection().weave(held, 2, 2, "flat/ink");
+    }
+
+    function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {
+        if (settling) auction.settle();
+        else held.push(tokenId);
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    receive() external payable {}
 }

@@ -260,7 +260,10 @@ contract Kilim is ERC721, ReentrancyGuard {
         return keccak256(abi.encode(block.chainid, address(this), id));
     }
 
-    function mintMasterpiece(address to) external onlyMinter nonReentrant {
+    /// @dev Deliberately not nonReentrant: only the auction can call it, it is one-shot, and the auction
+    ///      holds its own guard. Sharing this contract's guard would let a holder settle from inside a
+    ///      weave callback and make the prize delivery fail with settlement still recorded.
+    function mintMasterpiece(address to) external onlyMinter {
         _validateRecipient(to);
         if (masterpieceMinted) revert AlreadyMinted();
         masterpieceMinted = true;
