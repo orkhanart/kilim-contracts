@@ -156,8 +156,11 @@ try {
   }
 
   step('Carol tries to claim to a contract that cannot hold NFTs: caught before signing');
-  // A stored page chunk: code, but no receiver hook.
-  const bad = await expectName(carol.claim({ to: d.chunks.head[0] }), 'ERC721InvalidReceiver');
+  // A contract whose runtime is 0xfe (INVALID): every call to it reverts with no data, which the
+  // safe-mint hook reports as ERC721InvalidReceiver. (A stored page chunk is not usable here: its code
+  // starts with STOP, so onERC721Received returns empty data and the decode fails with no reason.)
+  const rejecting = (await rpc.send({ from: d.deployer, data: '0x60fe60005360016000f3', gas: '0x30000' })).contractAddress;
+  const bad = await expectName(carol.claim({ to: rejecting }), 'ERC721InvalidReceiver');
   console.log('    ', carol.explain(bad).message);
 
   step('Nothing is sent automatically: each bidder claims their own glyphs with claimGlyphs, up to 64 per transaction');
@@ -212,7 +215,7 @@ try {
   assert.equal(winner.auction().prizeClaimed, true);
   assert.equal((await W.view(d.oneOfOne, F.oneOfOne.ownerOf, [1n])).toLowerCase(), winner.account().address.toLowerCase());
   const uri = await W.view(d.oneOfOne, F.oneOfOne.tokenURI, [1n]);
-  assert.ok(uri.startsWith('data:application/json;utf8,{"name":"What the weave remembers"'));
+  assert.ok(uri.startsWith('data:application/json;utf8,{"name":"The Unwoven Kilim"'));
   console.log(`     the 1/1's tokenURI is ${uri.length.toLocaleString('en-US')} bytes, served from the chain`);
   await expectName(winner.claimPrize(), 'PrizeAlreadyClaimed');
   await treasury.refresh();

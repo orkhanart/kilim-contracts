@@ -77,9 +77,10 @@ contract LaunchConfigTest is TestBase {
         assertEq(uint256(oneOfOne.ROYALTY_BPS()), 500);
         assertEq(address(oneOfOne.glyphs()), address(nft));
         assertEq(oneOfOne.name(), ONE_OF_ONE_NAME);
-        assertEq(nft.name(), "Kilim Glyphs");
-        assertEq(nft.symbol(), "GLYPH");
-        assertEq(oneOfOne.symbol(), "KILIM");
+        assertEq(nft.name(), "Motif Bazaar");
+        assertEq(nft.symbol(), "MOTIF");
+        assertEq(oneOfOne.name(), "The Unwoven Kilim");
+        assertEq(oneOfOne.symbol(), "UNWOVEN");
     }
 
     /// 0.01 ETH, then +10% rounded up to whole thousandths: 10, 11, 13, 15, 17, 19, 21, 24, 27 ...

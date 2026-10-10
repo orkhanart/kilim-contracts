@@ -88,6 +88,9 @@ contract DeployKilim {
     uint64 public constant LAUNCH_EXTENSION_WINDOW = 600;
     uint256 public constant LAUNCH_GLYPH_CAP = 1_000_000;
     uint256 public constant LAUNCH_MAX_GLYPHS_PER_BID = 1_000_000;
+    /// @notice The 1/1's name, given by the artist (docs/CONTRACTS.md). It is the contract's name, so it is
+    ///         the collection name marketplaces show; the glyph collection's name is fixed in its code.
+    string public constant LAUNCH_ONE_OF_ONE_NAME = "The Unwoven Kilim";
 
     struct Config {
         uint256 chainId;
@@ -564,12 +567,16 @@ contract DeployKilim {
         }
     }
 
-    /// @dev Chain 1 only: the artist's wallet deploys, every auction setting must be the decided launch
-    ///      value, the published nonce is always checked, and the inspection window must be nonzero.
+    /// @dev Chain 1 only: the artist's wallet deploys, every auction setting and the 1/1's name must be
+    ///      the decided launch value, the published nonce is always checked, and the inspection window
+    ///      must be nonzero.
     function _requireLaunchSettings(Config memory c) internal view {
         if (block.chainid != MAINNET_CHAIN_ID) return;
         KilimAuction.Config memory a = c.auction;
         if (c.deployer != LAUNCH_DEPLOYER) revert Refused("mainnet launch value: deployer");
+        if (!_sameText(c.oneOfOneName, LAUNCH_ONE_OF_ONE_NAME)) {
+            revert Refused("mainnet launch value: oneOfOne.name");
+        }
         if (a.treasury != LAUNCH_TREASURY) revert Refused("mainnet launch value: treasury");
         if (a.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("mainnet launch value: reservePrice");
         if (a.incrementBps != LAUNCH_INCREMENT_BPS) revert Refused("mainnet launch value: incrementBps");
@@ -620,12 +627,18 @@ contract DeployKilim {
         _show("glyphCap          ", c.glyphCap, LAUNCH_GLYPH_CAP);
         _show("maxGlyphsPerBid   ", a.maxGlyphsPerBid, LAUNCH_MAX_GLYPHS_PER_BID);
         _log(string.concat("  collection        ", c.collectionDescription, " | ", c.collectionExternalUrl));
-        _log(string.concat("  1/1               ", c.oneOfOneName, " | ", c.oneOfOneExternalUrl));
+        _show("1/1 name          ", c.oneOfOneName, LAUNCH_ONE_OF_ONE_NAME);
+        _log(string.concat("  1/1 externalUrl   ", c.oneOfOneExternalUrl));
     }
 
     function _show(string memory name, uint256 value, uint256 launch) internal view {
         string memory line = string.concat("  ", name, vm.toString(value));
         _log(value == launch ? line : string.concat(line, "   <- launch value ", vm.toString(launch)));
+    }
+
+    function _show(string memory name, string memory value, string memory launch) internal view {
+        string memory line = string.concat("  ", name, value);
+        _log(_sameText(value, launch) ? line : string.concat(line, "   <- launch value ", launch));
     }
 
     function _show(string memory name, address value, address launch) internal view {

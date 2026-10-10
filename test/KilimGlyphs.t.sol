@@ -75,8 +75,8 @@ contract KilimGlyphsTest is TestBase {
         assertEq(nft.gridChunks().length, 2);
         assertEq(nft.description(), DESCRIPTION);
         assertEq(nft.externalUrl(), EXTERNAL_URL);
-        assertEq(nft.name(), "Kilim Glyphs");
-        assertEq(nft.symbol(), "GLYPH");
+        assertEq(nft.name(), "Motif Bazaar");
+        assertEq(nft.symbol(), "MOTIF");
         assertEq(nft.glyphsMinted(), 16);
         assertEq(nft.glyphsBurned(), 0);
     }
@@ -556,12 +556,12 @@ contract KilimGlyphsTest is TestBase {
         assertEq(
             _decode(own.contractURI()),
             string.concat(
-                '{"name":"Kilim Glyphs","description":"\\u001b\\u001f\\u0000 x","external_link":"a\\"b\\\\c",',
+                '{"name":"Motif Bazaar","description":"\\u001b\\u001f\\u0000 x","external_link":"a\\"b\\\\c",',
                 '"seller_fee_basis_points":500,"fee_recipient":"0x0000000000000000000000000000000000007777"}'
             )
         );
         string memory json = _decode(nft.contractURI());
-        assertEq(vm.parseJsonString(json, ".name"), "Kilim Glyphs");
+        assertEq(vm.parseJsonString(json, ".name"), "Motif Bazaar");
         assertEq(vm.parseJsonString(json, ".description"), DESCRIPTION);
         assertEq(vm.parseJsonString(json, ".external_link"), EXTERNAL_URL);
         assertEq(vm.parseJsonUint(json, ".seller_fee_basis_points"), 500);

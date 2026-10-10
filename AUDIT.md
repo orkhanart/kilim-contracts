@@ -1,10 +1,12 @@
 # Kilim internal security review
 
-**Review dates:** September 18 and 26, 2026 and October 9, 2026 UTC.
+**Review dates:** September 18 and 26, 2026 and October 9, 2026 UTC; October 10, 2026 for the ETH-only re-audit and the attack research. The split of 10 October (the last section) has not had a review round yet.
 **Disposition:** Development implementation. **Not approved for a real-money launch.**
 **Reviewers:** Claude instances only: the agent that implemented the contracts, then separate review sessions and multi-agent review rounds with adversarial verification and mutation testing. This is not an independent audit, formal verification, or a guarantee of zero vulnerabilities. An independent human audit of the frozen commit is required before funding (K-08).
 
 The auction is native ETH only. Bids, refunds and proceeds are ETH; there is no other currency in the contracts. [docs/NATIVE-ETH.md](docs/NATIVE-ETH.md) describes the behaviour.
+
+**How to read this file.** Each section describes the code as it stood on its date and keeps that code's names, so the sections up to "October 2026 attack research" say symbols, `Kilim.sol`, the renderer, weaving, materials and the page-owner role. Since 10 October 2026 the contracts are `KilimGlyphs` (Motif Bazaar), `KilimOneOfOne` (The Unwoven Kilim) and `KilimAuction` over `EnglishAuction`; symbols are glyphs; `Kilim.sol`, the renderer, weaving, materials and the owner role no longer exist. The last section, "10 October 2026: the split", says which of the older findings and measurements still apply, which moved and which closed; nothing above it has been rewritten.
 
 ## Scope and evidence
 
@@ -125,7 +127,7 @@ Residual risks: rarity is a public race (bidders can time and size bids to cover
 
 Location: `src/render/*`, `Kilim.tokenURI`.
 
-Built: geometry, index and the 1/1 page live on-chain in seven SSTORE2 data contracts. `KilimRenderer` verifies them in its constructor against `geometryHash`, `indexHash` and `pageHash`, and draws every image and metadata document. `Kilim` checks the renderer's code hash, motif count and geometry hash, and forwards its answers. `appearance` is an allow-list of three values. See [docs/RENDERER.md](docs/RENDERER.md).
+Built: geometry, index and the 1/1 page live on-chain in seven SSTORE2 data contracts. `KilimRenderer` verifies them in its constructor against `geometryHash`, `indexHash` and `pageHash`, and draws every image and metadata document. `Kilim` checks the renderer's code hash, motif count and geometry hash, and forwards its answers. `appearance` is an allow-list of three values. See `docs/RENDERER.md` (removed with the renderer on 10 October 2026; [docs/STORAGE.md](docs/STORAGE.md) describes what replaced it).
 
 Open:
 
@@ -290,3 +292,53 @@ Both still work after the repricing; the delivery keeps enough for a Safe-style 
 2. **Re-measure after EIP-8037 is final**, on Sepolia, before the auction is deployed; deploy the data store before Glamsterdam reaches mainnet (code deposit rises 7.65 times).
 3. **One key holds the treasury and the collection page.** A compromise would take the proceeds and rewrite the collection's description and link together.
 4. **Not built yet on the site:** a scheduled check that the served pages hash to the tagged build, a post-send check that the mined transaction is the one the page built, agreement between two RPC providers, and a raised priority fee for bids in the closing window.
+
+## 10 October 2026: the split into Motif Bazaar, The Unwoven Kilim and the auction
+
+Decided with the artist on 10 October and designed in [docs/CONTRACTS.md](docs/CONTRACTS.md): there is no arranging of glyphs in a grid any more, so the single collection `Kilim.sol` with its SVG renderer was replaced by two small token contracts the auction mints into. The vocabulary changed with it: the 1,024 drawings and a bidder's tokens are glyphs; "motif" survives only in the collection's name. The sections above are written in the old names and are left as they were.
+
+### What changed
+
+- **`src/KilimGlyphs.sol`, Motif Bazaar (`MOTIF`)**: up to `glyphCap` tokens, ids `1..glyphCap`, each showing glyph `glyphOf(id) = keccak256(abi.encode(chainid, address(this), id)) % 1024 + 1`. The 1,024 grids (32,768 bytes) and names live in SSTORE2 chunks whose keccak the constructor checks against `gridsHash` and `namesHash`. `mintGlyphs` is minter-only and `nonReentrant`, batches of 1..64, each id once even after a burn (a bitmap); `burn` is owner-only, approvals do not count. `tokenURI` is a contract-drawn SVG with `Glyph` and `Name` attributes; `contractURI`, 5% ERC-2981 to the royalty receiver. No owner role.
+- **`src/KilimOneOfOne.sol`, The Unwoven Kilim (`UNWOVEN`)**: one token, id 1, minted once by the minter. The page is stored as three sections (PREFIX, HEAD, TAIL) in chunks hashed at construction; `tokenURI(1)` is assembled in one buffer in assembly with the grids read live from `KilimGlyphs.grids()` ([docs/STORAGE.md](docs/STORAGE.md)). `mint` is deliberately not `nonReentrant` (R-06).
+- **`src/KilimAuction.sol`**: `Config` loses `collectionOwner`, `motifCount`, `maxCells`, `geometryHash`, `rendererHash`, `renderer` and `symbolCap` and gains `glyphs` and `oneOfOne`. The constructor no longer creates a collection; it checks that both token contracts name this auction as `minter`, that the 1/1 reads this glyph contract, that the treasury is neither, and reads `glyphCap` from the collection. Names: `glyphCap`, `maxGlyphsPerBid`, `glyphsAllocated`, `glyphsClaimed`, `glyphCredits`, `claimGlyphs`, `unclaimedGlyphRanges`, `GlyphsClaimed`, `GlyphRangeMoved`, `expectedFirstGlyphId`, `firstGlyphId`, `glyphReward`. Glyph ids start at 1 (no `FIRST_SYMBOL_ID`). `MAX_MINT_BATCH` is read from the glyph contract. `deliverPrize` and `claimPrize` call `oneOfOne.mint`. `_validateRecipient` also refuses the two token contracts.
+- **`src/auction/EnglishAuction.sol`**: only the constant's name (`SYMBOL_PRICE` → `GLYPH_PRICE`). The registration, bid, refund, extension and settlement code audited on 9 and 10 October is the same apart from that identifier.
+- **`script/DeployKilim.s.sol`**: the chunks by CREATE2, then the three contracts from the artist's wallet at nonces n, n + 1 and n + 2 with the auction's predicted address as minter; the dry run compares both tokenURIs with the packers' goldens and measures their gas; chain 1 pins the deployer (orkhanart.eth) and the 1/1's name.
+- **Packers**: `onchain/pack_glyphs.py` and `onchain/pack_page.py` replace `pack_store.py`; `onchain/loader.html` gunzips the artwork in the browser and hands it the grids.
+- **Names**, applied after the rewrite commit in the working tree: Motif Bazaar / `MOTIF`, The Unwoven Kilim / `UNWOVEN`; the deploy script refuses any other 1/1 name on chain 1.
+
+### What was removed
+
+`src/Kilim.sol`; `src/render/` (renderer, writer, interface) and every test under `test/render/`; `test/CompositionInvariants.t.sol`, `test/GasLimits.t.sol`, the renderer mocks and the `inspectArtwork` path of `test/mocks/Receiver.sol`; `scripts/render-geometries.mjs`, `gas-render.mjs` and `calibrate-gas.mjs`; the `test:render-*`, `gas:*` and `pack*` package scripts; `docs/RENDERER.md`; and in `onchain/` the old pipeline (`pack_store.py`, `render_ref.py`, `synth_geometry.py`, `pack.py`, `fit_gas_model.py`, `symbols.bin`, `symbols.b64`, `build/`, the old page sources and tests). With them: materials, appearances, cells, weaving, expanding and freezing, the page-owner role, `motifCount` and the renderer hash. `audit/gas-render.txt` and `audit/mutation.txt` are records of that earlier code.
+
+### Findings that moved or closed with the removal
+
+- **K-02**: which glyph a token shows is now `KilimGlyphs.glyphOf(id)`. The residual risks (a public race for the ids that show a wanted glyph, a bid landing first moves later ranges, the deployer's address fixes the layout) stand as written, with `expectedFirstGlyphId` as the guard.
+- **K-03** (the renderer's assembly, read cost, content and look): the renderer is gone. What replaces it for review is the assembly of `KilimOneOfOne.tokenURI` and the chunk readers of `KilimGlyphs` (below). The read cost is no longer near any cap. The content is the 1,024 glyphs of the artist's page, packed, with `glyphCount` pinned at 1,024 by the packer and the script. The look of the glyph token and the final artwork page are still to be approved by the artist.
+- **F-13** (the page-owner key): closed. There is no owner role; the collection texts and the royalty receiver are fixed at construction.
+- **F-14** (no motif pin, no read-gas ceiling): closed. The script refuses a store with other than 1,024 glyphs, compares both tokenURIs with the goldens, and refuses a read above 8,000,000 gas.
+- **R-06** (settling from inside a collection callback): re-targeted. `KilimOneOfOne.mint` has no guard, and the glyph contract's guard covers only `mintGlyphs`; `test/GasFloors.t.sol: testSettlingFromInsideAGlyphCallbackStillSendsThePrize` settles from a glyph transfer callback and the prize is delivered.
+- **"`tokenURI` above 16,777,216 gas"** (open decision 1 of the attack research): closed by the design and the artist's 10 October rule (take the secure option). The 1/1 reads at 3,838,101 gas on the packed stand-in store, and the deploy script refuses anything above 8,000,000; there is no larger token.
+- **"One key holds the treasury and the collection page"** (open decision 3): the page role is gone. The artist decided on 10 October that the same wallet, orkhanart.eth, deploys, receives the proceeds and the royalties; the script pins it on chain 1.
+
+### What still holds, re-measured
+
+The whole auction suite was re-targeted at the new contracts and names, and the measured numbers in its comments were re-measured rather than carried over:
+
+- `test/AuditGaps.t.sol`, the gas a hostile wallet can cost others (F-05, R-11): a gas-burning leader costs a rival's bid "the refund's 150,000 cap plus the bid itself (about 128,000 today); a cap of 193,000 or more fails this" (asserted under 320,000); a gas-burning winner costs `settle()` "the delivery's 500,000 cap plus settlement itself (about 17,000 today); a cap of 583,000 or more fails this" (asserted under 600,000).
+- `test/AuditGaps.t.sol`, what the constants really give a receiver (R-12): a winner's hook may use "389,005 of the 500,000 by a one-gas binary search on 10 October 2026 (the cold call into the 1/1, its minted flag, the safe mint and the auction's prizeClaimed take the rest)"; the test burns 388,000 and is delivered at every gas limit that settles, and "390,000 is not delivered". A refund receiver burning 120,000 is still paid inside the bid.
+- `test/GasFloors.t.sol` (F-01, F-02): a leader cannot make a rival's bid, estimated with no margin, run out of gas by arming its receiver; a bid with 200,000 gas fails with `InsufficientGas` whatever the leader does; every settle gas limit from 60,000 to 700,000 either reverts with nothing settled or delivers the 1/1 to a pool whose hook writes five slots.
+- `test/AttackPatterns.t.sol`, the Glamsterdam projections re-run on the new contracts: the deferred-refund path after the call projects to 225,840 gas (300,000 kept back); the prize delivery writes four new slots and updates none, a winner's hook may use 391,406 gas today and 39,726 at the projected prices (the 500,000 allowance still delivers to an ordinary wallet); filling all 100 registrations in one transaction costs 7,772,061; the self-outbid ladder to a 1.06 ETH top bid earns 11,351 glyphs against 1,060 for one honest bid.
+- Gas floors from the constants: an outbidding bid must reach the refund with `REFUND_GAS + REFUND_GAS / 63 + 300,000 = 452,380` gas, and a settle the prize step with `PRIZE_GAS + PRIZE_GAS / 63 + 50,000 = 557,936`. Measured as whole transactions on 10 October: an outbidding bid succeeds from **523,590** gas, `settle()` from **585,900**. The site sends 1,500,000 and 1,200,000.
+- `test/KilimAuction.t.sol`: a 64-glyph claim across three bids is **1,790,852** gas of execution (about 28,000 per glyph); a claim mints exactly the reserved ids to the recipient; a settle that cannot deliver the 1/1 leaves settlement intact and `claimPrize` works; claims, refunds, proceeds and the prize all refuse the zero address, the auction and the two token contracts as recipients, and the collection refuses its minter, so no path puts a token or ETH into the auction or a token contract.
+- Reads: `KilimOneOfOne.tokenURI(1)` **3,838,101** gas for 896,938 bytes on the packed stand-in store; `KilimGlyphs.tokenURI` 287,311. Deployment: `KilimGlyphs` 3,226,366, `KilimOneOfOne` 5,600,491, `KilimAuction` 3,150,749; a full chunk at most 5,876,690; the 38 chunks about 202.0M in all. Every transaction is under the 8M policy.
+- Sizes from `audit/build-manifest.json` (creation / runtime bytes): `KilimGlyphs` 13,343 / 10,808; `KilimOneOfOne` 12,062 / 9,921; `KilimAuction` 13,635 / 10,885.
+- **Tests:** 188 forge tests at the rewrite commit, 0 failed; 189 with the name test added in the working tree (a run on 10 October counted 191 because another session had a two-test gas probe in `test/` at that moment); 78 site tests. Slither (`pnpm -s audit:static`): no high or medium; 10 low (5 timestamp comparisons, 2 events after a call, 1 benign reentrancy, 1 calls-loop in `claimGlyphs`, 1 missing zero-check on `namesChunk`, which the constructor covers by reading the chunk's code), 25 informational (12 assembly, 6 too-many-digits in the encoders' masks, 5 naming, 1 dead code, 1 low-level call). `forge fmt --check` passes; `FOUNDRY_PROFILE=ci` passes; `pnpm -s deploy:dry` is green.
+
+### What has not been reviewed
+
+`KilimGlyphs` and `KilimOneOfOne` are new code: the chunk readers, the names offset table, the SVG run encoder, the JSON escaping, the burn bitmap, and above all the one-buffer assembly of `tokenURI(1)` (in-place hex and base64 encoders with pointer arithmetic). The packers and the loader are new. The auction's changes are renames and the two external mints. None of it has had an adversarial review; the independent human audit of K-08 is still required and now covers these files first.
+
+### Review round
+
+**Pending.** An adversarial review round of the split follows; its findings are appended here.

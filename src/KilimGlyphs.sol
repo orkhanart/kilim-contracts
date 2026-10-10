@@ -6,7 +6,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-/// @notice Kilim Glyphs: up to `glyphCap` tokens, ids 1..glyphCap, each showing one of the 1,024 glyphs.
+/// @notice Motif Bazaar, the glyph collection: up to `glyphCap` tokens, ids 1..glyphCap, each showing one
+///         of the 1,024 glyphs.
 /// @dev No admin, pause, upgrade, metadata setter or ownership role: everything is fixed at construction.
 ///      The glyph a token shows depends only on the chain, this address and the token id: public from
 ///      deployment, NOT randomness. The grids and names live in SSTORE2 chunks (runtime code `0x00 || data`)
@@ -59,7 +60,7 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         bytes32 namesHash_,
         string memory description_,
         string memory externalUrl_
-    ) ERC721("Kilim Glyphs", "GLYPH") {
+    ) ERC721("Motif Bazaar", "MOTIF") {
         if (
             minter_ == address(0) || royaltyReceiver_ == address(0) || glyphCap_ == 0
                 || glyphCap_ > type(uint32).max || gridChunks_.length == 0
@@ -256,7 +257,7 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
             Base64.encode(
                 bytes(
                     string.concat(
-                        '{"name":"Kilim Glyphs","description":"',
+                        '{"name":"Motif Bazaar","description":"',
                         _escapeJson(description),
                         '","external_link":"',
                         _escapeJson(externalUrl),

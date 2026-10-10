@@ -34,6 +34,26 @@ contract ReenteringOneOfOneRecipient is IERC721Receiver {
     }
 }
 
+/// @dev A glyph source of any 32,768 bytes, derived from a seed, so the hex encoder meets every byte
+///      value and the 1/1 is compared against OpenZeppelin's Base64 over grids it has never seen.
+contract SeededGrids {
+    bytes32 public immutable seed;
+
+    constructor(bytes32 seed_) {
+        seed = seed_;
+    }
+
+    function grids() external view returns (bytes memory out) {
+        out = new bytes(32_768);
+        for (uint256 i; i < 1024; ++i) {
+            bytes32 w = keccak256(abi.encode(seed, i));
+            assembly ("memory-safe") {
+                mstore(add(add(out, 32), shl(5, i)), w)
+            }
+        }
+    }
+}
+
 contract KilimOneOfOneTest is TestBase {
     event log_named_uint(string key, uint256 value);
 
@@ -99,7 +119,7 @@ contract KilimOneOfOneTest is TestBase {
         assertEq(nft.royaltyReceiver(), TREASURY);
         assertEq(address(nft.glyphs()), address(glyphs));
         assertEq(nft.name(), ONE_OF_ONE_NAME);
-        assertEq(nft.symbol(), "KILIM");
+        assertEq(nft.symbol(), "UNWOVEN");
         assertEq(nft.description(), DESCRIPTION);
         assertEq(nft.externalUrl(), EXTERNAL_URL);
         assertEq(nft.TOKEN_ID(), 1);
@@ -231,7 +251,7 @@ contract KilimOneOfOneTest is TestBase {
         bytes memory grids = glyphs.grids();
         bytes memory pad = _spaces((3 - (bytes(PAGE_HEAD).length + 65_537) % 3) % 3);
         assertEq(page, string(bytes.concat(bytes(PAGE_HEAD), _hex(grids), "'", pad, bytes(PAGE_REST))));
-        assertEq(vm.parseJsonString(json, ".name"), "What the weave remembers");
+        assertEq(vm.parseJsonString(json, ".name"), ONE_OF_ONE_NAME);
     }
 
     /// @dev HEAD lengths of every residue mod 3 exercise the 0, 1 and 2 space paddings.
@@ -276,11 +296,41 @@ contract KilimOneOfOneTest is TestBase {
         assertTrue(keccak256(bytes(own.tokenURI(1))) != keccak256(bytes(nft.tokenURI(1))));
     }
 
+    /// @dev Random grids and random, possibly binary, section bytes against OpenZeppelin's Base64 and a
+    ///      byte-at-a-time hex loop: every byte value reaches hexHalf through the grids and base64Block
+    ///      through HEAD, and every HEAD length exercises the block loop's remainder and the padding.
+    function testFuzzTokenUriMatchesOpenZeppelinForAnyGridsAndSections(
+        bytes32 seed,
+        bytes memory prefix,
+        bytes memory head,
+        bytes memory tail
+    ) public {
+        // A section needs at least one byte to be a chunk.
+        if (prefix.length == 0) prefix = "p";
+        if (head.length == 0) head = "h";
+        if (tail.length == 0) tail = "t";
+        SeededGrids source = new SeededGrids(seed);
+        KilimOneOfOne own = new KilimOneOfOne(
+            address(this),
+            TREASURY,
+            KilimGlyphs(address(source)),
+            pageFrom(prefix, head, tail),
+            ONE_OF_ONE_NAME,
+            DESCRIPTION,
+            EXTERNAL_URL
+        );
+        own.mint(ALICE);
+        bytes memory actual = bytes(own.tokenURI(1));
+        bytes memory expected = _reference(prefix, head, tail, source.grids());
+        assertEq(actual.length, expected.length);
+        assertEq(keccak256(actual), keccak256(expected));
+    }
+
     /// @dev A page of launch size: a 70 KB prefix (the still image), a real loader head and a 600 KB
     ///      tail across 25 chunks. The read must stay under the 8,000,000 policy ceiling.
     function testTokenUriGasWithARealisticPage() public {
         bytes memory prefix = bytes.concat(
-            bytes('{"name":"What the weave remembers","description":"x","image":"data:image/png;base64,'),
+            bytes('{"name":"The Unwoven Kilim","description":"x","image":"data:image/png;base64,'),
             _fill(70_000, "QUJD"),
             bytes('","animation_url":"data:text/html;base64,')
         );

@@ -47,11 +47,12 @@ abstract contract TestBase {
     uint256 internal constant CHUNK = 24_575;
     string internal constant DESCRIPTION = "Stand-in description";
     string internal constant EXTERNAL_URL = "https://kilim.art";
-    string internal constant ONE_OF_ONE_NAME = "What the weave remembers";
+    /// @dev The 1/1's name, as the artist gave it (docs/CONTRACTS.md) and the deploy script pins it.
+    string internal constant ONE_OF_ONE_NAME = "The Unwoven Kilim";
     /// @dev The stand-in page: PREFIX is raw JSON up to the animation_url's data scheme, HEAD is the raw
     ///      loader up to the opening quote of GRIDS, and the rest of the loader is stored base64 as TAIL.
     string internal constant PAGE_PREFIX =
-        '{"name":"What the weave remembers","description":"stand-in","image":"data:image/png;base64,iVBORw0KGgo=","animation_url":"data:text/html;base64,';
+        '{"name":"The Unwoven Kilim","description":"stand-in","image":"data:image/png;base64,iVBORw0KGgo=","animation_url":"data:text/html;base64,';
     string internal constant PAGE_HEAD = "<!doctype html><html><body><script>const GRIDS='";
     string internal constant PAGE_REST = "';document.body.textContent=GRIDS.length</script></body></html>";
 

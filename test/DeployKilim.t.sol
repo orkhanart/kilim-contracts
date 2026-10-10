@@ -216,6 +216,8 @@ contract DeployKilimTest is TestBase {
         assertEq(d.oneOfOne.royaltyReceiver(), ARTIST);
         assertEq(d.glyphs.minter(), address(auction));
         assertEq(d.oneOfOne.minter(), address(auction));
+        assertEq(d.oneOfOne.name(), script.LAUNCH_ONE_OF_ONE_NAME());
+        assertEq(d.oneOfOne.name(), "The Unwoven Kilim");
     }
 
     function testMainnetRefusesEverySettingOtherThanTheLaunchValues() public {
@@ -223,6 +225,12 @@ contract DeployKilimTest is TestBase {
         DeployKilim.Config memory c = _mainnetConfig();
         c.deployer = DEPLOYER;
         _expectRefused("mainnet launch value: deployer");
+        script.deployContracts(c);
+
+        // The artwork's inner title is not the token's name.
+        c = _mainnetConfig();
+        c.oneOfOneName = "What the weave remembers";
+        _expectRefused("mainnet launch value: oneOfOne.name");
         script.deployContracts(c);
 
         c = _mainnetConfig();
@@ -299,6 +307,31 @@ contract DeployKilimTest is TestBase {
         assertEq(d.glyphs.glyphCap(), 10_000);
         assertEq(d.auction.maxGlyphsPerBid(), 250);
         assertEq(d.auction.reservePrice(), RESERVE);
+    }
+
+    /// @dev The 1/1's name is pinned on chain 1 only, before the store is read. Elsewhere another name
+    ///      passes the launch check and meets only the rule every chain applies: the name must be the one
+    ///      the page was packed with, because the golden tokenURI hash was computed with it. So the same
+    ///      config is refused for the launch value on chain 1 and for the packed page on Sepolia.
+    function testOnlyMainnetPinsTheOneOfOneName() public {
+        script.deployStore(_config());
+        DeployKilim.Config memory c = _config();
+        c.oneOfOneName = "Another name";
+        vmd.chainId(11_155_111);
+        c.chainId = 11_155_111;
+        _expectRefused("1/1 name, description or externalUrl differs from the packed page");
+        script.deployContracts(c);
+
+        vmd.chainId(1);
+        c = _mainnetConfig();
+        c.oneOfOneName = "Another name";
+        _expectRefused("mainnet launch value: oneOfOne.name");
+        script.deployContracts(c);
+        // The packed page carries the launch name, so the launch config deploys on chain 1.
+        c = _mainnetConfig();
+        assertEq(c.oneOfOneName, script.LAUNCH_ONE_OF_ONE_NAME());
+        DeployKilim.Deployed memory d = script.deployContracts(c);
+        assertEq(d.oneOfOne.name(), script.LAUNCH_ONE_OF_ONE_NAME());
     }
 
     /// @dev The reserve is the one setting no chain may change: the constructor accepts only 0.01 ETH.
@@ -393,7 +426,7 @@ contract DeployKilimTest is TestBase {
         assertEq(c.auction.extensionWindow, script.LAUNCH_EXTENSION_WINDOW());
         assertEq(c.glyphCap, script.LAUNCH_GLYPH_CAP());
         assertEq(c.auction.maxGlyphsPerBid, script.LAUNCH_MAX_GLYPHS_PER_BID());
-        assertEq(c.oneOfOneName, ONE_OF_ONE_NAME);
+        assertEq(c.oneOfOneName, script.LAUNCH_ONE_OF_ONE_NAME());
         assertTrue(bytes(c.glyphStore).length != 0 && bytes(c.pageStore).length != 0);
     }
 
@@ -431,7 +464,7 @@ contract DeployKilimTest is TestBase {
         assertEq(vmd.parseJsonUint(j, ".auction.extensionWindow"), script.LAUNCH_EXTENSION_WINDOW());
         assertEq(vmd.parseJsonUint(j, ".collection.glyphCap"), script.LAUNCH_GLYPH_CAP());
         assertEq(vmd.parseJsonUint(j, ".auction.maxGlyphsPerBid"), script.LAUNCH_MAX_GLYPHS_PER_BID());
-        assertEq(vmd.parseJsonString(j, ".oneOfOne.name"), ONE_OF_ONE_NAME);
+        assertEq(vmd.parseJsonString(j, ".oneOfOne.name"), script.LAUNCH_ONE_OF_ONE_NAME());
         vm.expectRevert();
         script.loadConfig(path);
     }
