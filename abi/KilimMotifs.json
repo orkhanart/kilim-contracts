@@ -13,7 +13,7 @@
         "internalType": "address"
       },
       {
-        "name": "glyphCap_",
+        "name": "motifCap_",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -52,19 +52,6 @@
   },
   {
     "type": "function",
-    "name": "GLYPH_COUNT",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "GRIDS_PER_CHUNK",
     "inputs": [],
     "outputs": [
@@ -79,6 +66,19 @@
   {
     "type": "function",
     "name": "MAX_MINT_BATCH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MOTIF_COUNT",
     "inputs": [],
     "outputs": [
       {
@@ -244,68 +244,10 @@
   },
   {
     "type": "function",
-    "name": "glyphCap",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphOf",
-    "inputs": [
-      {
-        "name": "id",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphsBurned",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphsMinted",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "grid",
     "inputs": [
       {
-        "name": "glyph",
+        "name": "motif",
         "type": "uint16",
         "internalType": "uint16"
       }
@@ -384,7 +326,7 @@
   },
   {
     "type": "function",
-    "name": "mintGlyphs",
+    "name": "mintMotifs",
     "inputs": [
       {
         "name": "to",
@@ -425,6 +367,64 @@
   },
   {
     "type": "function",
+    "name": "motifCap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifOf",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifsBurned",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifsMinted",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "name",
     "inputs": [],
     "outputs": [
@@ -441,7 +441,7 @@
     "name": "name",
     "inputs": [
       {
-        "name": "glyph",
+        "name": "motif",
         "type": "uint16",
         "internalType": "uint16"
       }
@@ -635,7 +635,7 @@
     "name": "svg",
     "inputs": [
       {
-        "name": "glyph",
+        "name": "motif",
         "type": "uint16",
         "internalType": "uint16"
       }
@@ -756,7 +756,7 @@
   },
   {
     "type": "event",
-    "name": "GlyphsMinted",
+    "name": "MotifsMinted",
     "inputs": [
       {
         "name": "recipient",
@@ -925,10 +925,10 @@
   },
   {
     "type": "error",
-    "name": "InvalidGlyph",
+    "name": "InvalidMotif",
     "inputs": [
       {
-        "name": "glyph",
+        "name": "motif",
         "type": "uint16",
         "internalType": "uint16"
       }

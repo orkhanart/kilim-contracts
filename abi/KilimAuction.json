@@ -13,7 +13,7 @@
             "internalType": "address"
           },
           {
-            "name": "glyphs",
+            "name": "motifs",
             "type": "address",
             "internalType": "address"
           },
@@ -48,7 +48,7 @@
             "internalType": "uint256"
           },
           {
-            "name": "maxGlyphsPerBid",
+            "name": "maxMotifsPerBid",
             "type": "uint256",
             "internalType": "uint256"
           }
@@ -59,7 +59,7 @@
   },
   {
     "type": "function",
-    "name": "GLYPH_PRICE",
+    "name": "MOTIF_PRICE",
     "inputs": [],
     "outputs": [
       {
@@ -111,7 +111,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "expectedFirstGlyphId",
+        "name": "expectedFirstMotifId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -121,7 +121,7 @@
   },
   {
     "type": "function",
-    "name": "claimGlyphs",
+    "name": "claimMotifs",
     "inputs": [
       {
         "name": "quantity",
@@ -241,77 +241,6 @@
   },
   {
     "type": "function",
-    "name": "glyphCap",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphCredits",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphs",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract KilimGlyphs"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphsAllocated",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "glyphsClaimed",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "highestBid",
     "inputs": [],
     "outputs": [
@@ -364,7 +293,7 @@
   },
   {
     "type": "function",
-    "name": "maxGlyphsPerBid",
+    "name": "maxMotifsPerBid",
     "inputs": [],
     "outputs": [
       {
@@ -378,6 +307,77 @@
   {
     "type": "function",
     "name": "minimumBid",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifCap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifCredits",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifs",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract KilimMotifs"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifsAllocated",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifsClaimed",
     "inputs": [],
     "outputs": [
       {
@@ -643,7 +643,7 @@
   },
   {
     "type": "function",
-    "name": "unclaimedGlyphRanges",
+    "name": "unclaimedMotifRanges",
     "inputs": [
       {
         "name": "bidder",
@@ -753,13 +753,13 @@
         "internalType": "uint256"
       },
       {
-        "name": "glyphReward",
+        "name": "motifReward",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "firstGlyphId",
+        "name": "firstMotifId",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -781,7 +781,7 @@
   },
   {
     "type": "event",
-    "name": "GlyphsClaimed",
+    "name": "MotifsClaimed",
     "inputs": [
       {
         "name": "bidder",
@@ -981,17 +981,6 @@
   },
   {
     "type": "error",
-    "name": "GlyphRangeMoved",
-    "inputs": [
-      {
-        "name": "firstGlyphId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "IncorrectPayment",
     "inputs": []
   },
@@ -1029,6 +1018,17 @@
     "type": "error",
     "name": "InvalidShortString",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MotifRangeMoved",
+    "inputs": [
+      {
+        "name": "firstMotifId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",

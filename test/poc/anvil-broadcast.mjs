@@ -33,7 +33,7 @@ const CREATE2_DEPLOYER_CODE = '0x7ffffffffffffffffffffffffffffffffffffffffffffff
 const NO_NONCE_CHECK = (2n ** 256n - 1n).toString();
 const MAX_TX_GAS = 8_000_000;
 
-const glyphManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-glyphs/manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-motifs/manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-page/manifest.json'), 'utf8'));
 
 let failures = 0;
@@ -60,12 +60,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-broadcast.mjs',
     chainId: 31337, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 2).replace(`"${NO_NONCE_CHECK}"`, NO_NONCE_CHECK));
 }
@@ -99,8 +99,8 @@ try {
   const rpcArgs = ['--rpc-url', anvil.rpcUrl, '--broadcast', '--unlocked', '--sender', deployer];
 
   section('1. a chunk someone else deployed first is verified and skipped');
-  const head = glyphManifest.names.chunks[0]; // the names chunk, deployed by a stranger
-  const data = '0x' + readFileSync(resolve(CONTRACTS, '../onchain/build-glyphs', head.file)).toString('hex');
+  const head = motifManifest.names.chunks[0]; // the names chunk, deployed by a stranger
+  const data = '0x' + readFileSync(resolve(CONTRACTS, '../onchain/build-motifs', head.file)).toString('hex');
   const salt = '0x' + '00'.repeat(32);
   await rpc.send({ from: stranger, to: CREATE2_DEPLOYER, data: salt + sstore2Initcode(data).slice(2), gas: '0x7a1200' });
   check((await rpc.call('eth_getCode', [head.address, 'latest'])).length > 2, `names chunk already at ${head.address}`);
@@ -113,9 +113,9 @@ try {
   check(!/names  chunk 0 deployment gas/.test(r.out), 'no gas line for the chunk that was already there (skipped)');
   const storeTxs = (await nonceOf()) - nonceBefore;
   check(storeTxs === 37, `store sent ${storeTxs} transactions from the deployer (38 chunks, 1 already there)`);
-  for (const c of [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks]) {
+  for (const c of [...motifManifest.grids.chunks, ...motifManifest.names.chunks]) {
     const code = await rpc.call('eth_getCode', [c.address, 'latest']);
-    const want = '0x00' + readFileSync(resolve(CONTRACTS, '../onchain/build-glyphs', c.file)).toString('hex');
+    const want = '0x00' + readFileSync(resolve(CONTRACTS, '../onchain/build-motifs', c.file)).toString('hex');
     check(code === want, `${c.file} on chain at ${c.address} is 0x00 || data`);
   }
   const storeRun = JSON.parse(readFileSync(latest('runStore()'), 'utf8'));
@@ -139,16 +139,16 @@ try {
 
   section('4. runContracts() --broadcast at the published nonce');
   const n = await nonceOf();
-  const predicted = { glyphs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
+  const predicted = { motifs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
   writeConfig(deployer, n, startsAt);
   const snapBeforeContracts = await rpc.call('evm_snapshot');
   r = forge([...sigArgs('runContracts()'), ...rpcArgs]);
   check(r.ok, 'runContracts broadcast succeeded');
-  const printed = Object.fromEntries(['KilimGlyphs', 'KilimOneOfOne', 'KilimAuction'].map((k) => [k, (r.out.match(new RegExp(`${k}\\s+(0x[0-9a-fA-F]{40})`)) || [])[1]?.toLowerCase()]));
-  check(printed.KilimGlyphs === predicted.glyphs && printed.KilimOneOfOne === predicted.oneOfOne && printed.KilimAuction === predicted.auction, `printed addresses equal the nonce predictions (${n}, ${n + 1}, ${n + 2})`);
-  const minter = (await rpc.view(predicted.glyphs, F.glyphs.minter))[0].toLowerCase();
-  check(minter === predicted.auction, 'glyphs.minter() is the auction on the chain');
-  check((await rpc.view(predicted.auction, F.auction.glyphs))[0].toLowerCase() === predicted.glyphs, 'auction.glyphs() on the chain');
+  const printed = Object.fromEntries(['KilimMotifs', 'KilimOneOfOne', 'KilimAuction'].map((k) => [k, (r.out.match(new RegExp(`${k}\\s+(0x[0-9a-fA-F]{40})`)) || [])[1]?.toLowerCase()]));
+  check(printed.KilimMotifs === predicted.motifs && printed.KilimOneOfOne === predicted.oneOfOne && printed.KilimAuction === predicted.auction, `printed addresses equal the nonce predictions (${n}, ${n + 1}, ${n + 2})`);
+  const minter = (await rpc.view(predicted.motifs, F.motifs.minter))[0].toLowerCase();
+  check(minter === predicted.auction, 'motifs.minter() is the auction on the chain');
+  check((await rpc.view(predicted.auction, F.auction.motifs))[0].toLowerCase() === predicted.motifs, 'auction.motifs() on the chain');
   check((await rpc.view(predicted.auction, F.auction.oneOfOne))[0].toLowerCase() === predicted.oneOfOne, 'auction.oneOfOne() on the chain');
   const run = JSON.parse(readFileSync(latest('runContracts()'), 'utf8'));
   mkdirSync(resolve(here, 'out'), { recursive: true });
@@ -160,7 +160,7 @@ try {
   console.log('  nonces:', txs.map((t) => Number(t.transaction.nonce)).join(', '), ' names:', txs.map((t) => t.contractName).join(', '));
   const contractGas = run.receipts.map((x) => Number(x.gasUsed));
   console.log(`  contracts gasUsed: ${contractGas.map((g) => g.toLocaleString('en-US')).join(', ')}`);
-  const estimates = [...r.out.matchAll(/(KilimGlyphs|KilimOneOfOne|KilimAuction) deployment gas (\d+)/g)].map((m) => Number(m[2]));
+  const estimates = [...r.out.matchAll(/(KilimMotifs|KilimOneOfOne|KilimAuction) deployment gas (\d+)/g)].map((m) => Number(m[2]));
   console.log(`  script estimates:  ${estimates.map((g) => g.toLocaleString('en-US')).join(', ')}`);
   check(contractGas.every((g) => g <= MAX_TX_GAS), 'every contract creation used at most 8,000,000 gas');
   check(estimates.length === 3 && estimates.every((e, i) => e >= contractGas[i]), 'the script printed estimates are at least the real gasUsed');
@@ -209,7 +209,7 @@ try {
   await rpc.call('evm_setIntervalMining', [1]);
   console.log(childOut.split('\n').filter((l) => /dropped|Dropped|timed out|Timed out|Error|error|resume|receipt/.test(l)).slice(-12).map((l) => '    ' + l.trim()).join('\n'));
   check(forgeExit !== 0, `forge did not report success (exit ${forgeExit})`);
-  check((await nonceOf()) === n + 2, 'glyphs and the 1/1 are mined; the auction is not');
+  check((await nonceOf()) === n + 2, 'motifs and the 1/1 are mined; the auction is not');
   check((await rpc.call('eth_getCode', [predicted.auction, 'latest'])) === '0x', 'no code at the predicted auction address');
 
   section('5a. runContracts() again is refused (the published nonce is spent)');
@@ -230,7 +230,7 @@ try {
     const receipt = await rpc.send({ from: deployer, data: auctionTx.transaction.input, nonce: '0x' + (n + 2).toString(16), gas: auctionTx.transaction.gas });
     check(receipt.contractAddress.toLowerCase() === predicted.auction, 'the auction lands at the predicted address');
   }
-  check((await rpc.view(predicted.glyphs, F.glyphs.minter))[0].toLowerCase() === predicted.auction, 'glyphs.minter() is the auction');
+  check((await rpc.view(predicted.motifs, F.motifs.minter))[0].toLowerCase() === predicted.auction, 'motifs.minter() is the auction');
   check((await rpc.view(predicted.auction, F.auction.oneOfOne))[0].toLowerCase() === predicted.oneOfOne, 'auction.oneOfOne() is the 1/1: the deployment is whole');
 } finally {
   await anvil.stop();

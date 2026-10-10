@@ -1,8 +1,8 @@
 // Deploy Kilim (native ETH) to a local anvil through plain JSON-RPC from anvil's unlocked accounts,
 // and register throwaway wallets so bidding can open. Local chains only.
-// The stores are the real ones: the packed glyph chunks (onchain/build-glyphs) and page chunks
+// The stores are the real ones: the packed motif chunks (onchain/build-motifs) and page chunks
 // (onchain/build-page) go on the chain first, here by plain CREATE where script/DeployKilim.s.sol
-// uses the CREATE2 deployer, then KilimGlyphs, KilimOneOfOne and KilimAuction in the published
+// uses the CREATE2 deployer, then KilimMotifs, KilimOneOfOne and KilimAuction in the published
 // order, so tokenURI answers are the production ones.
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -21,12 +21,12 @@ export const LAUNCH = {
   extensionWindow: 600n,
   incrementBps: 1000,
   reservePrice: 10n ** 16n,          // 0.01 ETH: the only reserve the constructor accepts
-  glyphCap: 1_000_000n,
-  maxGlyphsPerBid: 1_000_000n,
-  externalUrl: 'https://kilim.art', // the glyph collection's; the 1/1's comes from the packed page
+  motifCap: 1_000_000n,
+  maxMotifsPerBid: 1_000_000n,
+  externalUrl: 'https://kilim.art', // the motif collection's; the 1/1's comes from the packed page
   openDelay: 120n,                   // startsAt = latest block + 120 s
 };
-export const UNIT = 10n ** 15n;                  // GLYPH_PRICE: 0.001 ETH, one glyph
+export const UNIT = 10n ** 15n;                  // MOTIF_PRICE: 0.001 ETH, one motif
 export const REGISTRATION_TARGET = 100;
 const REGISTRANT_BASE = 0x5eed0000n;             // throwaway registrants: this address, then +1, +2, ...
 
@@ -38,29 +38,29 @@ const bySignature = (list) => Object.fromEntries(list.map((s) => [s.slice(0, s.i
 export const F = {
   auction: bySignature([
     'register()', 'registrationCount() returns (uint256)', 'registered(address) returns (bool)',
-    'bid(uint256 amount,uint256 minimumReward,uint256 expectedFirstGlyphId)',
+    'bid(uint256 amount,uint256 minimumReward,uint256 expectedFirstMotifId)',
     'rewardForBid(uint256 amount) returns (uint256)',
     'minimumBid() returns (uint256)', 'highestBid() returns (uint256)', 'highestBidder() returns (address)',
     'endsAt() returns (uint64)', 'settled() returns (bool)', 'settle()', 'proceedsDue() returns (uint256)',
     'withdrawProceeds(address to)', 'withdrawRefund(address to)', 'refunds(address) returns (uint256)',
-    'claimGlyphs(uint256 quantity,address to)', 'claimPrize(address to)', 'prizeClaimed() returns (bool)',
-    'glyphCredits(address) returns (uint256)', 'glyphsAllocated() returns (uint256)', 'glyphsClaimed() returns (uint256)',
-    'unclaimedGlyphRanges(address bidder) returns ((uint128,uint128)[])',
-    'glyphs() returns (address)', 'oneOfOne() returns (address)', 'treasury() returns (address)',
-    'GLYPH_PRICE() returns (uint256)', 'glyphCap() returns (uint256)', 'maxGlyphsPerBid() returns (uint256)',
+    'claimMotifs(uint256 quantity,address to)', 'claimPrize(address to)', 'prizeClaimed() returns (bool)',
+    'motifCredits(address) returns (uint256)', 'motifsAllocated() returns (uint256)', 'motifsClaimed() returns (uint256)',
+    'unclaimedMotifRanges(address bidder) returns ((uint128,uint128)[])',
+    'motifs() returns (address)', 'oneOfOne() returns (address)', 'treasury() returns (address)',
+    'MOTIF_PRICE() returns (uint256)', 'motifCap() returns (uint256)', 'maxMotifsPerBid() returns (uint256)',
     'startsAt() returns (uint64)', 'duration() returns (uint64)', 'extensionWindow() returns (uint64)',
     'incrementBps() returns (uint16)', 'reservePrice() returns (uint256)',
   ]),
-  glyphs: bySignature([
+  motifs: bySignature([
     'balanceOf(address owner) returns (uint256)', 'ownerOf(uint256 tokenId) returns (address)',
-    'tokenURI(uint256 tokenId) returns (string)', 'glyphOf(uint256 id) returns (uint16)',
-    'name(uint16 glyph) returns (string)', 'grid(uint16 glyph) returns (bytes32)',
-    'minter() returns (address)', 'GLYPH_COUNT() returns (uint256)', 'glyphCap() returns (uint256)',
-    'glyphsMinted() returns (uint256)', 'glyphsBurned() returns (uint256)',
+    'tokenURI(uint256 tokenId) returns (string)', 'motifOf(uint256 id) returns (uint16)',
+    'name(uint16 motif) returns (string)', 'grid(uint16 motif) returns (bytes32)',
+    'minter() returns (address)', 'MOTIF_COUNT() returns (uint256)', 'motifCap() returns (uint256)',
+    'motifsMinted() returns (uint256)', 'motifsBurned() returns (uint256)',
   ]),
   oneOfOne: bySignature([
     'ownerOf(uint256 tokenId) returns (address)', 'tokenURI(uint256 tokenId) returns (string)',
-    'minted() returns (bool)', 'minter() returns (address)', 'glyphs() returns (address)',
+    'minted() returns (bool)', 'minter() returns (address)', 'motifs() returns (address)',
   ]),
 };
 
@@ -122,22 +122,22 @@ async function create(rpc, from, bytecode, argTypes = [], args = []) {
 const AUCTION_CONFIG = '(address,address,address,uint64,uint64,uint64,uint16,uint256,uint256)';
 const PAGE = '(address[],bytes32,address[],bytes32,address[],bytes32)';
 
-export const GLYPH_STORE = resolve(CONTRACTS, '../onchain/build-glyphs');
+export const MOTIF_STORE = resolve(CONTRACTS, '../onchain/build-motifs');
 export const PAGE_STORE = resolve(CONTRACTS, '../onchain/build-page');
 
 /** One chunk file's bytes, checked against its manifest entry so a stale build fails here. */
 function chunkBytes(dir, entry) {
   const hex = '0x' + readFileSync(resolve(dir, entry.file)).toString('hex');
   if ((hex.length - 2) / 2 !== entry.size || A.keccak(hex) !== entry.keccak.toLowerCase()) {
-    throw new Error(`${entry.file} does not match ${dir}/manifest.json: repack the store (pnpm pack:glyphs / pack:page)`);
+    throw new Error(`${entry.file} does not match ${dir}/manifest.json: repack the store (pnpm pack:motifs / pack:page)`);
   }
   return hex;
 }
 
-/** The packed glyph store as KilimGlyphs takes it: grid and names chunk bytes and the committed hashes. */
-export function packedGlyphStore(dir = GLYPH_STORE) {
+/** The packed motif store as KilimMotifs takes it: grid and names chunk bytes and the committed hashes. */
+export function packedMotifStore(dir = MOTIF_STORE) {
   const m = JSON.parse(readFileSync(resolve(dir, 'manifest.json'), 'utf8'));
-  if (m.glyphCount !== 1024) throw new Error(`${dir}/manifest.json holds ${m.glyphCount} glyphs, not 1,024`);
+  if (m.motifCount !== 1024) throw new Error(`${dir}/manifest.json holds ${m.motifCount} motifs, not 1,024`);
   return {
     gridsHash: m.hashes.gridsHash, namesHash: m.hashes.namesHash,
     grids: m.grids.chunks.map((c) => chunkBytes(dir, c)), names: m.names.chunks.map((c) => chunkBytes(dir, c)),
@@ -175,8 +175,8 @@ export function createAddress(deployer, nonce) {
 /**
  * Deploy the stores and a fresh auction. Bidding stays locked until 100 wallets register, which the
  * contract allows from startsAt on: see registerWallets and openBidding below.
- * Overrides: any LAUNCH key, `treasury`, `startsAt`, `description` (the glyph collection's; defaults
- * to the packed one), `glyphStore` / `pageStore` (loaded stores, for tests with their own data).
+ * Overrides: any LAUNCH key, `treasury`, `startsAt`, `description` (the motif collection's; defaults
+ * to the packed one), `motifStore` / `pageStore` (loaded stores, for tests with their own data).
  */
 export async function deployLocal(rpcUrl, overrides = {}) {
   const rpc = rpcClient(rpcUrl);
@@ -185,7 +185,7 @@ export async function deployLocal(rpcUrl, overrides = {}) {
   const deployer = accounts[0];
   const treasury = overrides.treasury ?? accounts[9];
   const cfg = { ...LAUNCH, ...overrides };
-  const g = overrides.glyphStore ?? packedGlyphStore();
+  const g = overrides.motifStore ?? packedMotifStore();
   const p = overrides.pageStore ?? packedPageStore();
 
   // The stores first: every chunk is its own contract.
@@ -196,18 +196,18 @@ export async function deployLocal(rpcUrl, overrides = {}) {
   // creations ahead, as their minter; its constructor checks that they did.
   const nonce = Number(await rpc.call('eth_getTransactionCount', [deployer, 'latest']));
   const predicted = createAddress(deployer, nonce + 2);
-  const glyphs = await create(rpc, deployer, artifact('KilimGlyphs').bytecode,
+  const motifs = await create(rpc, deployer, artifact('KilimMotifs').bytecode,
     ['address', 'address', 'uint256', 'address[]', 'bytes32', 'address', 'bytes32', 'string', 'string'],
-    [predicted, treasury, cfg.glyphCap, chunks.grids, g.gridsHash, chunks.names[0], g.namesHash, cfg.description ?? g.description, cfg.externalUrl]);
+    [predicted, treasury, cfg.motifCap, chunks.grids, g.gridsHash, chunks.names[0], g.namesHash, cfg.description ?? g.description, cfg.externalUrl]);
   const oneOfOne = await create(rpc, deployer, artifact('KilimOneOfOne').bytecode,
     ['address', 'address', 'address', PAGE, 'string', 'string', 'string'],
-    [predicted, treasury, glyphs, [chunks.prefix, p.prefixHash, chunks.head, p.headHash, chunks.tail, p.tailHash], p.name, p.description, p.externalUrl]);
+    [predicted, treasury, motifs, [chunks.prefix, p.prefixHash, chunks.head, p.headHash, chunks.tail, p.tailHash], p.name, p.description, p.externalUrl]);
 
   const latest = await rpc.call('eth_getBlockByNumber', ['latest', false]);
   const startsAt = cfg.startsAt ?? BigInt(latest.timestamp) + cfg.openDelay;
   const auctionArgs = [[
-    treasury, glyphs, oneOfOne,
-    startsAt, cfg.duration, cfg.extensionWindow, cfg.incrementBps, cfg.reservePrice, cfg.maxGlyphsPerBid,
+    treasury, motifs, oneOfOne,
+    startsAt, cfg.duration, cfg.extensionWindow, cfg.incrementBps, cfg.reservePrice, cfg.maxMotifsPerBid,
   ]];
   const receipt = await rpc.send({
     from: deployer, gas: '0x1c9c380',
@@ -216,8 +216,8 @@ export async function deployLocal(rpcUrl, overrides = {}) {
   const auction = receipt.contractAddress.toLowerCase();
   if (auction !== predicted) throw new Error(`the auction landed at ${auction}, not at the predicted ${predicted}`);
   const deployBlock = Number(receipt.blockNumber);
-  return { chainId, auction, glyphs, oneOfOne, deployBlock, startsAt: Number(startsAt), accounts, treasury, deployer,
-           chunks, glyphStore: g, pageStore: p };
+  return { chainId, auction, motifs, oneOfOne, deployBlock, startsAt: Number(startsAt), accounts, treasury, deployer,
+           chunks, motifStore: g, pageStore: p };
 }
 
 /** The i-th throwaway registrant (never one of anvil's ten accounts). */
@@ -263,7 +263,7 @@ export function siteConfig(d, { rpcUrl = 'http://127.0.0.1:8545', name = 'Local 
     explorer: null,
     dev: true,
     auction: A.checksum(d.auction),
-    glyphs: A.checksum(d.glyphs),
+    motifs: A.checksum(d.motifs),
     oneOfOne: A.checksum(d.oneOfOne),
     deployBlock: d.deployBlock,
     notice: '',

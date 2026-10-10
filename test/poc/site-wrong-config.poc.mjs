@@ -8,7 +8,7 @@
 //   2. auction = a rogue contract naming the real tokens: every startup check passes (the tokens are
 //      not asked who their minter is) and a bid's ETH goes to the rogue.
 //   3. deployBlock later than the bids: the book shows no bids while the panel shows a high bid.
-//   4. glyphs/oneOfOne swapped, or an auction of another deployment: stopped at startup (sound).
+//   4. motifs/oneOfOne swapped, or an auction of another deployment: stopped at startup (sound).
 import assert from 'node:assert/strict';
 import { startChain, openBidding, siteContext, deployLocal, A, UNIT, eth } from '../../../site/test/helpers.mjs';
 import { artifact } from '../../scripts/dev/deploy.mjs';
@@ -51,7 +51,7 @@ try {
   // 2. A rogue auction naming the real tokens.
   {
     const rogue = artifact('RogueAuction');
-    const rc = await rpc.send({ from: d.deployer, gas: '0x2dc6c0', data: rogue.bytecode + A.encode(['address', 'address', 'address'], [d.glyphs, d.oneOfOne, d.treasury]).slice(2) });
+    const rc = await rpc.send({ from: d.deployer, gas: '0x2dc6c0', data: rogue.bytecode + A.encode(['address', 'address', 'address'], [d.motifs, d.oneOfOne, d.treasury]).slice(2) });
     const rogueAddr = rc.contractAddress.toLowerCase();
     const { chain, sent } = adapter({ auction: rogueAddr, deployBlock: Number(rc.blockNumber) }, 2);
     await chain.ready;
@@ -66,8 +66,8 @@ try {
     assert.equal(sent[0].to.toLowerCase(), rogueAddr);
     // The two reads that would have caught it, which site-config.mjs makes and chain.js does not:
     const minter = A.fn('minter() returns (address)');
-    const g = (await rpc.view(d.glyphs, minter))[0], o = (await rpc.view(d.oneOfOne, minter))[0];
-    console.log('case 2: glyphs.minter() =', g, ' oneOfOne.minter() =', o, ' cfg.auction =', rogueAddr);
+    const g = (await rpc.view(d.motifs, minter))[0], o = (await rpc.view(d.oneOfOne, minter))[0];
+    console.log('case 2: motifs.minter() =', g, ' oneOfOne.minter() =', o, ' cfg.auction =', rogueAddr);
     assert.notEqual(g, rogueAddr);
   }
 
@@ -84,21 +84,21 @@ try {
     const a = chain.auction();
     console.log('case 3: deployBlock after the bids →', { high: a.high, highBidder: a.highBidder, bookLength: a.bids.length, holdings: chain.holdings().length, credits: chain.account().credits });
     assert.ok(a.high > 0 && a.bids.length === 0, 'the panel shows a high bid, the book shows none');
-    assert.equal(chain.holdings().length, 0, 'the claimed glyphs are not shown');
+    assert.equal(chain.holdings().length, 0, 'the claimed motifs are not shown');
   }
 
   // 4. Sound: swapped tokens, and an auction of another deployment with this one's tokens.
   {
-    const swapped = adapter({ glyphs: cfg.oneOfOne, oneOfOne: cfg.glyphs }, 4);
+    const swapped = adapter({ motifs: cfg.oneOfOne, oneOfOne: cfg.motifs }, 4);
     await swapped.chain.ready;
-    assert.match(swapped.chain.status().error, /auction\.glyphs\(\) does not match/);
+    assert.match(swapped.chain.status().error, /auction\.motifs\(\) does not match/);
     const other = await deployLocal(cfg.rpcUrls[0], {});
     const stale = adapter({ auction: A.checksum(other.auction) }, 4);
     await stale.chain.ready;
-    assert.match(stale.chain.status().error, /auction\.glyphs\(\) does not match/);
-    const wrongTokens = adapter({ glyphs: A.checksum(other.glyphs), oneOfOne: A.checksum(other.oneOfOne) }, 4);
+    assert.match(stale.chain.status().error, /auction\.motifs\(\) does not match/);
+    const wrongTokens = adapter({ motifs: A.checksum(other.motifs), oneOfOne: A.checksum(other.oneOfOne) }, 4);
     await wrongTokens.chain.ready;
-    assert.match(wrongTokens.chain.status().error, /auction\.glyphs\(\) does not match/);
+    assert.match(wrongTokens.chain.status().error, /auction\.motifs\(\) does not match/);
     console.log('case 4: swapped tokens, another deployment\'s auction, another deployment\'s tokens: all stopped at startup with', JSON.stringify(stale.chain.status().error));
   }
   console.log('done');

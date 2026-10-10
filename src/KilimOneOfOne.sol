@@ -5,13 +5,13 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // REFUTE-EXPERIMENT
-import {KilimGlyphs} from "./KilimGlyphs.sol";
+import {KilimMotifs} from "./KilimMotifs.sol";
 
 /// @notice The 1/1, The Unwoven Kilim: exactly one token, id 1, minted by the auction. The token name is a
 ///         constructor argument because marketplaces show the contract name as the collection name.
 /// @dev No admin, pause, upgrade or metadata setter. The page is stored in SSTORE2 chunks (runtime code
-///      `0x00 || data`) hashed at construction; the only part read live is the glyph grids, taken from
-///      the glyph collection, so the 1/1 provably draws the same glyphs the glyph tokens show.
+///      `0x00 || data`) hashed at construction; the only part read live is the motif grids, taken from
+///      the motif collection, so the 1/1 provably draws the same motifs the motif tokens show.
 contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
     using Strings for uint256;
 
@@ -39,7 +39,7 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
 
     address public immutable minter;
     address public immutable royaltyReceiver;
-    KilimGlyphs public immutable glyphs;
+    KilimMotifs public immutable motifs;
     bytes32 public immutable prefixHash;
     bytes32 public immutable headHash;
     bytes32 public immutable tailHash;
@@ -60,13 +60,13 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
     constructor(
         address minter_,
         address royaltyReceiver_,
-        KilimGlyphs glyphs_,
+        KilimMotifs motifs_,
         Page memory page,
         string memory name_,
         string memory description_,
         string memory externalUrl_
     ) ERC721(name_, "UNWOVEN") {
-        if (minter_ == address(0) || royaltyReceiver_ == address(0) || address(glyphs_).code.length == 0) {
+        if (minter_ == address(0) || royaltyReceiver_ == address(0) || address(motifs_).code.length == 0) {
             revert InvalidConfiguration();
         }
         _store(_prefixChunks, page.prefixChunks, page.prefixHash);
@@ -74,7 +74,7 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
         _store(_tailChunks, page.tailChunks, page.tailHash);
         minter = minter_;
         royaltyReceiver = royaltyReceiver_;
-        glyphs = glyphs_;
+        motifs = motifs_;
         prefixHash = page.prefixHash;
         headHash = page.headHash;
         tailHash = page.tailHash;
@@ -121,8 +121,8 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
         address[] memory prefix = _prefixChunks;
         address[] memory head = _headChunks;
         address[] memory tail = _tailChunks;
-        address source = address(glyphs);
-        uint256 gridsCall = uint256(uint32(KilimGlyphs.grids.selector)) << 224;
+        address source = address(motifs);
+        uint256 gridsCall = uint256(uint32(KilimMotifs.grids.selector)) << 224;
         uint256 unavailable = uint256(uint32(GridsUnavailable.selector)) << 224;
         assembly {
             // Data bytes held by a section's chunks: each chunk's code less its leading 0x00.
@@ -261,7 +261,7 @@ contract KilimOneOfOne is ERC721, ReentrancyGuard { // REFUTE-EXPERIMENT
             let hexStart := copyChunks(head, raw)
 
             {
-                // The grids, live from the glyph collection, land in the second half of the hex room and
+                // The grids, live from the motif collection, land in the second half of the hex room and
                 // are expanded forward: input word i sits at hexStart + 32768 + 32i, its 64 chars go to
                 // hexStart + 64i, which never reaches an unread input word.
                 mstore(0, gridsCall)

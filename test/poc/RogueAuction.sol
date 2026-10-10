@@ -3,8 +3,8 @@ pragma solidity 0.8.37;
 
 /// @dev PoC (site review, 10 October 2026). A contract that answers every read site/chain.js makes at
 ///      startup, on refresh and for a quote, names the real token contracts, and keeps every bid. The
-///      site's startup check binds the auction to its tokens (auction.glyphs() == cfg.glyphs) but not
-///      the tokens to the auction (glyphs.minter() == cfg.auction), so a chain config that names this
+///      site's startup check binds the auction to its tokens (auction.motifs() == cfg.motifs) but not
+///      the tokens to the auction (motifs.minter() == cfg.auction), so a chain config that names this
 ///      contract as the auction passes every check and the page sends bids here.
 contract RogueAuction {
     struct CreditRange {
@@ -12,36 +12,36 @@ contract RogueAuction {
         uint128 remaining;
     }
 
-    uint256 public constant GLYPH_PRICE = 0.001 ether;
+    uint256 public constant MOTIF_PRICE = 0.001 ether;
     uint64 public constant duration = 1 days;
     uint64 public constant extensionWindow = 10 minutes;
     uint16 public constant incrementBps = 1000;
     uint256 public constant reservePrice = 0.01 ether;
-    uint256 public constant glyphCap = 1_000_000;
-    uint256 public constant maxGlyphsPerBid = 1_000_000;
+    uint256 public constant motifCap = 1_000_000;
+    uint256 public constant maxMotifsPerBid = 1_000_000;
     uint256 public constant registrationCount = 100;
-    address public immutable glyphs;
+    address public immutable motifs;
     address public immutable oneOfOne;
     address public immutable treasury;
     uint64 public immutable startsAt;
     uint256 public highestBid;
     address public highestBidder;
     uint64 public endsAt;
-    uint256 public glyphsAllocated;
-    uint256 public glyphsClaimed;
+    uint256 public motifsAllocated;
+    uint256 public motifsClaimed;
     bool public settled;
     bool public prizeClaimed;
     uint256 public proceedsDue;
     mapping(address => uint256) public refunds;
-    mapping(address => uint256) public glyphCredits;
+    mapping(address => uint256) public motifCredits;
     mapping(address => bool) public registered;
 
     event BidPlaced(
-        address indexed bidder, uint256 amount, uint256 glyphReward, uint256 firstGlyphId, uint64 endsAt
+        address indexed bidder, uint256 amount, uint256 motifReward, uint256 firstMotifId, uint64 endsAt
     );
 
-    constructor(address glyphs_, address oneOfOne_, address treasury_) {
-        glyphs = glyphs_;
+    constructor(address motifs_, address oneOfOne_, address treasury_) {
+        motifs = motifs_;
         oneOfOne = oneOfOne_;
         treasury = treasury_;
         startsAt = uint64(block.timestamp);
@@ -52,10 +52,10 @@ contract RogueAuction {
     }
 
     function rewardForBid(uint256 amount) public pure returns (uint256) {
-        return amount / GLYPH_PRICE;
+        return amount / MOTIF_PRICE;
     }
 
-    function unclaimedGlyphRanges(address) external pure returns (CreditRange[] memory result) {
+    function unclaimedMotifRanges(address) external pure returns (CreditRange[] memory result) {
         result = new CreditRange[](0);
     }
 
@@ -66,8 +66,8 @@ contract RogueAuction {
         highestBidder = msg.sender;
         endsAt = uint64(block.timestamp) + duration;
         uint256 reward = rewardForBid(amount);
-        glyphCredits[msg.sender] += reward;
-        glyphsAllocated += reward;
+        motifCredits[msg.sender] += reward;
+        motifsAllocated += reward;
         emit BidPlaced(msg.sender, amount, reward, 1, endsAt);
     }
 }

@@ -6,27 +6,27 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-/// @notice Motif Bazaar, the glyph collection: up to `glyphCap` tokens, ids 1..glyphCap, each showing one
-///         of the 1,024 glyphs.
+/// @notice Motif Bazaar, the motif collection: up to `motifCap` tokens, ids 1..motifCap, each showing one
+///         of the 1,024 motifs.
 /// @dev No admin, pause, upgrade, metadata setter or ownership role: everything is fixed at construction.
-///      The glyph a token shows depends only on the chain, this address and the token id: public from
+///      The motif a token shows depends only on the chain, this address and the token id: public from
 ///      deployment, NOT randomness. The grids and names live in SSTORE2 chunks (runtime code `0x00 || data`)
-///      whose contents are hashed at construction, so the 1/1 and every glyph token draw from the same bytes.
-contract KilimGlyphs is ERC721, ReentrancyGuard {
+///      whose contents are hashed at construction, so the 1/1 and every motif token draw from the same bytes.
+contract KilimMotifs is ERC721, ReentrancyGuard {
     using Strings for uint256;
 
-    uint256 public constant GLYPH_COUNT = 1024;
+    uint256 public constant MOTIF_COUNT = 1024;
     uint256 public constant MAX_MINT_BATCH = 64;
     /// @notice Grid chunks are cut at 767 grids (24,544 bytes) so no grid straddles two chunks.
     uint256 public constant GRIDS_PER_CHUNK = 767;
     /// @notice The names chunk starts with 1,025 big-endian uint16 offsets, then the names concatenated.
-    uint256 public constant NAME_OFFSET_TABLE = 2 * (GLYPH_COUNT + 1);
+    uint256 public constant NAME_OFFSET_TABLE = 2 * (MOTIF_COUNT + 1);
     /// @notice Resale royalty, fixed forever. Marketplaces may ignore royalties entirely.
     uint96 public constant ROYALTY_BPS = 500;
 
     address public immutable minter;
     address public immutable royaltyReceiver;
-    uint256 public immutable glyphCap;
+    uint256 public immutable motifCap;
     bytes32 public immutable gridsHash;
     bytes32 public immutable namesHash;
     address public immutable namesChunk;
@@ -34,8 +34,8 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
     address[] private _gridChunks;
     string public description;
     string public externalUrl;
-    uint256 public glyphsMinted;
-    uint256 public glyphsBurned;
+    uint256 public motifsMinted;
+    uint256 public motifsBurned;
     /// @dev A burned id keeps no owner, so this bitmap is what stops it from being minted again.
     mapping(uint256 => uint256) private _burned;
 
@@ -46,14 +46,14 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
     error SupplyExceeded();
     error AlreadyMinted();
     error InvalidTokenId(uint256 id);
-    error InvalidGlyph(uint16 glyph);
+    error InvalidMotif(uint16 motif);
 
-    event GlyphsMinted(address indexed recipient, address indexed bidder, uint256 firstId, uint256 quantity);
+    event MotifsMinted(address indexed recipient, address indexed bidder, uint256 firstId, uint256 quantity);
 
     constructor(
         address minter_,
         address royaltyReceiver_,
-        uint256 glyphCap_,
+        uint256 motifCap_,
         address[] memory gridChunks_,
         bytes32 gridsHash_,
         address namesChunk_,
@@ -62,8 +62,8 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         string memory externalUrl_
     ) ERC721("Motif Bazaar", "MOTIF") {
         if (
-            minter_ == address(0) || royaltyReceiver_ == address(0) || glyphCap_ == 0
-                || glyphCap_ > type(uint32).max || gridChunks_.length == 0
+            minter_ == address(0) || royaltyReceiver_ == address(0) || motifCap_ == 0
+                || motifCap_ > type(uint32).max || gridChunks_.length == 0
         ) revert InvalidConfiguration();
         // Every grid chunk but the last is full, so a grid's chunk and offset follow from its number.
         uint256 total = 0;
@@ -73,14 +73,14 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
             total += size;
             _gridChunks.push(gridChunks_[i]);
         }
-        if (total != GLYPH_COUNT * 32 || keccak256(_grids()) != gridsHash_) revert InvalidConfiguration();
+        if (total != MOTIF_COUNT * 32 || keccak256(_grids()) != gridsHash_) revert InvalidConfiguration();
         bytes memory names = new bytes(_chunkSize(namesChunk_));
         _copyChunk(namesChunk_, names);
         if (keccak256(names) != namesHash_) revert InvalidConfiguration();
         _checkNames(names);
         minter = minter_;
         royaltyReceiver = royaltyReceiver_;
-        glyphCap = glyphCap_;
+        motifCap = motifCap_;
         gridsHash = gridsHash_;
         namesHash = namesHash_;
         namesChunk = namesChunk_;
@@ -95,9 +95,9 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
 
     // ------------------------------------------------------------ minting and burning
 
-    /// @notice Mint glyph ids that the auction reserved for `bidder` when the bid was placed.
+    /// @notice Mint motif ids that the auction reserved for `bidder` when the bid was placed.
     /// @dev The minter chooses the ids. Each id can be minted once, even after it is burned.
-    function mintGlyphs(address to, address bidder, uint256 firstId, uint256 quantity)
+    function mintMotifs(address to, address bidder, uint256 firstId, uint256 quantity)
         external
         onlyMinter
         nonReentrant
@@ -105,25 +105,25 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         _validateRecipient(to);
         if (bidder == address(0)) revert InvalidRecipient();
         if (quantity == 0 || quantity > MAX_MINT_BATCH) revert InvalidQuantity();
-        // Ids run 1..glyphCap. The first clause keeps the subtraction below from underflowing.
-        if (quantity > glyphCap || firstId == 0 || firstId - 1 > glyphCap - quantity) {
+        // Ids run 1..motifCap. The first clause keeps the subtraction below from underflowing.
+        if (quantity > motifCap || firstId == 0 || firstId - 1 > motifCap - quantity) {
             revert SupplyExceeded();
         }
-        glyphsMinted += quantity;
+        motifsMinted += quantity;
         for (uint256 i; i < quantity; ++i) {
             uint256 id = firstId + i;
             if (_ownerOf(id) != address(0) || burned(id)) revert AlreadyMinted();
             _safeMint(to, id);
         }
-        emit GlyphsMinted(to, bidder, firstId, quantity);
+        emit MotifsMinted(to, bidder, firstId, quantity);
     }
 
-    /// @notice Burn a glyph you own. Approvals do not count: trading rights are not destruction rights.
-    /// @dev The Weaver will call this after a collector transfers glyphs to it. The id stays taken.
+    /// @notice Burn a motif you own. Approvals do not count: trading rights are not destruction rights.
+    /// @dev The Weaver will call this after a collector transfers motifs to it. The id stays taken.
     function burn(uint256 id) external {
         if (ownerOf(id) != msg.sender) revert Unauthorized();
         _burned[id >> 8] |= 1 << (id & 0xff);
-        ++glyphsBurned;
+        ++motifsBurned;
         _burn(id);
     }
 
@@ -132,19 +132,19 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         return _burned[id >> 8] & (1 << (id & 0xff)) != 0;
     }
 
-    // ------------------------------------------------------------ glyph data
+    // ------------------------------------------------------------ motif data
 
-    /// @notice Which of the 1,024 glyphs token `id` shows, for any id in 1..glyphCap, minted or not.
+    /// @notice Which of the 1,024 motifs token `id` shows, for any id in 1..motifCap, minted or not.
     ///         Fixed at deployment, independent of bidder, recipient and claim time. Public, NOT randomness.
-    function glyphOf(uint256 id) public view returns (uint16) {
-        if (id == 0 || id > glyphCap) revert InvalidTokenId(id);
-        return uint16(uint256(keccak256(abi.encode(block.chainid, address(this), id))) % GLYPH_COUNT + 1);
+    function motifOf(uint256 id) public view returns (uint16) {
+        if (id == 0 || id > motifCap) revert InvalidTokenId(id);
+        return uint16(uint256(keccak256(abi.encode(block.chainid, address(this), id))) % MOTIF_COUNT + 1);
     }
 
-    /// @notice Glyph `glyph`'s 16 x 16 grid: row 0 first, bit (r, c) is bit 255 - (r * 16 + c).
-    function grid(uint16 glyph) public view returns (bytes32 out) {
-        if (glyph == 0 || glyph > GLYPH_COUNT) revert InvalidGlyph(glyph);
-        uint256 index = glyph - 1;
+    /// @notice Motif `motif`'s 16 x 16 grid: row 0 first, bit (r, c) is bit 255 - (r * 16 + c).
+    function grid(uint16 motif) public view returns (bytes32 out) {
+        if (motif == 0 || motif > MOTIF_COUNT) revert InvalidMotif(motif);
+        uint256 index = motif - 1;
         address chunk = _gridChunks[index / GRIDS_PER_CHUNK];
         uint256 offset = 1 + (index % GRIDS_PER_CHUNK) * 32; // past the chunk's leading 0x00
         assembly ("memory-safe") {
@@ -153,15 +153,15 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         }
     }
 
-    /// @notice Glyph `glyph`'s name. Names are plain ASCII and not unique.
-    function name(uint16 glyph) public view returns (string memory) {
-        if (glyph == 0 || glyph > GLYPH_COUNT) revert InvalidGlyph(glyph);
+    /// @notice Motif `motif`'s name. Names are plain ASCII and not unique.
+    function name(uint16 motif) public view returns (string memory) {
+        if (motif == 0 || motif > MOTIF_COUNT) revert InvalidMotif(motif);
         address chunk = namesChunk;
         uint256 start;
         uint256 end;
         assembly ("memory-safe") {
             // The two offsets that bound the name sit next to each other in the table.
-            extcodecopy(chunk, 0, add(1, shl(1, sub(glyph, 1))), 4)
+            extcodecopy(chunk, 0, add(1, shl(1, sub(motif, 1))), 4)
             let w := mload(0)
             start := shr(240, w)
             end := and(shr(224, w), 0xffff)
@@ -174,7 +174,7 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         return string(out);
     }
 
-    /// @notice All 1,024 grids, 32,768 bytes, glyph n at offset (n - 1) * 32. The 1/1 reads this.
+    /// @notice All 1,024 grids, 32,768 bytes, motif n at offset (n - 1) * 32. The 1/1 reads this.
     function grids() external view returns (bytes memory) {
         return _grids();
     }
@@ -185,29 +185,29 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
 
     // ------------------------------------------------------------ metadata
 
-    /// @notice Fully on-chain metadata: the glyph as an SVG, its number and its name.
+    /// @notice Fully on-chain metadata: the motif as an SVG, its number and its name.
     function tokenURI(uint256 id) public view override returns (string memory) {
         _requireOwned(id);
-        uint16 glyph = glyphOf(id);
-        string memory glyphName = _escapeJson(name(glyph));
-        string memory number = uint256(glyph).toString();
+        uint16 motif = motifOf(id);
+        string memory motifName = _escapeJson(name(motif));
+        string memory number = uint256(motif).toString();
         return string.concat(
             "data:application/json;base64,",
             Base64.encode(
                 bytes(
                     string.concat(
                         '{"name":"',
-                        glyphName,
-                        " (glyph ",
+                        motifName,
+                        " (motif ",
                         number,
                         ')","description":"',
                         _escapeJson(description),
                         '","image":"data:image/svg+xml;base64,',
-                        Base64.encode(bytes(svg(glyph))),
-                        '","attributes":[{"trait_type":"Glyph","value":',
+                        Base64.encode(bytes(svg(motif))),
+                        '","attributes":[{"trait_type":"Motif","value":',
                         number,
                         '},{"trait_type":"Name","value":"',
-                        glyphName,
+                        motifName,
                         '"}]}'
                     )
                 )
@@ -215,9 +215,9 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
         );
     }
 
-    /// @notice The glyph drawn on a 20 x 20 paper, ink at offset (2, 2), one rect per horizontal run.
-    function svg(uint16 glyph) public view returns (string memory) {
-        uint256 bits = uint256(grid(glyph));
+    /// @notice The motif drawn on a 20 x 20 paper, ink at offset (2, 2), one rect per horizontal run.
+    function svg(uint16 motif) public view returns (string memory) {
+        uint256 bits = uint256(grid(motif));
         string memory rects = "";
         for (uint256 r; r < 16; ++r) {
             uint256 row = (bits >> (240 - 16 * r)) & 0xffff; // bit 15 is column 0
@@ -284,7 +284,7 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
     // ------------------------------------------------------------ internals
 
     function _grids() private view returns (bytes memory out) {
-        out = new bytes(GLYPH_COUNT * 32);
+        out = new bytes(MOTIF_COUNT * 32);
         uint256 pos;
         uint256 count = _gridChunks.length;
         for (uint256 i; i < count; ++i) {
@@ -320,7 +320,7 @@ contract KilimGlyphs is ERC721, ReentrancyGuard {
     function _checkNames(bytes memory names) private pure {
         if (names.length < NAME_OFFSET_TABLE) revert InvalidConfiguration();
         uint256 previous = 0;
-        for (uint256 i; i <= GLYPH_COUNT; ++i) {
+        for (uint256 i; i <= MOTIF_COUNT; ++i) {
             uint256 offset = (uint256(uint8(names[2 * i])) << 8) | uint8(names[2 * i + 1]);
             if (offset < previous) revert InvalidConfiguration();
             previous = offset;

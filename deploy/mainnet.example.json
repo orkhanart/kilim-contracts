@@ -1,10 +1,10 @@
 {
-  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_glyphs.py and onchain/pack_page.py once the glyphs and the page are final.",
+  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_motifs.py and onchain/pack_page.py once the motifs and the page are final.",
   "chainId": 1,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-  "deployerNonce": "TODO: the published nonce for the glyph collection, the first of the three contract transactions",
+  "deployerNonce": "TODO: the published nonce for the motif collection, the first of the three contract transactions",
   "minLeadSeconds": "TODO: the inspection window in seconds, nonzero (for example 86400)",
-  "glyphStore": "../onchain/build-glyphs",
+  "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
@@ -13,11 +13,11 @@
     "extensionWindow": 600,
     "incrementBps": 1000,
     "reservePrice": 10000000000000000,
-    "maxGlyphsPerBid": 1000000
+    "maxMotifsPerBid": 1000000
   },
   "collection": {
-    "glyphCap": 1000000,
-    "description": "TODO: the collection description, exactly as packed (build-glyphs/manifest.json description)",
+    "motifCap": 1000000,
+    "description": "TODO: the collection description, exactly as packed (build-motifs/manifest.json description)",
     "externalUrl": "https://kilim.art"
   },
   "oneOfOne": {

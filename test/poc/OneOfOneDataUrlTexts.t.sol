@@ -2,7 +2,7 @@
 pragma solidity 0.8.37;
 
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {TestBase} from "../TestBase.sol";
 
@@ -20,13 +20,13 @@ contract OneOfOneDataUrlTextsTest is TestBase {
     uint256 internal constant SCHEME = 27;
 
     function testHashAndPercentTravelRawAndAFragmentAwareReaderKeepsAnOpenString() public {
-        KilimGlyphs glyphs = newGlyphs(address(this), TREASURY, GLYPH_CAP);
+        KilimMotifs motifs = newMotifs(address(this), TREASURY, MOTIF_CAP);
         KilimOneOfOne.Page memory page = pageFrom(
             bytes(PREFIX_WITH_HASH_AND_PERCENT), bytes(PAGE_HEAD), bytes(Base64.encode(bytes(PAGE_REST)))
         );
         // The constructor stores the texts next to PREFIX and checks neither for URL-unsafe characters.
         KilimOneOfOne nft = new KilimOneOfOne(
-            address(this), TREASURY, glyphs, page, "Kilim #1", "100%ab wool", "https://kilim.art/#unwoven"
+            address(this), TREASURY, motifs, page, "Kilim #1", "100%ab wool", "https://kilim.art/#unwoven"
         );
         nft.mint(ALICE);
         bytes memory uri = bytes(nft.tokenURI(1));

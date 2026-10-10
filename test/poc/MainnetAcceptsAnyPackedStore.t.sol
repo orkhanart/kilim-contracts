@@ -22,14 +22,14 @@ interface VmPoc {
 ///         about the content. Neither the Config struct nor the mainnet template names an expected
 ///         gridsHash, namesHash, prefixHash, headHash, tailHash or artwork/still sha256, so with the
 ///         artist's wallet, the published nonce, a nonzero inspection window and every launch value,
-///         both phases go through with whatever onchain/build-glyphs and onchain/build-page hold. Today
+///         both phases go through with whatever onchain/build-motifs and onchain/build-page hold. Today
 ///         that is the stand-in page onchain/test/fixtures/lean.html and the 161-byte placeholder
 ///         still, and the 1/1's answer is fixed to them for good.
 ///
 ///         Reads the same packed stores as test/DeployKilim.t.sol; without them the file read fails.
 contract MainnetAcceptsAnyPackedStoreTest is TestBase {
     VmPoc internal constant vmp = VmPoc(address(uint160(uint256(keccak256("hevm cheat code")))));
-    string internal constant GLYPH_STORE = "../onchain/build-glyphs";
+    string internal constant MOTIF_STORE = "../onchain/build-motifs";
     string internal constant PAGE_STORE = "../onchain/build-page";
     string internal constant PLACEHOLDER_STILL = "../onchain/test/fixtures/still-placeholder.png";
     /// orkhanart.eth: the only deployer, treasury and royalty receiver the script accepts on chain 1.
@@ -50,7 +50,7 @@ contract MainnetAcceptsAnyPackedStoreTest is TestBase {
         c.deployer = ARTIST;
         c.deployerNonce = vmp.getNonce(ARTIST);
         c.minLeadSeconds = 1 days;
-        c.glyphStore = GLYPH_STORE;
+        c.motifStore = MOTIF_STORE;
         c.pageStore = PAGE_STORE;
         c.auction.treasury = ARTIST;
         c.auction.startsAt = uint64(block.timestamp + 2 days);
@@ -58,9 +58,9 @@ contract MainnetAcceptsAnyPackedStoreTest is TestBase {
         c.auction.extensionWindow = script.LAUNCH_EXTENSION_WINDOW();
         c.auction.incrementBps = script.LAUNCH_INCREMENT_BPS();
         c.auction.reservePrice = script.LAUNCH_RESERVE_PRICE();
-        c.auction.maxGlyphsPerBid = script.LAUNCH_MAX_GLYPHS_PER_BID();
-        c.glyphCap = script.LAUNCH_GLYPH_CAP();
-        string memory g = vmp.readFile(string.concat(GLYPH_STORE, "/manifest.json"));
+        c.auction.maxMotifsPerBid = script.LAUNCH_MAX_MOTIFS_PER_BID();
+        c.motifCap = script.LAUNCH_MOTIF_CAP();
+        string memory g = vmp.readFile(string.concat(MOTIF_STORE, "/manifest.json"));
         string memory pg = vmp.readFile(string.concat(PAGE_STORE, "/manifest.json"));
         c.collectionDescription = vmp.parseJsonString(g, ".description");
         c.collectionExternalUrl = EXTERNAL_URL;
@@ -110,7 +110,7 @@ contract MainnetAcceptsAnyPackedStoreTest is TestBase {
     ///      directories and the texts. The script's Config struct has the same shape (see loadConfig).
     function testTheMainnetTemplateNamesNoExpectedContentHash() public view {
         string memory j = vmp.readFile("deploy/mainnet.example.json");
-        assertTrue(vmp.keyExistsJson(j, ".glyphStore"));
+        assertTrue(vmp.keyExistsJson(j, ".motifStore"));
         assertTrue(vmp.keyExistsJson(j, ".pageStore"));
         assertTrue(!vmp.keyExistsJson(j, ".expectedHashes"));
         assertTrue(!vmp.keyExistsJson(j, ".gridsHash"));

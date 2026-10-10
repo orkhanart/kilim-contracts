@@ -132,10 +132,10 @@ contract GasFloorsTest is TestBase {
         assertEq(pool.received(), 1);
     }
 
-    /// @dev The 1/1 has no reentrancy guard of its own and shares none with the glyphs or the auction.
-    ///      A holder who settles from inside a glyph transfer callback must not be able to make the
+    /// @dev The 1/1 has no reentrancy guard of its own and shares none with the motifs or the auction.
+    ///      A holder who settles from inside a motif transfer callback must not be able to make the
     ///      prize delivery fail (audit finding R-06, re-targeted at the three contracts).
-    function testSettlingFromInsideAGlyphCallbackStillSendsThePrize() public {
+    function testSettlingFromInsideAMotifCallbackStillSendsThePrize() public {
         PoolWinner pool = new PoolWinner();
         TransferSettler mallory = new TransferSettler(auction);
         vm.deal(address(mallory), 1 ether);
@@ -148,12 +148,12 @@ contract GasFloorsTest is TestBase {
         assertTrue(auction.settled());
         assertTrue(auction.prizeClaimed());
         assertEq(auction.oneOfOne().ownerOf(1), address(pool));
-        assertEq(auction.glyphs().ownerOf(1), address(mallory));
+        assertEq(auction.motifs().ownerOf(1), address(mallory));
     }
 }
 
-/// @dev Holds four glyphs, moves one to itself with a safe transfer, and settles the auction from the
-///      glyph contract's receiver callback.
+/// @dev Holds four motifs, moves one to itself with a safe transfer, and settles the auction from the
+///      motif contract's receiver callback.
 contract TransferSettler is IERC721Receiver {
     KilimAuction private immutable auction;
     uint256[] private held;
@@ -168,12 +168,12 @@ contract TransferSettler is IERC721Receiver {
     }
 
     function claim(uint256 quantity) external {
-        auction.claimGlyphs(quantity, address(this));
+        auction.claimMotifs(quantity, address(this));
     }
 
     function transferAndSettle() external {
         settling = true;
-        auction.glyphs().safeTransferFrom(address(this), address(this), held[0]);
+        auction.motifs().safeTransferFrom(address(this), address(this), held[0]);
     }
 
     function onERC721Received(address, address, uint256 tokenId, bytes calldata) external returns (bytes4) {

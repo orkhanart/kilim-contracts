@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {DeployKilim} from "../script/DeployKilim.s.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 import {TestBase} from "./TestBase.sol";
@@ -25,13 +25,13 @@ interface VmDeployTest {
 
 /// @notice The deployment script end to end against the local chain, and every refusal it promises,
 ///         including the launch settings it pins when the chain is switched to Ethereum mainnet.
-///         The store tests read the packed stores that onchain/pack_glyphs.py and onchain/pack_page.py
+///         The store tests read the packed stores that onchain/pack_motifs.py and onchain/pack_page.py
 ///         write; without them every test that deploys the store fails at the file read.
 contract DeployKilimTest is TestBase {
     VmDeployTest internal constant vmd =
         VmDeployTest(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant DEPLOYER = address(0xD3910);
-    string internal constant GLYPH_STORE = "../onchain/build-glyphs";
+    string internal constant MOTIF_STORE = "../onchain/build-motifs";
     string internal constant PAGE_STORE = "../onchain/build-page";
     /// orkhanart.eth: deployer, treasury and royalty receiver on mainnet.
     address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
@@ -48,7 +48,7 @@ contract DeployKilimTest is TestBase {
         c.deployer = DEPLOYER;
         c.deployerNonce = vmd.getNonce(DEPLOYER);
         c.minLeadSeconds = 1 days;
-        c.glyphStore = GLYPH_STORE;
+        c.motifStore = MOTIF_STORE;
         c.pageStore = PAGE_STORE;
         c.auction.treasury = TREASURY;
         c.auction.startsAt = uint64(block.timestamp + 2 days);
@@ -56,10 +56,10 @@ contract DeployKilimTest is TestBase {
         c.auction.extensionWindow = 10 minutes;
         c.auction.incrementBps = 1000;
         c.auction.reservePrice = RESERVE;
-        c.auction.maxGlyphsPerBid = 1_000_000;
-        c.glyphCap = 1_000_000;
+        c.auction.maxMotifsPerBid = 1_000_000;
+        c.motifCap = 1_000_000;
         // The golden hashes in the manifests were computed with these texts.
-        string memory g = _glyphManifest();
+        string memory g = _motifManifest();
         string memory pg = vmd.readFile(string.concat(PAGE_STORE, "/manifest.json"));
         c.collectionDescription = vmd.parseJsonString(g, ".description");
         c.collectionExternalUrl = EXTERNAL_URL;
@@ -68,14 +68,14 @@ contract DeployKilimTest is TestBase {
         c.oneOfOneExternalUrl = vmd.parseJsonString(pg, ".externalUrl");
     }
 
-    function _glyphManifest() internal view returns (string memory) {
-        return vmd.readFile(string.concat(GLYPH_STORE, "/manifest.json"));
+    function _motifManifest() internal view returns (string memory) {
+        return vmd.readFile(string.concat(MOTIF_STORE, "/manifest.json"));
     }
 
     function testDeploysChunksAndContractsInOrder() public {
         DeployKilim.Config memory c = _config();
         DeployKilim.Store memory s = script.deployStore(c);
-        string memory manifest = _glyphManifest();
+        string memory manifest = _motifManifest();
         for (uint256 k; k < s.grids.addresses.length; ++k) {
             assertEq(
                 s.grids.addresses[k],
@@ -86,18 +86,18 @@ contract DeployKilimTest is TestBase {
         uint256 nonce = vmd.getNonce(DEPLOYER);
         c.deployerNonce = nonce;
         DeployKilim.Deployed memory d = script.deployContracts(c);
-        assertEq(address(d.glyphs), vmd.computeCreateAddress(DEPLOYER, nonce));
+        assertEq(address(d.motifs), vmd.computeCreateAddress(DEPLOYER, nonce));
         assertEq(address(d.oneOfOne), vmd.computeCreateAddress(DEPLOYER, nonce + 1));
         assertEq(address(d.auction), vmd.computeCreateAddress(DEPLOYER, nonce + 2));
-        assertEq(d.glyphs.minter(), address(d.auction));
+        assertEq(d.motifs.minter(), address(d.auction));
         assertEq(d.oneOfOne.minter(), address(d.auction));
-        assertEq(address(d.oneOfOne.glyphs()), address(d.glyphs));
-        assertEq(address(d.auction.glyphs()), address(d.glyphs));
+        assertEq(address(d.oneOfOne.motifs()), address(d.motifs));
+        assertEq(address(d.auction.motifs()), address(d.motifs));
         assertEq(address(d.auction.oneOfOne()), address(d.oneOfOne));
-        assertEq(d.glyphs.gridsHash(), s.grids.hash);
+        assertEq(d.motifs.gridsHash(), s.grids.hash);
         assertEq(d.oneOfOne.tailHash(), s.tail.hash);
         assertTrue(!d.oneOfOne.minted());
-        assertEq(d.glyphs.glyphsMinted(), 0);
+        assertEq(d.motifs.motifsMinted(), 0);
     }
 
     function testTheStorePhaseIsIdempotent() public {
@@ -119,7 +119,7 @@ contract DeployKilimTest is TestBase {
 
     function testRefusesForeignCodeAtAChunkAddress() public {
         DeployKilim.Config memory c = _config();
-        string memory manifest = _glyphManifest();
+        string memory manifest = _motifManifest();
         vmd.etch(vmd.parseJsonAddress(manifest, ".grids.chunks[1].address"), hex"00deadbeef");
         _expectRefused("grids: foreign code at a chunk address");
         script.deployStore(c);
@@ -158,7 +158,7 @@ contract DeployKilimTest is TestBase {
         // a description that is not the one the golden hash was computed with
         string memory packed = c.collectionDescription;
         c.collectionDescription = "another description";
-        _expectRefused("collection description differs from the packed glyphs");
+        _expectRefused("collection description differs from the packed motifs");
         script.deployContracts(c);
         c.collectionDescription = packed;
         c.oneOfOneExternalUrl = "https://elsewhere.example";
@@ -201,7 +201,7 @@ contract DeployKilimTest is TestBase {
         DeployKilim.Config memory c = _mainnetConfig();
         DeployKilim.Deployed memory d = script.deployContracts(c);
         KilimAuction auction = d.auction;
-        assertEq(auction.GLYPH_PRICE(), 0.001 ether);
+        assertEq(auction.MOTIF_PRICE(), 0.001 ether);
         assertEq(auction.REGISTRATION_BALANCE(), 0.01 ether);
         assertEq(auction.REGISTRATION_TARGET(), 100);
         assertEq(address(auction).balance, 0);
@@ -210,11 +210,11 @@ contract DeployKilimTest is TestBase {
         assertEq(auction.incrementBps(), 1000);
         assertEq(auction.duration(), 86_400);
         assertEq(auction.extensionWindow(), 600);
-        assertEq(auction.glyphCap(), 1_000_000);
-        assertEq(auction.maxGlyphsPerBid(), 1_000_000);
-        assertEq(d.glyphs.royaltyReceiver(), ARTIST);
+        assertEq(auction.motifCap(), 1_000_000);
+        assertEq(auction.maxMotifsPerBid(), 1_000_000);
+        assertEq(d.motifs.royaltyReceiver(), ARTIST);
         assertEq(d.oneOfOne.royaltyReceiver(), ARTIST);
-        assertEq(d.glyphs.minter(), address(auction));
+        assertEq(d.motifs.minter(), address(auction));
         assertEq(d.oneOfOne.minter(), address(auction));
         assertEq(d.oneOfOne.name(), script.LAUNCH_ONE_OF_ONE_NAME());
         assertEq(d.oneOfOne.name(), "The Unwoven Kilim");
@@ -259,13 +259,13 @@ contract DeployKilimTest is TestBase {
         script.deployContracts(c);
 
         c = _mainnetConfig();
-        c.glyphCap = 10_000;
-        _expectRefused("mainnet launch value: glyphCap");
+        c.motifCap = 10_000;
+        _expectRefused("mainnet launch value: motifCap");
         script.deployContracts(c);
 
         c = _mainnetConfig();
-        c.auction.maxGlyphsPerBid = 250;
-        _expectRefused("mainnet launch value: maxGlyphsPerBid");
+        c.auction.maxMotifsPerBid = 250;
+        _expectRefused("mainnet launch value: maxMotifsPerBid");
         script.deployContracts(c);
     }
 
@@ -296,16 +296,16 @@ contract DeployKilimTest is TestBase {
         c.auction.duration = 1 hours;
         c.auction.extensionWindow = 1 minutes;
         c.auction.incrementBps = 500;
-        c.glyphCap = 10_000;
-        c.auction.maxGlyphsPerBid = 250;
+        c.motifCap = 10_000;
+        c.auction.maxMotifsPerBid = 250;
         DeployKilim.Deployed memory d = script.deployContracts(c);
         assertEq(d.auction.treasury(), TREASURY);
         assertEq(d.auction.duration(), 1 hours);
         assertEq(d.auction.extensionWindow(), 1 minutes);
         assertEq(d.auction.incrementBps(), 500);
-        assertEq(d.auction.glyphCap(), 10_000);
-        assertEq(d.glyphs.glyphCap(), 10_000);
-        assertEq(d.auction.maxGlyphsPerBid(), 250);
+        assertEq(d.auction.motifCap(), 10_000);
+        assertEq(d.motifs.motifCap(), 10_000);
+        assertEq(d.auction.maxMotifsPerBid(), 250);
         assertEq(d.auction.reservePrice(), RESERVE);
     }
 
@@ -380,7 +380,7 @@ contract DeployKilimTest is TestBase {
         assertEq(auction.endsAt(), block.timestamp + c.auction.duration);
         assertEq(address(auction).balance, RESERVE);
         assertEq(address(auction).balance, auction.liabilities());
-        assertEq(auction.glyphCredits(ALICE), 10);
+        assertEq(auction.motifCredits(ALICE), 10);
 
         // 10% over 0.01 ETH is 0.011 ETH; ALICE gets her bid back inside BOB's transaction
         assertEq(auction.minimumBid(), 11 * UNIT);
@@ -399,11 +399,11 @@ contract DeployKilimTest is TestBase {
         assertEq(TREASURY.balance, 11 * UNIT);
         assertEq(address(auction).balance, 0);
         assertEq(auction.liabilities(), 0);
-        // The glyphs the real store holds come back through the collection.
+        // The motifs the real store holds come back through the collection.
         vm.prank(ALICE);
-        auction.claimGlyphs(10, ALICE);
-        assertEq(d.glyphs.ownerOf(1), ALICE);
-        assertTrue(bytes(d.glyphs.tokenURI(1)).length != 0);
+        auction.claimMotifs(10, ALICE);
+        assertEq(d.motifs.ownerOf(1), ALICE);
+        assertTrue(bytes(d.motifs.tokenURI(1)).length != 0);
     }
 
     /// @dev The committed templates carry the launch values the script pins, and stay unreadable until
@@ -424,10 +424,10 @@ contract DeployKilimTest is TestBase {
         assertEq(c.auction.incrementBps, script.LAUNCH_INCREMENT_BPS());
         assertEq(c.auction.duration, script.LAUNCH_DURATION());
         assertEq(c.auction.extensionWindow, script.LAUNCH_EXTENSION_WINDOW());
-        assertEq(c.glyphCap, script.LAUNCH_GLYPH_CAP());
-        assertEq(c.auction.maxGlyphsPerBid, script.LAUNCH_MAX_GLYPHS_PER_BID());
+        assertEq(c.motifCap, script.LAUNCH_MOTIF_CAP());
+        assertEq(c.auction.maxMotifsPerBid, script.LAUNCH_MAX_MOTIFS_PER_BID());
         assertEq(c.oneOfOneName, script.LAUNCH_ONE_OF_ONE_NAME());
-        assertTrue(bytes(c.glyphStore).length != 0 && bytes(c.pageStore).length != 0);
+        assertTrue(bytes(c.motifStore).length != 0 && bytes(c.pageStore).length != 0);
     }
 
     /// @dev What `pnpm deploy:dry` runs: run() with the local config on forge's in-memory chain, whose
@@ -445,9 +445,9 @@ contract DeployKilimTest is TestBase {
             + s.head.chunks.length + s.tail.chunks.length;
         assertEq(vmd.getNonce(c.deployer), nonce + chunks + 3);
         KilimAuction auction = KilimAuction(vmd.computeCreateAddress(c.deployer, nonce + chunks + 2));
-        assertEq(address(auction.glyphs()), vmd.computeCreateAddress(c.deployer, nonce + chunks));
+        assertEq(address(auction.motifs()), vmd.computeCreateAddress(c.deployer, nonce + chunks));
         assertEq(address(auction.oneOfOne()), vmd.computeCreateAddress(c.deployer, nonce + chunks + 1));
-        assertEq(auction.glyphs().minter(), address(auction));
+        assertEq(auction.motifs().minter(), address(auction));
         assertEq(auction.oneOfOne().minter(), address(auction));
         assertEq(auction.startsAt(), c.auction.startsAt);
         assertEq(auction.treasury(), script.LAUNCH_TREASURY());
@@ -462,8 +462,8 @@ contract DeployKilimTest is TestBase {
         assertEq(vmd.parseJsonUint(j, ".auction.incrementBps"), script.LAUNCH_INCREMENT_BPS());
         assertEq(vmd.parseJsonUint(j, ".auction.duration"), script.LAUNCH_DURATION());
         assertEq(vmd.parseJsonUint(j, ".auction.extensionWindow"), script.LAUNCH_EXTENSION_WINDOW());
-        assertEq(vmd.parseJsonUint(j, ".collection.glyphCap"), script.LAUNCH_GLYPH_CAP());
-        assertEq(vmd.parseJsonUint(j, ".auction.maxGlyphsPerBid"), script.LAUNCH_MAX_GLYPHS_PER_BID());
+        assertEq(vmd.parseJsonUint(j, ".collection.motifCap"), script.LAUNCH_MOTIF_CAP());
+        assertEq(vmd.parseJsonUint(j, ".auction.maxMotifsPerBid"), script.LAUNCH_MAX_MOTIFS_PER_BID());
         assertEq(vmd.parseJsonString(j, ".oneOfOne.name"), script.LAUNCH_ONE_OF_ONE_NAME());
         vm.expectRevert();
         script.loadConfig(path);

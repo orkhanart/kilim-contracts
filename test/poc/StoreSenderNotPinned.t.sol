@@ -22,7 +22,7 @@ interface VmPoc {
 ///         Reads the packed stores, like test/DeployKilim.t.sol.
 contract StoreSenderNotPinnedTest is TestBase {
     VmPoc internal constant vmp = VmPoc(address(uint160(uint256(keccak256("hevm cheat code")))));
-    string internal constant GLYPH_STORE = "../onchain/build-glyphs";
+    string internal constant MOTIF_STORE = "../onchain/build-motifs";
     string internal constant PAGE_STORE = "../onchain/build-page";
     address internal constant ARTIST = 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac;
     address internal constant FUNDED_KEY = address(0xF00D);
@@ -39,7 +39,7 @@ contract StoreSenderNotPinnedTest is TestBase {
         c.deployer = deployer;
         c.deployerNonce = vmp.getNonce(deployer);
         c.minLeadSeconds = 1 days;
-        c.glyphStore = GLYPH_STORE;
+        c.motifStore = MOTIF_STORE;
         c.pageStore = PAGE_STORE;
         c.auction.treasury = ARTIST;
         c.auction.startsAt = uint64(block.timestamp + 2 days);
@@ -47,9 +47,9 @@ contract StoreSenderNotPinnedTest is TestBase {
         c.auction.extensionWindow = script.LAUNCH_EXTENSION_WINDOW();
         c.auction.incrementBps = script.LAUNCH_INCREMENT_BPS();
         c.auction.reservePrice = script.LAUNCH_RESERVE_PRICE();
-        c.auction.maxGlyphsPerBid = script.LAUNCH_MAX_GLYPHS_PER_BID();
-        c.glyphCap = script.LAUNCH_GLYPH_CAP();
-        string memory g = vmp.readFile(string.concat(GLYPH_STORE, "/manifest.json"));
+        c.auction.maxMotifsPerBid = script.LAUNCH_MAX_MOTIFS_PER_BID();
+        c.motifCap = script.LAUNCH_MOTIF_CAP();
+        string memory g = vmp.readFile(string.concat(MOTIF_STORE, "/manifest.json"));
         string memory pg = vmp.readFile(string.concat(PAGE_STORE, "/manifest.json"));
         c.collectionDescription = vmp.parseJsonString(g, ".description");
         c.collectionExternalUrl = EXTERNAL_URL;
@@ -92,6 +92,6 @@ contract StoreSenderNotPinnedTest is TestBase {
         script.deployContracts(c);
         c.deployerNonce = published + 38;
         DeployKilim.Deployed memory d = script.deployContracts(c);
-        assertEq(address(d.glyphs), vm.computeCreateAddress(ARTIST, published + 38));
+        assertEq(address(d.motifs), vm.computeCreateAddress(ARTIST, published + 38));
     }
 }

@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {TestBase} from "./TestBase.sol";
-import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 
@@ -70,11 +70,11 @@ contract AnySignatureWallet {
 ///         fails when the check it names is removed or loosened.
 contract AuditGapsTest is TestBase {
     KilimAuction internal auction;
-    KilimGlyphs internal nft;
+    KilimMotifs internal nft;
 
     function setUp() public {
         auction = new KilimAuction(config());
-        nft = auction.glyphs();
+        nft = auction.motifs();
         _openBidding(auction);
         _fund(ALICE, 100 ether);
         _fund(BOB, 100 ether);
@@ -166,16 +166,16 @@ contract AuditGapsTest is TestBase {
         _bid(auction, ALICE, auction.minimumBid());
         vm.warp(auction.endsAt());
         auction.settle();
-        bytes memory claim = abi.encodeCall(auction.claimGlyphs, (1, CAROL));
+        bytes memory claim = abi.encodeCall(auction.claimMotifs, (1, CAROL));
         sink.set(false, 0, 0, claim);
-        uint256 credits = auction.glyphCredits(address(sink));
+        uint256 credits = auction.motifCredits(address(sink));
         vm.prank(TREASURY);
         auction.withdrawProceeds(address(sink));
         assertTrue(!sink.reentered());
-        assertEq(auction.glyphCredits(address(sink)), credits);
+        assertEq(auction.motifCredits(address(sink)), credits);
         // The same call is valid outside the payout: it failed on the guard, not on its own terms.
         assertTrue(sink.run(claim));
-        assertEq(auction.glyphCredits(address(sink)), credits - 1);
+        assertEq(auction.motifCredits(address(sink)), credits - 1);
     }
 
     function testClaimedPrizeCallbackCannotReenter() public {
@@ -185,13 +185,13 @@ contract AuditGapsTest is TestBase {
         vm.warp(auction.endsAt());
         auction.settle();
         assertTrue(!auction.prizeClaimed());
-        bytes memory claim = abi.encodeCall(auction.claimGlyphs, (1, CAROL));
+        bytes memory claim = abi.encodeCall(auction.claimMotifs, (1, CAROL));
         winner.set(false, 0, 0, claim);
-        uint256 credits = auction.glyphCredits(address(winner));
+        uint256 credits = auction.motifCredits(address(winner));
         assertTrue(winner.run(abi.encodeCall(auction.claimPrize, (address(winner)))));
         assertEq(auction.oneOfOne().ownerOf(1), address(winner));
         assertTrue(!winner.reentered());
-        assertEq(auction.glyphCredits(address(winner)), credits);
+        assertEq(auction.motifCredits(address(winner)), credits);
         winner.set(false, 0, 0, "");
         assertTrue(winner.run(claim));
     }

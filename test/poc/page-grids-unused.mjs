@@ -1,21 +1,21 @@
 // PoC: does the 1/1 page draw from the grids the contract hands it (KILIM_GRIDS), or from its own
-// inline copy? CONTRACTS.md ("KilimOneOfOne", tokenURI) reads the grids live from KilimGlyphs so
-// that "the 1/1 provably draws the same glyphs the glyph NFTs show". That is only true of a page
-// that builds its glyphs from window.KILIM_GRIDS. onchain/test/page.test.mjs checks the global is
+// inline copy? CONTRACTS.md ("KilimOneOfOne", tokenURI) reads the grids live from KilimMotifs so
+// that "the 1/1 provably draws the same motifs the motif NFTs show". That is only true of a page
+// that builds its motifs from window.KILIM_GRIDS. onchain/test/page.test.mjs checks the global is
 // defined and equals the grids, and that #art[data-renderer] appears; it cannot see whether the
 // artwork used it.
 //
 // This packs the stand-in (onchain/test/fixtures/lean.html, the v3 build with the painter) twice
-// with pack_page.build: once against the real grids (onchain/build-glyphs/grids.bin) and once
+// with pack_page.build: once against the real grids (onchain/build-motifs/grids.bin) and once
 // against different, random grids. Both pages get the frozen clock onchain/painter/compare.mjs
 // uses, are stepped to the same moments and their canvases are screenshotted. It reports:
 //   - how many times each artwork's source names KILIM_GRIDS (also the v3 page in research/)
-//   - inside the page: how many of the 1,024 glyphs in the artwork's own DATA.symbols equal the
-//     glyph at the same index in KILIM_GRIDS (real grids: all; random grids: none, if ignored)
+//   - inside the page: how many of the 1,024 motifs in the artwork's own DATA.symbols equal the
+//     motif at the same index in KILIM_GRIDS (real grids: all; random grids: none, if ignored)
 //   - whether the two pictures are byte-identical despite different grids
 // Run from contracts/: node test/poc/page-grids-unused.mjs   (needs Chrome and python3)
 // Exit 1 when the stand-in draws the same picture from different grids (the finding stands),
-// 0 when the picture or the glyph table follows KILIM_GRIDS, 2 without Chrome or the stand-in.
+// 0 when the picture or the motif table follows KILIM_GRIDS, 2 without Chrome or the stand-in.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -52,7 +52,7 @@ const READY = `new Promise((done,fail)=>{const t0=Date.now();(function wait(){co
 if(a&&a.dataset.renderer)return done(a.dataset.renderer);
 if(Date.now()-t0>60000)return fail(new Error('the artwork did not start'));setTimeout(wait,50)})()})`;
 
-// The artwork's own glyph table against the injected grids: glyph i of DATA.symbols as 64 hex
+// The artwork's own motif table against the injected grids: motif i of DATA.symbols as 64 hex
 // characters (16 rows of 16 bits) versus KILIM_GRIDS.substr(i*64, 64).
 const PROBE = `(()=>{
   const g = typeof KILIM_GRIDS === 'string' ? KILIM_GRIDS : null;
@@ -64,7 +64,7 @@ const PROBE = `(()=>{
   }
   const a = document.getElementById('art'), r = a.getBoundingClientRect();
   return JSON.stringify({ grids: g ? g.slice(0, 16) : null, hasData: !!syms, same, total,
-    time: a.dataset.time, pattern: a.dataset.pattern, glyphs: a.dataset.glyphs,
+    time: a.dataset.time, pattern: a.dataset.pattern, motifs: a.dataset.motifs,
     box: [r.left, r.top, r.width, r.height], size: [a.width, a.height] });
 })()`;
 
@@ -114,12 +114,12 @@ async function main() {
   if (at < 0) throw new Error('lean.html has no data block');
   const dir = mkdtempSync(join(tmpdir(), 'kilim-page-grids-'));
   const still = join(ONCHAIN, 'test/fixtures/still-placeholder.png');
-  const realGrids = join(ONCHAIN, 'build-glyphs/grids.bin');
+  const realGrids = join(ONCHAIN, 'build-motifs/grids.bin');
   const runs = {
     real: existsSync(realGrids) ? readFileSync(realGrids) : randomGrids(0x2545f491),
     random: randomGrids(0x1234abcd),
   };
-  if (!existsSync(realGrids)) console.log('(onchain/build-glyphs/grids.bin absent: "real" is synthetic too)');
+  if (!existsSync(realGrids)) console.log('(onchain/build-motifs/grids.bin absent: "real" is synthetic too)');
   const results = {};
   try {
     const artFile = join(dir, 'artwork.html');
@@ -133,24 +133,24 @@ async function main() {
       const { renderer, early, late, shots, errors } = results[name];
       console.log(`\n== packed against ${name} grids (sha256 ${sha256(grids).slice(0, 12)}…), renderer ${renderer}`);
       console.log(`   KILIM_GRIDS starts ${early.grids}; artwork DATA.symbols present: ${early.hasData}`);
-      console.log(`   glyphs in DATA.symbols equal to the injected glyph at the same index: ${early.same} of ${early.total}`);
-      console.log(`   frame 1: time ${early.time}, pattern ${early.pattern}, glyphs ${early.glyphs}, canvas ${early.size.join('x')}, png sha256 ${shots[0].slice(0, 16)}…`);
-      console.log(`   frame 2: time ${late.time}, pattern ${late.pattern}, glyphs ${late.glyphs}, canvas ${late.size.join('x')}, png sha256 ${shots[1].slice(0, 16)}…`);
+      console.log(`   motifs in DATA.symbols equal to the injected motif at the same index: ${early.same} of ${early.total}`);
+      console.log(`   frame 1: time ${early.time}, pattern ${early.pattern}, motifs ${early.motifs}, canvas ${early.size.join('x')}, png sha256 ${shots[0].slice(0, 16)}…`);
+      console.log(`   frame 2: time ${late.time}, pattern ${late.pattern}, motifs ${late.motifs}, canvas ${late.size.join('x')}, png sha256 ${shots[1].slice(0, 16)}…`);
       if (errors.length) console.log('   exceptions:', JSON.stringify(errors));
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
   const a = results.real, b = results.random;
-  const sameMoment = ['time', 'pattern', 'glyphs'].every((k) => String(a.late[k]) === String(b.late[k]));
+  const sameMoment = ['time', 'pattern', 'motifs'].every((k) => String(a.late[k]) === String(b.late[k]));
   const samePicture = sameMoment && a.shots[0] === b.shots[0] && a.shots[1] === b.shots[1];
   const tableFollows = b.early.total > 0 && b.early.same === b.early.total;
   console.log('');
   if (!sameMoment) console.log('the two runs are not at the same moment; the picture comparison says nothing');
-  console.log(`glyph table follows KILIM_GRIDS: ${tableFollows ? 'yes' : 'NO (random grids injected, table unchanged)'}`);
+  console.log(`motif table follows KILIM_GRIDS: ${tableFollows ? 'yes' : 'NO (random grids injected, table unchanged)'}`);
   console.log(`picture identical with different grids: ${samePicture ? 'YES (the page ignores the grids)' : 'no'}`);
   const ignored = samePicture && !tableFollows;
-  console.log(ignored ? '\nthe stand-in draws its inline glyphs whatever the contract hands it'
+  console.log(ignored ? '\nthe stand-in draws its inline motifs whatever the contract hands it'
     : '\nthe stand-in draws from the injected grids');
   process.exit(ignored ? 1 : 0);
 }

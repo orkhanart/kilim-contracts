@@ -2,17 +2,17 @@
 
 > The auction is native ETH only, with a 100-wallet registration before bidding opens. See [NATIVE-ETH.md](docs/NATIVE-ETH.md) for the behavior and [audit/full-audit-2026-10-09.md](audit/full-audit-2026-10-09.md) for the latest internal review.
 
-Upstream evidence checked September 18, 2026 UTC; the adaptation notes below were updated October 9, 2026 for the ETH-only contracts and October 10, 2026 for the split into Motif Bazaar, The Unwoven Kilim and the auction (glyphs, not symbols; two token contracts the auction mints into). The build reuses OpenZeppelin directly and a limited, explicitly identified part of thirdweb's English auction implementation. **The complete Kilim contracts have not received an independent audit.**
+Upstream evidence checked September 18, 2026 UTC; the adaptation notes below were updated October 9, 2026 for the ETH-only contracts and October 10, 2026 for the split into Motif Bazaar, The Unwoven Kilim and the auction (motifs, not symbols; two token contracts the auction mints into). The build reuses OpenZeppelin directly and a limited, explicitly identified part of thirdweb's English auction implementation. **The complete Kilim contracts have not received an independent audit.**
 
 ## What is reused
 
 | Component | Source | Boundary |
 | --- | --- | --- |
-| ERC-721 ownership, approvals, transfers and receiver checks | OpenZeppelin Contracts **5.6.1**, imported unchanged | Kilim's mint restrictions, owner-only burn, stored data and on-chain metadata (`src/KilimGlyphs.sol`, `src/KilimOneOfOne.sol`) are custom. |
+| ERC-721 ownership, approvals, transfers and receiver checks | OpenZeppelin Contracts **5.6.1**, imported unchanged | Kilim's mint restrictions, owner-only burn, stored data and on-chain metadata (`src/KilimMotifs.sol`, `src/KilimOneOfOne.sol`) are custom. |
 | Reentrancy protection, arithmetic, EIP-712 typed data and signature checking (EOA and ERC-1271) | Same pinned OpenZeppelin package | ETH escrow, registration and auction accounting are Kilim additions. |
 | Ascending bid acceptance | thirdweb `EnglishAuctionsLogic._isNewWinningBid`, retained unchanged apart from whitespace, including its 10,000 denominator | Actual predicate equality and reference-file integrity are checked by `pnpm verify:upstream`. Calls are additionally bounded to uint128 amounts and whole bid units of 0.001 ETH. |
 | Auction lifecycle | `src/auction/EnglishAuction.sol`, a limited adaptation of thirdweb's ascending-bid flow | Escrow, storage, registration, refund, extension and settlement code is extensively changed. This is not an unchanged thirdweb marketplace deployment. |
-| Glyph credits and the 1/1 | `src/KilimAuction.sol`, built on the auction base; it mints into `KilimGlyphs` and `KilimOneOfOne` | Custom Kilim code; losing bidders retain their credits, with separate claims and immutable caps. |
+| Motif credits and the 1/1 | `src/KilimAuction.sol`, built on the auction base; it mints into `KilimMotifs` and `KilimOneOfOne` | Custom Kilim code; losing bidders retain their credits, with separate claims and immutable caps. |
 
 The original marketplace cannot be used unchanged for the requested economics: it has marketplace storage, native-token wrapping, fees, royalties and upgrades, and no registration or retained rewards. The `_handleBid` function is not a virtual extension point in this reference. Extracting the relevant rule and adapting the flow makes the changed security boundary explicit; it does not transfer the original audit's assurance to the new escrow code.
 
@@ -43,7 +43,7 @@ OpenZeppelin is pinned through the package lockfile. Its [5.6.1 source tree](htt
 | A currency chosen per auction, moved through a wrapper library | Native ETH only: one payable bid entry point, no receive function | Plain ETH transfers to the auction revert. Forced ETH remains unrecoverable. |
 | Optional immediate buyout | No buyout or amount clamp | Large overbids must be fully collected and remain fully payable. |
 | Marketplace fees, royalty routing and asset delivery | Treasury withdraws the winning bid; settlement sends the 1/1 to the winner through a self-call capped at 500,000 gas, and the winner claims it if that call fails | A failing NFT receiver cannot block settlement or proceeds, and a low-gas settlement cannot skip the 1/1 (`test/GasFloors.t.sol`). |
-| No retained Kilim rewards | Bounded glyph credits for every accepted bid, each reserving specific glyph token ids | Refunds preserve credits by owner decision; exhausted rewards do not stop bidding. Self-outbid credit collection is accepted, not fixed. |
+| No retained Kilim rewards | Bounded motif credits for every accepted bid, each reserving specific motif token ids | Refunds preserve credits by owner decision; exhausted rewards do not stop bidding. Self-outbid credit collection is accepted, not fixed. |
 | Any address may bid | The configured treasury address cannot bid | Treasury bids revert; other seller-controlled wallets are not detectable. |
 
 The upstream A-15 M-1 finding concerned native currency attached to a bid in another currency becoming trapped. Kilim has one currency, and a bid whose `msg.value` differs from its amount reverts, which excludes that path. thirdweb also published a [September 2023 buyout vulnerability](https://blog.thirdweb.com/2023-09-09-vulnerability-auctions-with-a-buyout-price/); this adaptation has no buyout branch. Historical fixes illustrate why an audit-reference commit is not itself a deployable security guarantee.
@@ -52,7 +52,7 @@ The upstream A-15 M-1 finding concerned native currency attached to a bid in ano
 
 ## Other candidates considered
 
-- [Nouns Auction House V3](https://github.com/nounsDAO/nouns-monorepo/blob/3779f34e4442cc62f6602bf17460ad334e0208a7/packages/nouns-contracts/contracts/NounsAuctionHouseV3.sol): ETH/WETH and Nouns-specific issuance/history with upgradeable controls; adapting it to this design (one immutable auction, registration, retained glyph rewards) adds unnecessary changes. No Nouns source was copied.
+- [Nouns Auction House V3](https://github.com/nounsDAO/nouns-monorepo/blob/3779f34e4442cc62f6602bf17460ad334e0208a7/packages/nouns-contracts/contracts/NounsAuctionHouseV3.sol): ETH/WETH and Nouns-specific issuance/history with upgradeable controls; adapting it to this design (one immutable auction, registration, retained motif rewards) adds unnecessary changes. No Nouns source was copied.
 - [Zora legacy Auction House](https://github.com/ourzora/auction-house#deprecation-notice): maintainers explicitly deprecate it; not selected.
 
 Fully refunded bids that retain permanent rewards can be farmed regardless of the auction library. The owner has accepted this as the intended bidding incentive; see [AUDIT.md](AUDIT.md) for the measured exposure and the remaining launch requirements.

@@ -5,7 +5,7 @@
 //   pnpm -s test:pack        must fail  (the packers' own unit tests catch the regression)
 //   pnpm -s test:contracts   must pass  (the forge half of `pnpm test`; it never runs Python)
 // The site half of `pnpm test` is not run here: ../site/test spawns python3 only for site/build.py
-// and site/tools (grep "pack_page\|pack_glyphs" site/test finds no caller), so it cannot see the
+// and site/tools (grep "pack_page\|pack_motifs" site/test finds no caller), so it cannot see the
 // packer either. The forge profile has no ffi, and the stores it reads (onchain/build-*) are
 // gitignored outputs of the packer, so a packer regression is invisible to it.
 //

@@ -4,7 +4,7 @@ pragma solidity 0.8.37;
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {TestBase} from "../TestBase.sol";
 import {KilimAuction} from "../../src/KilimAuction.sol";
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {EnglishAuction} from "../../src/auction/EnglishAuction.sol";
 import {ProbeWallet} from "../AuditGaps.t.sol";
@@ -127,20 +127,20 @@ contract ClockBurner is IERC721Receiver {
     receive() external payable {}
 }
 
-/// @dev A glyph recipient that accepts the first `acceptCount` tokens and rejects the rest, or burns or
+/// @dev A motif recipient that accepts the first `acceptCount` tokens and rejects the rest, or burns or
 ///      moves every token it is handed from inside the mint callback.
 contract PickyReceiver is IERC721Receiver {
     uint8 public constant ACCEPT = 0;
     uint8 public constant BURN = 1;
     uint8 public constant MOVE = 2;
-    KilimGlyphs private immutable glyphs;
+    KilimMotifs private immutable motifs;
     uint256 public acceptCount;
     uint8 public mode;
     uint256 public received;
     address public moveTo;
 
-    constructor(KilimGlyphs g) {
-        glyphs = g;
+    constructor(KilimMotifs g) {
+        motifs = g;
     }
 
     function set(uint256 acceptCount_, uint8 mode_, address moveTo_) external {
@@ -152,8 +152,8 @@ contract PickyReceiver is IERC721Receiver {
     function onERC721Received(address, address, uint256 id, bytes calldata) external returns (bytes4) {
         ++received;
         require(received <= acceptCount, "rejected");
-        if (mode == BURN) glyphs.burn(id);
-        if (mode == MOVE) glyphs.transferFrom(address(this), moveTo, id);
+        if (mode == BURN) motifs.burn(id);
+        if (mode == MOVE) motifs.transferFrom(address(this), moveTo, id);
         return IERC721Receiver.onERC721Received.selector;
     }
 }
@@ -191,7 +191,7 @@ contract PrizeGasBudgetPoC is TestBase {
     uint256 private constant COLD_SLOT = 2_100;
 
     KilimAuction internal auction;
-    KilimGlyphs internal nft;
+    KilimMotifs internal nft;
     KilimOneOfOne internal oneOfOne;
     // Set up in their own transaction so that in a test everything below is cold, as on mainnet. Each
     // winner's hook burns block.timestamp - close, so a test picks the amount with vm.warp alone.
@@ -208,7 +208,7 @@ contract PrizeGasBudgetPoC is TestBase {
 
     function setUp() public {
         auction = new KilimAuction(config());
-        nft = auction.glyphs();
+        nft = auction.motifs();
         oneOfOne = auction.oneOfOne();
         _openBidding(auction);
         _fund(ALICE, 100 ether);
@@ -462,14 +462,14 @@ contract PrizeGasBudgetPoC is TestBase {
         _bid(auction, ALICE, 29 * UNIT); // ids 53-81
         PickyReceiver r = new PickyReceiver(nft);
         r.set(25, r.ACCEPT(), address(0)); // takes all of range 1, rejects the first of range 2
-        KilimAuction.CreditRange[] memory before = auction.unclaimedGlyphRanges(ALICE);
+        KilimAuction.CreditRange[] memory before = auction.unclaimedMotifRanges(ALICE);
         vm.expectRevert();
         vm.prank(ALICE);
-        auction.claimGlyphs(30, address(r));
-        KilimAuction.CreditRange[] memory after_ = auction.unclaimedGlyphRanges(ALICE);
-        assertEq(auction.glyphCredits(ALICE), 54);
-        assertEq(auction.glyphsClaimed(), 0);
-        assertEq(nft.glyphsMinted(), 0);
+        auction.claimMotifs(30, address(r));
+        KilimAuction.CreditRange[] memory after_ = auction.unclaimedMotifRanges(ALICE);
+        assertEq(auction.motifCredits(ALICE), 54);
+        assertEq(auction.motifsClaimed(), 0);
+        assertEq(nft.motifsMinted(), 0);
         assertEq(after_.length, before.length);
         for (uint256 i; i < before.length; ++i) {
             assertEq(after_[i].nextId, before[i].nextId);
@@ -478,25 +478,25 @@ contract PrizeGasBudgetPoC is TestBase {
         assertEq(r.received(), 0);
         // The same claim to a willing recipient still works, from the same ids.
         vm.prank(ALICE);
-        auction.claimGlyphs(30, CAROL);
+        auction.claimMotifs(30, CAROL);
         assertEq(nft.ownerOf(1), CAROL);
         assertEq(nft.ownerOf(57), CAROL);
-        assertEq(auction.glyphsClaimed(), 30);
-        assertEq(nft.glyphsMinted(), 30);
+        assertEq(auction.motifsClaimed(), 30);
+        assertEq(nft.motifsMinted(), 30);
     }
 
-    // ---- 5. a recipient that burns or moves each glyph from inside the mint callback ----
+    // ---- 5. a recipient that burns or moves each motif from inside the mint callback ----
 
     function testRecipientBurningOrMovingInsideTheMintCallbackKeepsTheCounters() public {
         _bid(auction, ALICE, 25 * UNIT);
         PickyReceiver burnerR = new PickyReceiver(nft);
         burnerR.set(type(uint256).max, burnerR.BURN(), address(0));
         vm.prank(ALICE);
-        auction.claimGlyphs(4, address(burnerR));
-        assertEq(nft.glyphsMinted(), 4);
-        assertEq(nft.glyphsBurned(), 4);
-        assertEq(auction.glyphsClaimed(), 4);
-        assertEq(auction.glyphCredits(ALICE), 21);
+        auction.claimMotifs(4, address(burnerR));
+        assertEq(nft.motifsMinted(), 4);
+        assertEq(nft.motifsBurned(), 4);
+        assertEq(auction.motifsClaimed(), 4);
+        assertEq(auction.motifCredits(ALICE), 21);
         for (uint256 id = 1; id <= 4; ++id) {
             assertTrue(nft.burned(id));
             vm.expectRevert();
@@ -507,15 +507,15 @@ contract PrizeGasBudgetPoC is TestBase {
         PickyReceiver mover = new PickyReceiver(nft);
         mover.set(type(uint256).max, mover.MOVE(), CAROL);
         vm.prank(ALICE);
-        auction.claimGlyphs(4, address(mover));
+        auction.claimMotifs(4, address(mover));
         for (uint256 id = 5; id <= 8; ++id) {
             assertEq(nft.ownerOf(id), CAROL);
         }
-        assertEq(nft.glyphsMinted(), 8);
-        assertEq(auction.glyphsClaimed(), 8);
+        assertEq(nft.motifsMinted(), 8);
+        assertEq(auction.motifsClaimed(), 8);
         // Burned ids are never handed out again: the next claim continues at 9.
         vm.prank(ALICE);
-        auction.claimGlyphs(1, CAROL);
+        auction.claimMotifs(1, CAROL);
         assertEq(nft.ownerOf(9), CAROL);
     }
 
@@ -546,10 +546,10 @@ contract PrizeGasBudgetPoC is TestBase {
         vmp.setNonce(address(this), uint64(vm.getNonce(address(this)) + 1));
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
-        address minter = KilimGlyphs(c.glyphs).minter();
+        address minter = KilimMotifs(c.motifs).minter();
         assertEq(minter.code.length, 0);
-        vm.expectRevert(KilimGlyphs.Unauthorized.selector);
-        KilimGlyphs(c.glyphs).mintGlyphs(ALICE, ALICE, 1, 1);
+        vm.expectRevert(KilimMotifs.Unauthorized.selector);
+        KilimMotifs(c.motifs).mintMotifs(ALICE, ALICE, 1, 1);
         vm.expectRevert(KilimOneOfOne.Unauthorized.selector);
         KilimOneOfOne(c.oneOfOne).mint(ALICE);
         emit log_string("(a) tokens built for a slipped nonce can never mint; both must be redeployed, the chunks survive");
@@ -558,15 +558,15 @@ contract PrizeGasBudgetPoC is TestBase {
         //     that contract is the tokens' minter, and whoever controls it can mint without the auction.
         c = config();
         SafeShapedSingleton executor = new SafeShapedSingleton();
-        assertEq(KilimGlyphs(c.glyphs).minter(), address(executor));
+        assertEq(KilimMotifs(c.motifs).minter(), address(executor));
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
         assertTrue(
             executor.execCall(
-                c.glyphs, 0, abi.encodeCall(KilimGlyphs(c.glyphs).mintGlyphs, (ALICE, ALICE, 1, 1))
+                c.motifs, 0, abi.encodeCall(KilimMotifs(c.motifs).mintMotifs, (ALICE, ALICE, 1, 1))
             )
         );
-        assertEq(KilimGlyphs(c.glyphs).ownerOf(1), ALICE);
+        assertEq(KilimMotifs(c.motifs).ownerOf(1), ALICE);
         assertTrue(executor.execCall(c.oneOfOne, 0, abi.encodeCall(KilimOneOfOne(c.oneOfOne).mint, (BOB))));
         assertEq(KilimOneOfOne(c.oneOfOne).ownerOf(1), BOB);
         emit log_string("(b) a deployer contract at n+2 becomes the minter of both tokens; nothing on-chain can tell");

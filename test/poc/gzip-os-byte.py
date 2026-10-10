@@ -27,7 +27,7 @@ import pack_page as P  # noqa: E402
 
 FIXTURES = ROOT / 'onchain/test/fixtures'
 STORE = ROOT / 'onchain/build-page'
-GRIDS = ROOT / 'onchain/build-glyphs/grids.bin'
+GRIDS = ROOT / 'onchain/build-motifs/grids.bin'
 FIXED_HEADER = b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\xff'
 
 
@@ -46,7 +46,7 @@ def main():
         module[10:] == packer[10:], gzip.decompress(module) == artwork and gzip.decompress(packer) == artwork))
 
     ok = packer[:10] == FIXED_HEADER
-    name, desc = 'The Unwoven Kilim', 'A generative ASCII carpet drawn from the 1,024 Kilim glyphs.'
+    name, desc = 'The Unwoven Kilim', 'A generative ASCII carpet drawn from the 1,024 Kilim motifs.'
     fixed = json.loads(P.build(artwork, still, grids, name, desc, artwork_name='lean.html',
                                still_name='still-placeholder.png')['manifest.json'])
     print('packer tailHash %s golden %s' % (fixed['hashes']['tailHash'], fixed['golden']['tokenURI']['sha256']))

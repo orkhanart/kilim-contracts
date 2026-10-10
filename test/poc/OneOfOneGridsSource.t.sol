@@ -2,11 +2,11 @@
 pragma solidity 0.8.37;
 
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {TestBase} from "../TestBase.sol";
 
-/// @dev A glyph source the 1/1 cannot tell from KilimGlyphs at construction (it only checks for code),
+/// @dev A motif source the 1/1 cannot tell from KilimMotifs at construction (it only checks for code),
 ///      answering grids() in every shape a hostile or broken contract could: the right 32,768 bytes
 ///      from a seed, one byte short, one byte long, a revert, no return data at all (an EOA-like
 ///      answer), the right size with a wrong ABI offset or length word, and a 1 MB return bomb.
@@ -115,7 +115,7 @@ contract OneOfOneGridsSourcePoC is TestBase {
         own = new KilimOneOfOne(
             address(this),
             TREASURY,
-            KilimGlyphs(address(source)),
+            KilimMotifs(address(source)),
             pageFrom(prefix, head, tail),
             ONE_OF_ONE_NAME,
             DESCRIPTION,
@@ -161,13 +161,13 @@ contract OneOfOneGridsSourcePoC is TestBase {
         own.tokenURI(1);
     }
 
-    /// @dev The constructor accepts any contract as the glyph source: a KilimGlyphs over other grids,
+    /// @dev The constructor accepts any contract as the motif source: a KilimMotifs over other grids,
     ///      or anything with code. Only the deploy script's golden hash ties the 1/1 to the real grids.
-    function testAnyContractPassesAsTheGlyphSource() public {
+    function testAnyContractPassesAsTheMotifSource() public {
         new KilimOneOfOne(
             address(this),
             TREASURY,
-            KilimGlyphs(address(this)),
+            KilimMotifs(address(this)),
             standInPage(),
             ONE_OF_ONE_NAME,
             DESCRIPTION,

@@ -40,9 +40,9 @@ const LATEST = resolve(CONTRACTS, `broadcast/DeployKilim.s.sol/${CHAIN_ID}/runCo
 const CREATE2_DEPLOYER = '0x4e59b44847b379578588920cA78FbF26c0B4956C';
 const CREATE2_DEPLOYER_CODE = '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3';
 
-const GLYPH_DIR = resolve(CONTRACTS, '../onchain/build-glyphs');
+const MOTIF_DIR = resolve(CONTRACTS, '../onchain/build-motifs');
 const PAGE_DIR = resolve(CONTRACTS, '../onchain/build-page');
-const glyphManifest = JSON.parse(readFileSync(resolve(GLYPH_DIR, 'manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(MOTIF_DIR, 'manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(PAGE_DIR, 'manifest.json'), 'utf8'));
 
 let failures = 0;
@@ -56,12 +56,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-dropped-third.mjs',
     chainId: CHAIN_ID, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, null, 2));
 }
@@ -139,10 +139,10 @@ try {
   const etch = async (dir, chunks) => {
     for (const c of chunks) await rpc.call('anvil_setCode', [c.address, '0x00' + readFileSync(resolve(dir, c.file)).toString('hex')]);
   };
-  await etch(GLYPH_DIR, [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks]);
+  await etch(MOTIF_DIR, [...motifManifest.grids.chunks, ...motifManifest.names.chunks]);
   for (const s of ['prefix', 'head', 'tail']) await etch(PAGE_DIR, pageManifest.sections[s].chunks);
   const n = await nonceOf();
-  const predicted = { glyphs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
+  const predicted = { motifs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
   writeConfig(deployer, n, now + 3 * 86400);
   rmSync(LATEST, { force: true });
   const rpcArgs = ['--rpc-url', proxy.url, '--broadcast', '--unlocked', '--sender', deployer, '--timeout', '20'];
@@ -163,7 +163,7 @@ try {
   const known = await rpc.call('eth_getTransactionByHash', [third.hash]);
   check(known === null, `after the drop the node answers eth_getTransactionByHash = ${known === null ? 'null (the hash is unknown, as after a real mempool eviction)' : 'the transaction (still known)'}`);
   await rpc.call('anvil_mine', ['0x1']);
-  check((await nonceOf()) === n + 2, `glyphs and the 1/1 mined: nonce ${await nonceOf()} (n + 2 is free)`);
+  check((await nonceOf()) === n + 2, `motifs and the 1/1 mined: nonce ${await nonceOf()} (n + 2 is free)`);
   check(!(await codeAt(predicted.auction)), 'no code at the predicted auction address');
   proxy.reset();
   const tDrop = Date.now();
@@ -227,7 +227,7 @@ try {
 
   section('read-back of the whole deployment');
   check(recovered, 'the auction has code at the predicted address');
-  check((await rpc.view(predicted.glyphs, F.glyphs.minter))[0].toLowerCase() === predicted.auction.toLowerCase(), 'glyphs.minter() is the auction');
+  check((await rpc.view(predicted.motifs, F.motifs.minter))[0].toLowerCase() === predicted.auction.toLowerCase(), 'motifs.minter() is the auction');
   check((await rpc.view(predicted.oneOfOne, F.oneOfOne.minter))[0].toLowerCase() === predicted.auction.toLowerCase(), '1/1.minter() is the auction');
   check((await rpc.view(predicted.auction, F.auction.oneOfOne))[0].toLowerCase() === predicted.oneOfOne.toLowerCase(), 'auction.oneOfOne() is the 1/1: the deployment is whole');
 

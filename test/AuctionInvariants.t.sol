@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
-import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {TestBase, InvariantBase} from "./TestBase.sol";
 
 /// @dev A bidder wallet whose ETH receiver can accept, reject, or burn all the gas it is given,
@@ -100,13 +100,13 @@ contract AuctionHandler is TestBase {
 
     function claim(uint8 actorSeed, uint8 quantitySeed, uint8 destination) external {
         address actor = actors[actorSeed % 3];
-        uint256 credits = auction.glyphCredits(actor);
+        uint256 credits = auction.motifCredits(actor);
         address to = actors[destination % 3];
         if (credits == 0 || !_takesNfts(to)) return;
         uint256 quantity = 1 + uint256(quantitySeed) % 64;
         if (quantity > credits) quantity = credits;
         vm.prank(actor);
-        auction.claimGlyphs(quantity, to);
+        auction.claimMotifs(quantity, to);
         ++claimCalls;
     }
 
@@ -164,7 +164,7 @@ contract AuctionInvariants is InvariantBase {
         // A small pool keeps the run bounded and exercises exhausted rewards, where bids
         // are still accepted but reserve no IDs.
         KilimAuction.Config memory c = config(600);
-        c.maxGlyphsPerBid = 60;
+        c.maxMotifsPerBid = 60;
         auction = new KilimAuction(c);
         handler = new AuctionHandler(auction);
         targets.push(address(handler));
@@ -202,22 +202,22 @@ contract AuctionInvariants is InvariantBase {
     function invariantCreditsCannotBeCreatedTwiceOrOverCap() public view {
         uint256 sum;
         for (uint256 i; i < 3; ++i) {
-            sum += auction.glyphCredits(handler.actors(i));
+            sum += auction.motifCredits(handler.actors(i));
         }
-        assertEq(sum + auction.glyphsClaimed(), auction.glyphsAllocated());
-        assertEq(auction.glyphs().glyphsMinted(), auction.glyphsClaimed());
-        assertTrue(auction.glyphsAllocated() <= auction.glyphCap());
+        assertEq(sum + auction.motifsClaimed(), auction.motifsAllocated());
+        assertEq(auction.motifs().motifsMinted(), auction.motifsClaimed());
+        assertTrue(auction.motifsAllocated() <= auction.motifCap());
     }
 
     /// Reserved ranges match credits exactly, sit inside the allocated block, never overlap,
     /// and contain only unminted IDs.
     function invariantReservedIdsMatchCreditsAndAreUnminted() public view {
-        KilimGlyphs nft = auction.glyphs();
+        KilimMotifs nft = auction.motifs();
         uint256 first = 1;
-        uint256 end = first + auction.glyphsAllocated();
+        uint256 end = first + auction.motifsAllocated();
         KilimAuction.CreditRange[][3] memory all;
         for (uint256 a; a < 3; ++a) {
-            all[a] = auction.unclaimedGlyphRanges(handler.actors(a));
+            all[a] = auction.unclaimedMotifRanges(handler.actors(a));
             uint256 total;
             for (uint256 i; i < all[a].length; ++i) {
                 KilimAuction.CreditRange memory r = all[a][i];
@@ -229,7 +229,7 @@ contract AuctionInvariants is InvariantBase {
                 assertTrue(_unminted(nft, r.nextId + r.remaining - 1));
                 total += r.remaining;
             }
-            assertEq(total, auction.glyphCredits(handler.actors(a)));
+            assertEq(total, auction.motifCredits(handler.actors(a)));
         }
         for (uint256 a; a < 3; ++a) {
             for (uint256 b = a + 1; b < 3; ++b) {
@@ -253,7 +253,7 @@ contract AuctionInvariants is InvariantBase {
     }
 
     /// @dev An id that was never minted: no owner now and never burned.
-    function _unminted(KilimGlyphs nft, uint256 id) private view returns (bool) {
+    function _unminted(KilimMotifs nft, uint256 id) private view returns (bool) {
         if (nft.burned(id)) return false;
         try nft.ownerOf(id) returns (address) {
             return false;

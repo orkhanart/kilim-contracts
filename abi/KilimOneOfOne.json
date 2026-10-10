@@ -13,9 +13,9 @@
         "internalType": "address"
       },
       {
-        "name": "glyphs_",
+        "name": "motifs_",
         "type": "address",
-        "internalType": "contract KilimGlyphs"
+        "internalType": "contract KilimMotifs"
       },
       {
         "name": "page",
@@ -195,19 +195,6 @@
   },
   {
     "type": "function",
-    "name": "glyphs",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract KilimGlyphs"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "headChunks",
     "inputs": [],
     "outputs": [
@@ -291,6 +278,19 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "motifs",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract KilimMotifs"
       }
     ],
     "stateMutability": "view"
@@ -760,6 +760,11 @@
   {
     "type": "error",
     "name": "InvalidRecipient",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   },
   {

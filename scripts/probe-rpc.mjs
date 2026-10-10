@@ -3,7 +3,7 @@
 //   pnpm probe:rpc [--chain 1] [--out audit/rpc-gas-caps.txt] [--no-defaults] [https://… …]
 //
 // tokenURI is an eth_call, not a transaction: the 1/1 needs about 3.9M gas with the stand-in page
-// (measured by pnpm deploy:dry; the policy ceiling is 8M, docs/STORAGE.md) and a glyph about 0.3M.
+// (measured by pnpm deploy:dry; the policy ceiling is 8M, docs/STORAGE.md) and a motif about 0.3M.
 // A marketplace or wallet whose node caps eth_call below that shows a blank token. Most callers
 // send no gas field, so the node's default cap is what counts.
 //
@@ -25,7 +25,7 @@ export const BURNER = '0x5b5a620186a0105f575a5f5260205ff3';
 export const BEFORE_FIRST_GAS = 53_116n;
 export const NEEDS = [
   { name: 'the 1/1', gas: 8_000_000n },
-  { name: 'a glyph', gas: 300_000n },
+  { name: 'a motif', gas: 300_000n },
 ];
 const ASKS = [8_000_000n, 30_000_000n];
 const BURNS = [8_000_000n, 23_000_000n];

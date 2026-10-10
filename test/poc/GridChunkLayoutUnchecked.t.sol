@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
-// Proof of concept for a review finding: the KilimGlyphs constructor checks "every chunk but the last is
+// Proof of concept for a review finding: the KilimMotifs constructor checks "every chunk but the last is
 // full" and "the sizes sum to 32,768", but not the chunk count that grid() hard-codes through
 // `_gridChunks[index / GRIDS_PER_CHUNK]`. One chunk of all 32,768 bytes satisfies both checks and leaves
-// glyphs 768..1024 unaddressable. The first test shows why this is unreachable on the launch chains:
+// motifs 768..1024 unaddressable. The first test shows why this is unreachable on the launch chains:
 // such a chunk is past EIP-170 and `create` refuses it. The second plants it with vm.etch to show the
 // latent defect in the contract's own logic.
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {TestBase} from "../TestBase.sol";
 
 interface VmEtch {
@@ -42,8 +42,8 @@ contract GridChunkLayoutUncheckedPoc is TestBase {
         address namesChunk = sstore2(names);
         bytes32 gridsHash = keccak256(grids);
         bytes32 namesHash = keccak256(names);
-        KilimGlyphs nft =
-            new KilimGlyphs(address(this), TREASURY, 1000, chunks, gridsHash, namesChunk, namesHash, "", "");
+        KilimMotifs nft =
+            new KilimMotifs(address(this), TREASURY, 1000, chunks, gridsHash, namesChunk, namesHash, "", "");
         assertEq(nft.gridChunks().length, 1);
         assertEq(nft.grid(767), standInGrid(767));
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x32));
@@ -52,7 +52,7 @@ contract GridChunkLayoutUncheckedPoc is TestBase {
 
     /// Planted past the limit with vm.etch, one 32,768-byte chunk passes every constructor check:
     /// no "chunk but the last" exists to be full, the total is 32,768, and the hash matches. grid()
-    /// then reads _gridChunks[1] for glyphs 768..1024, which does not exist: Panic(0x32).
+    /// then reads _gridChunks[1] for motifs 768..1024, which does not exist: Panic(0x32).
     function testOneChunkPassesConstructorAndGridPanicsPast767() public {
         bytes memory grids = standInGrids();
         bytes memory names = standInNames();
@@ -65,8 +65,8 @@ contract GridChunkLayoutUncheckedPoc is TestBase {
         bytes32 gridsHash = keccak256(grids);
         bytes32 namesHash = keccak256(names);
 
-        KilimGlyphs nft =
-            new KilimGlyphs(address(this), TREASURY, 1000, chunks, gridsHash, namesChunk, namesHash, "", "");
+        KilimMotifs nft =
+            new KilimMotifs(address(this), TREASURY, 1000, chunks, gridsHash, namesChunk, namesHash, "", "");
         assertEq(nft.gridChunks().length, 1);
 
         // Everything inside the first 767 grids still reads correctly.
@@ -75,25 +75,25 @@ contract GridChunkLayoutUncheckedPoc is TestBase {
         // grids() walks the chunk list by real size, so the 1/1's view of the data is intact.
         assertEq(keccak256(nft.grids()), keccak256(grids));
 
-        // Glyphs 768..1024 index a second chunk that was never given.
+        // Motifs 768..1024 index a second chunk that was never given.
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x32));
         nft.grid(768);
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x32));
         nft.grid(1024);
 
-        // tokenURI goes through grid(), so a minted id whose glyph is past 767 has no metadata.
+        // tokenURI goes through grid(), so a minted id whose motif is past 767 has no metadata.
         uint256 id = 1;
-        while (nft.glyphOf(id) <= 767) ++id;
-        nft.mintGlyphs(ALICE, ALICE, id, 1);
+        while (nft.motifOf(id) <= 767) ++id;
+        nft.mintMotifs(ALICE, ALICE, id, 1);
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x32));
         nft.tokenURI(id);
     }
 
     /// The proposed one-comparison fix pins the count grid() relies on: ceil(1024 / 767) == 2.
     function testProposedCheckPinsTwoChunks() public pure {
-        uint256 glyphCount = 1024;
+        uint256 motifCount = 1024;
         uint256 perChunk = 767;
-        uint256 expected = (glyphCount + perChunk - 1) / perChunk;
+        uint256 expected = (motifCount + perChunk - 1) / perChunk;
         require(expected == 2, "ceil(1024/767)");
     }
 }

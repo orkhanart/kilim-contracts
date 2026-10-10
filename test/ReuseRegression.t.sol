@@ -57,8 +57,8 @@ contract ReuseRegressionTest is TestBase {
         assertEq(address(auction).balance, 0);
         assertEq(auction.highestBid(), 0);
         assertEq(auction.endsAt(), 0);
-        assertEq(auction.glyphsAllocated(), 0);
-        assertEq(auction.glyphCredits(ALICE), 0);
+        assertEq(auction.motifsAllocated(), 0);
+        assertEq(auction.motifCredits(ALICE), 0);
     }
 
     function testMismatchedOutbidLeavesTheLeaderInPlace() public {
@@ -73,8 +73,8 @@ contract ReuseRegressionTest is TestBase {
         assertEq(auction.highestBidder(), ALICE);
         assertEq(auction.highestBid(), RESERVE);
         assertEq(auction.endsAt(), end);
-        assertEq(auction.glyphCredits(BOB), 0);
-        assertEq(auction.glyphsAllocated(), 10);
+        assertEq(auction.motifCredits(BOB), 0);
+        assertEq(auction.motifsAllocated(), 10);
         assertEq(ALICE.balance, type(uint128).max - RESERVE);
         assertEq(BOB.balance, type(uint128).max);
         _backed();
@@ -113,7 +113,7 @@ contract ReuseRegressionTest is TestBase {
         auction.withdrawRefund(CAROL);
         assertEq(CAROL.balance, RESERVE);
         assertEq(auction.refunds(address(wallet)), 0);
-        assertEq(auction.glyphCredits(address(wallet)), 10);
+        assertEq(auction.motifCredits(address(wallet)), 10);
         _backed();
     }
 
@@ -130,8 +130,8 @@ contract ReuseRegressionTest is TestBase {
         assertEq(auction.highestBid(), RESERVE);
         assertEq(auction.refundLiability(), 0);
         assertEq(auction.refunds(ALICE), 0);
-        assertEq(auction.glyphsAllocated(), 10);
-        assertEq(auction.glyphCredits(BOB), 0);
+        assertEq(auction.motifsAllocated(), 10);
+        assertEq(auction.motifCredits(BOB), 0);
         assertEq(address(auction).balance, RESERVE);
         assertEq(ALICE.balance, type(uint128).max - RESERVE);
         assertEq(BOB.balance, type(uint128).max);
@@ -186,7 +186,7 @@ contract ReuseRegressionTest is TestBase {
                 reservePrice: RESERVE
             })
         );
-        assertEq(rules.GLYPH_PRICE(), UNIT);
+        assertEq(rules.MOTIF_PRICE(), UNIT);
         assertEq(rules.minimumBid(), RESERVE);
         assertTrue(rules.upstreamAccepts(rules.minimumBid()));
         assertTrue(!rules.upstreamAccepts(rules.minimumBid() - UNIT));

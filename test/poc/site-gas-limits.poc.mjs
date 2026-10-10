@@ -40,7 +40,7 @@ try {
   await measure('outbidding bid (0.013 ETH, repeat bidder)', { from: alice, to: d.auction, value: hex(13n * UNIT), data: bidData(13n * UNIT) }, BID_GAS);
   // A claim of the maximum batch, for scale (the site lets the wallet estimate this one).
   await measure('bid of 64 units (0.064 ETH, fresh bidder)', { from: carol, to: d.auction, value: hex(64n * UNIT), data: bidData(64n * UNIT) }, BID_GAS);
-  await measure('claimGlyphs(64)', { from: carol, to: d.auction, data: A.F.auction.claimGlyphs.encode([64n, carol]) }, 0n);
+  await measure('claimMotifs(64)', { from: carol, to: d.auction, data: A.F.auction.claimMotifs.encode([64n, carol]) }, 0n);
   // Settlement with an EOA winner (Carol), the 1/1 delivered inside settle.
   const endsAt = Number((await rpc.view(d.auction, A.F.auction.endsAt))[0]);
   await warpTo(rpc, endsAt);

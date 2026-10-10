@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {TestBase} from "./TestBase.sol";
 
@@ -34,7 +34,7 @@ contract ReenteringOneOfOneRecipient is IERC721Receiver {
     }
 }
 
-/// @dev A glyph source of any 32,768 bytes, derived from a seed, so the hex encoder meets every byte
+/// @dev A motif source of any 32,768 bytes, derived from a seed, so the hex encoder meets every byte
 ///      value and the 1/1 is compared against OpenZeppelin's Base64 over grids it has never seen.
 contract SeededGrids {
     bytes32 public immutable seed;
@@ -57,12 +57,12 @@ contract SeededGrids {
 contract KilimOneOfOneTest is TestBase {
     event log_named_uint(string key, uint256 value);
 
-    KilimGlyphs internal glyphs;
+    KilimMotifs internal motifs;
     KilimOneOfOne internal nft;
 
     function setUp() public {
-        glyphs = newGlyphs(address(this), TREASURY, GLYPH_CAP);
-        nft = newOneOfOne(address(this), TREASURY, glyphs);
+        motifs = newMotifs(address(this), TREASURY, MOTIF_CAP);
+        nft = newOneOfOne(address(this), TREASURY, motifs);
     }
 
     // ------------------------------------------------------------ reference
@@ -117,7 +117,7 @@ contract KilimOneOfOneTest is TestBase {
     function testConstructionStoresEverything() public view {
         assertEq(nft.minter(), address(this));
         assertEq(nft.royaltyReceiver(), TREASURY);
-        assertEq(address(nft.glyphs()), address(glyphs));
+        assertEq(address(nft.motifs()), address(motifs));
         assertEq(nft.name(), ONE_OF_ONE_NAME);
         assertEq(nft.symbol(), "UNWOVEN");
         assertEq(nft.description(), DESCRIPTION);
@@ -135,7 +135,7 @@ contract KilimOneOfOneTest is TestBase {
     function testFuzzInvalidConfiguration(uint8 selector) public {
         address minter = address(this);
         address royalty = TREASURY;
-        KilimGlyphs source = glyphs;
+        KilimMotifs source = motifs;
         KilimOneOfOne.Page memory page = standInPage();
         uint256 choice = uint256(selector) % 10;
         if (choice == 0) {
@@ -143,7 +143,7 @@ contract KilimOneOfOneTest is TestBase {
         } else if (choice == 1) {
             royalty = address(0);
         } else if (choice == 2) {
-            source = KilimGlyphs(ALICE); // no code
+            source = KilimMotifs(ALICE); // no code
         } else if (choice == 3) {
             page.prefixHash = keccak256("other");
         } else if (choice == 4) {
@@ -155,7 +155,7 @@ contract KilimOneOfOneTest is TestBase {
         } else if (choice == 7) {
             page.tailChunks[0] = ALICE; // no code
         } else if (choice == 8) {
-            page.headChunks[0] = address(glyphs); // code, but no leading 0x00
+            page.headChunks[0] = address(motifs); // code, but no leading 0x00
         } else {
             // The right bytes in the wrong order.
             (page.headChunks, page.tailChunks) = (page.tailChunks, page.headChunks);
@@ -198,7 +198,7 @@ contract KilimOneOfOneTest is TestBase {
     function testMintHasNoGuardAndIsOneShotFromInsideItsOwnCallback() public {
         ReenteringOneOfOneMinter minter = new ReenteringOneOfOneMinter();
         ReenteringOneOfOneRecipient recipient = new ReenteringOneOfOneRecipient(minter);
-        KilimOneOfOne own = newOneOfOne(address(minter), TREASURY, glyphs);
+        KilimOneOfOne own = newOneOfOne(address(minter), TREASURY, motifs);
         minter.mint(own, address(recipient));
         assertEq(bytes4(recipient.innerRevert()), KilimOneOfOne.AlreadyMinted.selector);
         assertTrue(recipient.uriLengthInCallback() > 65_536);
@@ -239,7 +239,7 @@ contract KilimOneOfOneTest is TestBase {
             _readGas(address(nft), abi.encodeCall(nft.tokenURI, (1)))
         );
         bytes memory expected = _reference(
-            bytes(PAGE_PREFIX), bytes(PAGE_HEAD), bytes(Base64.encode(bytes(PAGE_REST))), glyphs.grids()
+            bytes(PAGE_PREFIX), bytes(PAGE_HEAD), bytes(Base64.encode(bytes(PAGE_REST))), motifs.grids()
         );
         bytes memory actual = bytes(nft.tokenURI(1));
         assertEq(actual.length, expected.length);
@@ -248,7 +248,7 @@ contract KilimOneOfOneTest is TestBase {
         // grids inside the quotes, followed by the stored rest of the page.
         string memory json = string(_afterScheme(actual));
         string memory page = string(Base64.decode(_afterMarker(vm.parseJsonString(json, ".animation_url"))));
-        bytes memory grids = glyphs.grids();
+        bytes memory grids = motifs.grids();
         bytes memory pad = _spaces((3 - (bytes(PAGE_HEAD).length + 65_537) % 3) % 3);
         assertEq(page, string(bytes.concat(bytes(PAGE_HEAD), _hex(grids), "'", pad, bytes(PAGE_REST))));
         assertEq(vm.parseJsonString(json, ".name"), ONE_OF_ONE_NAME);
@@ -264,7 +264,7 @@ contract KilimOneOfOneTest is TestBase {
             KilimOneOfOne own = new KilimOneOfOne(
                 address(this),
                 TREASURY,
-                glyphs,
+                motifs,
                 pageFrom(bytes(PAGE_PREFIX), head, tail),
                 ONE_OF_ONE_NAME,
                 DESCRIPTION,
@@ -272,7 +272,7 @@ contract KilimOneOfOneTest is TestBase {
             );
             own.mint(ALICE);
             bytes memory actual = bytes(own.tokenURI(1));
-            bytes memory expected = _reference(bytes(PAGE_PREFIX), head, tail, glyphs.grids());
+            bytes memory expected = _reference(bytes(PAGE_PREFIX), head, tail, motifs.grids());
             assertEq(actual.length, expected.length);
             assertEq(keccak256(actual), keccak256(expected));
             uint256 pad = (3 - (head.length + 65_537) % 3) % 3;
@@ -280,12 +280,12 @@ contract KilimOneOfOneTest is TestBase {
         }
     }
 
-    function testTokenUriDrawsTheGridsLiveFromTheGlyphCollection() public {
+    function testTokenUriDrawsTheGridsLiveFromTheMotifCollection() public {
         bytes memory grids = standInGrids();
         assembly ("memory-safe") {
             mstore(add(grids, 32), 0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef)
         }
-        KilimGlyphs other = newGlyphs(address(this), TREASURY, GLYPH_CAP, grids, standInNames());
+        KilimMotifs other = newMotifs(address(this), TREASURY, MOTIF_CAP, grids, standInNames());
         KilimOneOfOne own = newOneOfOne(address(this), TREASURY, other);
         own.mint(ALICE);
         nft.mint(ALICE);
@@ -313,7 +313,7 @@ contract KilimOneOfOneTest is TestBase {
         KilimOneOfOne own = new KilimOneOfOne(
             address(this),
             TREASURY,
-            KilimGlyphs(address(source)),
+            KilimMotifs(address(source)),
             pageFrom(prefix, head, tail),
             ONE_OF_ONE_NAME,
             DESCRIPTION,
@@ -341,7 +341,7 @@ contract KilimOneOfOneTest is TestBase {
         KilimOneOfOne big = new KilimOneOfOne(
             address(this),
             TREASURY,
-            glyphs,
+            motifs,
             pageFrom(prefix, head, tail),
             ONE_OF_ONE_NAME,
             DESCRIPTION,
@@ -354,7 +354,7 @@ contract KilimOneOfOneTest is TestBase {
         emit log_named_uint("1/1 tokenURI(1) gas with a 600 KB tail", used);
         emit log_named_uint("1/1 tokenURI(1) answer bytes", actual.length);
         assertTrue(used < 8_000_000);
-        bytes memory expected = _reference(prefix, head, tail, glyphs.grids());
+        bytes memory expected = _reference(prefix, head, tail, motifs.grids());
         assertEq(actual.length, expected.length);
         assertEq(keccak256(actual), keccak256(expected));
     }
@@ -365,7 +365,7 @@ contract KilimOneOfOneTest is TestBase {
         KilimOneOfOne own = new KilimOneOfOne(
             address(this),
             TREASURY,
-            glyphs,
+            motifs,
             standInPage(),
             'What "the" weave\\remembers',
             string(bytes.concat(hex"1b1f00", " x")),

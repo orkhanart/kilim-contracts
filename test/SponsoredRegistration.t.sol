@@ -53,7 +53,7 @@ contract SponsoredRegistrationTest is TestBase {
         assertEq(user.balance, 0.01 ether);
         assertEq(auction.registrationCount(), 1);
         assertEq(auction.endsAt(), 0);
-        assertEq(auction.glyphCredits(user), 0);
+        assertEq(auction.motifCredits(user), 0);
         assertEq(address(auction).balance, 0);
         vm.expectRevert(EnglishAuction.AlreadyRegistered.selector);
         auction.registerFor(user, deadline, sig);
@@ -121,7 +121,7 @@ contract SponsoredRegistrationTest is TestBase {
         auction.registerFor(user, deadline, signature(auction.registrationDigest(user, deadline)));
         assertEq(auction.registrationCount(), 100);
         assertEq(auction.endsAt(), 0);
-        assertEq(auction.glyphCredits(user), 0);
+        assertEq(auction.motifCredits(user), 0);
         vm.deal(BOB, 0.01 ether);
         vm.prank(BOB);
         auction.bid{value: 0.01 ether}(0.01 ether, 10, 0);

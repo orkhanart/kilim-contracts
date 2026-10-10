@@ -1,10 +1,10 @@
 {
-  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/STORAGE.md for the order. The stores come from onchain/pack_glyphs.py and onchain/pack_page.py.",
+  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/STORAGE.md for the order. The stores come from onchain/pack_motifs.py and onchain/pack_page.py.",
   "chainId": 11155111,
   "deployer": "TODO: the rehearsal deployer address",
-  "deployerNonce": "TODO: the published nonce for the glyph collection, the first of the three contract transactions",
+  "deployerNonce": "TODO: the published nonce for the motif collection, the first of the three contract transactions",
   "minLeadSeconds": 86400,
-  "glyphStore": "../onchain/build-glyphs",
+  "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
@@ -13,16 +13,16 @@
     "extensionWindow": 600,
     "incrementBps": 1000,
     "reservePrice": 10000000000000000,
-    "maxGlyphsPerBid": 1000000
+    "maxMotifsPerBid": 1000000
   },
   "collection": {
-    "glyphCap": 1000000,
-    "description": "One of the 1,024 Kilim glyphs.",
+    "motifCap": 1000000,
+    "description": "One of the 1,024 Kilim motifs.",
     "externalUrl": "https://kilim.art"
   },
   "oneOfOne": {
     "name": "The Unwoven Kilim",
-    "description": "A generative ASCII carpet drawn from the 1,024 Kilim glyphs.",
+    "description": "A generative ASCII carpet drawn from the 1,024 Kilim motifs.",
     "externalUrl": ""
   }
 }

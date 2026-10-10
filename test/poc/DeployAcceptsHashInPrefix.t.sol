@@ -22,7 +22,7 @@ interface VmPocPrefix {
 contract DeployAcceptsHashInPrefixTest is TestBase {
     VmPocPrefix internal constant vmp = VmPocPrefix(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant DEPLOYER = address(0xD3910);
-    string internal constant GLYPH_STORE = "../onchain/build-glyphs";
+    string internal constant MOTIF_STORE = "../onchain/build-motifs";
     string internal constant PAGE_STORE = "../onchain/test/fixtures/poc-hash-in-prefix";
     uint256 internal constant SCHEME = 27;
 
@@ -38,7 +38,7 @@ contract DeployAcceptsHashInPrefixTest is TestBase {
         c.deployer = DEPLOYER;
         c.deployerNonce = vmp.getNonce(DEPLOYER);
         c.minLeadSeconds = 1 days;
-        c.glyphStore = GLYPH_STORE;
+        c.motifStore = MOTIF_STORE;
         c.pageStore = PAGE_STORE;
         c.auction.treasury = TREASURY;
         c.auction.startsAt = uint64(block.timestamp + 2 days);
@@ -46,9 +46,9 @@ contract DeployAcceptsHashInPrefixTest is TestBase {
         c.auction.extensionWindow = 10 minutes;
         c.auction.incrementBps = 1000;
         c.auction.reservePrice = RESERVE;
-        c.auction.maxGlyphsPerBid = 1_000_000;
-        c.glyphCap = 1_000_000;
-        string memory g = vmp.readFile(string.concat(GLYPH_STORE, "/manifest.json"));
+        c.auction.maxMotifsPerBid = 1_000_000;
+        c.motifCap = 1_000_000;
+        string memory g = vmp.readFile(string.concat(MOTIF_STORE, "/manifest.json"));
         string memory pg = vmp.readFile(string.concat(PAGE_STORE, "/manifest.json"));
         c.collectionDescription = vmp.parseJsonString(g, ".description");
         c.collectionExternalUrl = EXTERNAL_URL;

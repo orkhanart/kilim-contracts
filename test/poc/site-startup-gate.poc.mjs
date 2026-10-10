@@ -7,7 +7,7 @@
 //      never becomes fatal (the decode error is retried as a network fault) and, through the API
 //      only, settle / withdrawRefund / claimPrize / register sign and land a no-value transaction
 //      to the chunk. bid() and claim() stop before signing. The only loss is the gas of those.
-//   B. auction = the glyph contract (a wrong contract that reverts on auction selectors): startup
+//   B. auction = the motif contract (a wrong contract that reverts on auction selectors): startup
 //      retries the same way, but the pre-sign simulation refuses the write. Nothing is signed.
 //   C. the right config, with a read endpoint that once answers `0x` to the startup calls (a
 //      backend without the state): the retry branch is what recovers it. Turning a decode failure
@@ -70,9 +70,9 @@ try {
     console.log('A: ETH gone from the signer:', Number(spent) / 1e18, 'ETH, all gas (', gas, 'gas over', landed.length, 'transactions, value 0 )');
   }
 
-  // B. The glyph contract in the auction's place.
+  // B. The motif contract in the auction's place.
   {
-    const { chain, sent } = adapter({ auction: cfg.glyphs }, 2);
+    const { chain, sent } = adapter({ auction: cfg.motifs }, 2);
     await chain.ready;
     const s = chain.status();
     console.log('B: status', { error: s.error, stale: s.stale, phase: chain.phase() });

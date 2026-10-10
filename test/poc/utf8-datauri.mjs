@@ -1,6 +1,6 @@
 // PoC for the review finding "tokenURI(1) is `data:application/json;utf8,` + raw JSON, a form OpenSea's
 // metadata-storage page does not list, and the contract has no metadata setter". What can be checked
-// from here, against the packed store (onchain/build-page, onchain/build-glyphs):
+// from here, against the packed store (onchain/build-page, onchain/build-motifs):
 //   1. the exact answer the contract gives (assembled as onchain/test/page.test.mjs does, sha256 against
 //      the packer's golden) goes through the WHATWG data: URL processor (Node's fetch, the same algorithm
 //      browsers use), comes back as application/json, and its animation_url decodes to the packed page;
@@ -34,8 +34,8 @@ const SCHEME = 'data:application/json;utf8,'; // 27 bytes, KilimOneOfOne.SCHEME
 const HEX_CHARS = 65_536;
 
 const pageDir = process.env.KILIM_PAGE_STORE || here('../../../onchain/build-page');
-const gridsFile = process.env.KILIM_GLYPH_STORE
-  ? join(process.env.KILIM_GLYPH_STORE, 'grids.bin') : here('../../../onchain/build-glyphs/grids.bin');
+const gridsFile = process.env.KILIM_MOTIF_STORE
+  ? join(process.env.KILIM_MOTIF_STORE, 'grids.bin') : here('../../../onchain/build-motifs/grids.bin');
 const manifest = JSON.parse(readFileSync(join(pageDir, 'manifest.json'), 'utf8'));
 const grids = readFileSync(gridsFile);
 assert.equal(manifest.grids.sha256, sha256(grids), 'the page store was packed against other grids');

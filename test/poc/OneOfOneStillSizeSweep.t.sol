@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {TestBase} from "../TestBase.sol";
 
@@ -19,10 +19,10 @@ contract OneOfOneStillSizeSweepPoC is TestBase {
         "<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><style>html,body{margin:0;background:#fff}</style></head><body><script>const GRIDS='";
     uint256 constant REAL_TAIL = 808_872;
 
-    KilimGlyphs internal glyphs;
+    KilimMotifs internal motifs;
 
     function setUp() public {
-        glyphs = newGlyphs(address(this), TREASURY, GLYPH_CAP);
+        motifs = newMotifs(address(this), TREASURY, MOTIF_CAP);
     }
 
     function _measure(uint256 stillChars, uint256 tailBytes) internal returns (uint256 used, uint256 answer) {
@@ -35,7 +35,7 @@ contract OneOfOneStillSizeSweepPoC is TestBase {
         KilimOneOfOne big = new KilimOneOfOne(
             address(this),
             TREASURY,
-            glyphs,
+            motifs,
             pageFrom(prefix, HEAD, tail),
             ONE_OF_ONE_NAME,
             DESCRIPTION,

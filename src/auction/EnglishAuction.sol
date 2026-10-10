@@ -34,8 +34,8 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         uint256 reservePrice;
     }
 
-    /// @notice The bid unit: every bid is a whole multiple of it, and each unit bid earns one glyph.
-    uint256 public constant GLYPH_PRICE = 0.001 ether;
+    /// @notice The bid unit: every bid is a whole multiple of it, and each unit bid earns one motif.
+    uint256 public constant MOTIF_PRICE = 0.001 ether;
     /// @notice The ETH a wallet must hold to register. The reserve price must equal it.
     uint256 public constant REGISTRATION_BALANCE = 0.01 ether;
     uint256 public constant REGISTRATION_TARGET = 100;
@@ -148,7 +148,7 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         if (highestBid == 0) return reservePrice;
         uint256 increment = Math.mulDiv(highestBid, incrementBps, MAX_BPS, Math.Rounding.Ceil);
         uint256 next = highestBid + increment;
-        return Math.ceilDiv(next, GLYPH_PRICE) * GLYPH_PRICE;
+        return Math.ceilDiv(next, MOTIF_PRICE) * MOTIF_PRICE;
     }
 
     /// @notice Only a refund the automatic payment could not make waits here to be withdrawn.
@@ -211,7 +211,7 @@ abstract contract EnglishAuction is ReentrancyGuard, EIP712 {
         if (amount > type(uint128).max || !_isNewWinningBid(reservePrice, highestBid, amount, incrementBps)) {
             revert BidTooLow(minimumBid());
         }
-        if (amount % GLYPH_PRICE != 0) revert NonWholeUnitBid();
+        if (amount % MOTIF_PRICE != 0) revert NonWholeUnitBid();
 
         outbid = highestBidder;
         outbidAmount = highestBid;

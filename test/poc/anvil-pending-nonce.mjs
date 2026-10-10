@@ -22,9 +22,9 @@ const CONFIG = resolve(CONTRACTS, 'deploy/poc-anvil.json');
 const CREATE2_DEPLOYER = '0x4e59b44847b379578588920cA78FbF26c0B4956C';
 const CREATE2_DEPLOYER_CODE = '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3';
 
-const GLYPH_DIR = resolve(CONTRACTS, '../onchain/build-glyphs');
+const MOTIF_DIR = resolve(CONTRACTS, '../onchain/build-motifs');
 const PAGE_DIR = resolve(CONTRACTS, '../onchain/build-page');
-const glyphManifest = JSON.parse(readFileSync(resolve(GLYPH_DIR, 'manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(MOTIF_DIR, 'manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(PAGE_DIR, 'manifest.json'), 'utf8'));
 
 let failures = 0;
@@ -36,12 +36,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-pending-nonce.mjs',
     chainId: 31337, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, null, 2));
 }
@@ -72,7 +72,7 @@ try {
       await rpc.call('anvil_setCode', [c.address, '0x00' + readFileSync(resolve(dir, c.file)).toString('hex')]);
     }
   };
-  await etch(GLYPH_DIR, [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks]);
+  await etch(MOTIF_DIR, [...motifManifest.grids.chunks, ...motifManifest.names.chunks]);
   for (const s of ['prefix', 'head', 'tail']) await etch(PAGE_DIR, pageManifest.sections[s].chunks);
 
   section('a stray transaction is pending (not mined) when runContracts() is simulated');
@@ -90,7 +90,7 @@ try {
   check(/\(pending: \d+\)/.test(pendingLine) && !pendingLine.includes(`pending: ${n + 1}`), 'the printed "pending" nonce is the latest-mined nonce, not the pending one');
 
   section('now with --broadcast, the stray still pending');
-  const predicted = { glyphs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
+  const predicted = { motifs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
   const broadcast = runForge(['--rpc-url', anvil.rpcUrl, '--broadcast', '--unlocked', '--sender', deployer, '--timeout', '25']);
   // Let forge simulate and send, then mine whatever the pool holds.
   let pool;
@@ -108,11 +108,11 @@ try {
   console.log(r.out.split('\n').filter((l) => /nonce|Nonce|underpriced|replac|already|Error|error|dropped|timed out|ONCHAIN EXECUTION|resume/i.test(l)).slice(-10).map((l) => '    ' + l.trim()).join('\n'));
   const strayMined = !!(await rpc.call('eth_getTransactionReceipt', [strayHash]));
   const codeAt = async (a) => (await rpc.call('eth_getCode', [a, 'latest'])) !== '0x';
-  console.log(`  forge exit ${r.code}; stray mined: ${strayMined}; nonce now ${await nonceOf()}; code at predicted glyphs/1-1/auction: ${await codeAt(predicted.glyphs)}/${await codeAt(predicted.oneOfOne)}/${await codeAt(predicted.auction)}`);
+  console.log(`  forge exit ${r.code}; stray mined: ${strayMined}; nonce now ${await nonceOf()}; code at predicted motifs/1-1/auction: ${await codeAt(predicted.motifs)}/${await codeAt(predicted.oneOfOne)}/${await codeAt(predicted.auction)}`);
   if (await codeAt(predicted.auction)) {
-    check((await rpc.view(predicted.glyphs, F.glyphs.minter))[0].toLowerCase() === predicted.auction, 'the stray was replaced: the deployment is whole at the predicted addresses');
+    check((await rpc.view(predicted.motifs, F.motifs.minter))[0].toLowerCase() === predicted.auction, 'the stray was replaced: the deployment is whole at the predicted addresses');
   } else if (strayMined) {
-    check(!(await codeAt(predicted.glyphs)) || true, 'the stray was mined first: the published addresses are gone and the script will refuse the next run on the nonce');
+    check(!(await codeAt(predicted.motifs)) || true, 'the stray was mined first: the published addresses are gone and the script will refuse the next run on the nonce');
     const again = await runForge(['--rpc-url', anvil.rpcUrl]);
     check(again.code !== 0 && /deployer nonce/.test(again.out), 'a re-run is refused: "deployer nonce"');
   }

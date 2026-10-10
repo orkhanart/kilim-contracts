@@ -32,9 +32,9 @@ const NO_NONCE_CHECK = (2n ** 256n - 1n).toString();
 // anvil's second account under the default test mnemonic (public key material; local chains only).
 const B_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 
-const glyphManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-glyphs/manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-motifs/manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(CONTRACTS, '../onchain/build-page/manifest.json'), 'utf8'));
-const chunkCount = glyphManifest.grids.chunks.length + glyphManifest.names.chunks.length
+const chunkCount = motifManifest.grids.chunks.length + motifManifest.names.chunks.length
   + pageManifest.sections.prefix.chunks.length + pageManifest.sections.head.chunks.length
   + pageManifest.sections.tail.chunks.length;
 
@@ -57,12 +57,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-store-sender.mjs',
     chainId: 31337, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 2).replace(`"${NO_NONCE_CHECK}"`, NO_NONCE_CHECK));
 }

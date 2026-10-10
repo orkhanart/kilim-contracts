@@ -2,7 +2,7 @@
 pragma solidity 0.8.37;
 
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {TestBase} from "../TestBase.sol";
 
@@ -23,12 +23,12 @@ contract RoyaltyInfoOverflowPoC is TestBase {
     /// @dev Panic(uint256) with code 0x11: checked arithmetic overflow.
     bytes internal constant OVERFLOW = abi.encodeWithSelector(0x4e487b71, 0x11);
 
-    KilimGlyphs internal g;
+    KilimMotifs internal g;
     KilimOneOfOne internal one;
     OZRoyalty internal oz;
 
     function setUp() public {
-        g = newGlyphs(address(this), TREASURY, GLYPH_CAP);
+        g = newMotifs(address(this), TREASURY, MOTIF_CAP);
         one = newOneOfOne(address(this), TREASURY, g);
         oz = new OZRoyalty(TREASURY);
     }

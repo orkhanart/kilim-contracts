@@ -3,7 +3,7 @@ pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {TestBase} from "./TestBase.sol";
-import {KilimGlyphs} from "../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 
@@ -162,11 +162,11 @@ contract AttackPatternsTest is TestBase {
     uint256 private constant UPDATE_EXTRA = 12_100 - 5_000;
 
     KilimAuction internal auction;
-    KilimGlyphs internal nft;
+    KilimMotifs internal nft;
 
     function setUp() public {
         auction = new KilimAuction(config());
-        nft = auction.glyphs();
+        nft = auction.motifs();
         _openBidding(auction);
         _fund(ALICE, 1000 ether);
         _fund(BOB, 1000 ether);
@@ -293,21 +293,21 @@ contract AttackPatternsTest is TestBase {
         calls[1] = abi.encodeCall(auction.settle, ());
         calls[2] = abi.encodeCall(auction.withdrawRefund, (address(w)));
         calls[3] = abi.encodeCall(auction.withdrawProceeds, (address(w)));
-        calls[4] = abi.encodeCall(auction.claimGlyphs, (1, address(w)));
+        calls[4] = abi.encodeCall(auction.claimMotifs, (1, address(w)));
         calls[5] = abi.encodeCall(auction.claimPrize, (address(w)));
         calls[6] = abi.encodeCall(auction.register, ());
         calls[7] = abi.encodeCall(auction.registerFor, (address(w), type(uint256).max, ""));
         calls[8] = abi.encodeCall(auction.payOutbidRefund, (address(w), 1 ether));
         calls[9] = abi.encodeCall(auction.deliverPrize, ());
         w.arm(calls);
-        uint256 credits = auction.glyphCredits(address(w));
+        uint256 credits = auction.motifCredits(address(w));
         uint256 before = address(w).balance;
         _bid(auction, ALICE, auction.minimumBid());
         assertEq(w.succeeded(), 0);
         assertEq(address(w).balance, before + RESERVE);
-        assertEq(auction.glyphCredits(address(w)), credits);
+        assertEq(auction.motifCredits(address(w)), credits);
         assertEq(address(auction).balance, auction.liabilities());
-        // claimGlyphs is valid for this wallet outside the callback: it failed above on the guard.
+        // claimMotifs is valid for this wallet outside the callback: it failed above on the guard.
         assertTrue(w.run(calls[4]));
     }
 
@@ -399,7 +399,7 @@ contract AttackPatternsTest is TestBase {
         KilimAuction.Config memory c = config(1_000_000);
         c.startsAt = uint64(block.timestamp + 1 hours);
         c.incrementBps = 1000;
-        c.maxGlyphsPerBid = 1_000_000;
+        c.maxMotifsPerBid = 1_000_000;
         KilimAuction a = new KilimAuction(c);
         _openBidding(a);
         uint256 spentBefore = ALICE.balance;
@@ -408,10 +408,10 @@ contract AttackPatternsTest is TestBase {
             _bid(a, ALICE, a.minimumBid());
         }
         uint256 top = a.highestBid();
-        uint256 credits = a.glyphCredits(ALICE);
+        uint256 credits = a.motifCredits(ALICE);
         emit log_named_uint("ladder top bid, wei", top);
-        emit log_named_uint("ladder glyphs", credits);
-        emit log_named_uint("honest glyphs for the same top bid", top / UNIT);
+        emit log_named_uint("ladder motifs", credits);
+        emit log_named_uint("honest motifs for the same top bid", top / UNIT);
         // Only the top bid is still locked; every earlier rung came back.
         assertEq(spentBefore - ALICE.balance, top);
         // About eleven times an honest bidder's reward, as AUDIT.md (F-04) and the launch notes state.

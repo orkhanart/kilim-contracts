@@ -4,7 +4,7 @@
 //   (--config <file> targets another config file with the same shape; the tests use it)
 //
 // Reads the chain's own config (site/chains/<id>.json), verifies the auction and its two token
-// contracts on that chain, and writes auction, glyphs, oneOfOne and deployBlock into the config.
+// contracts on that chain, and writes auction, motifs, oneOfOne and deployBlock into the config.
 // Then rebuild: python3 site/build.py
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -43,20 +43,20 @@ const codeAt = (addr, tag) => rpc.request({ method: 'eth_getCode', params: [addr
 if ((await codeAt(a, 'latest')) === '0x') die('no contract at the auction address');
 if ((await codeAt(a, hex(block))) === '0x') die(`no auction code at block ${block}: that is not the deployment block`);
 if ((await codeAt(a, hex(block - 1))) !== '0x') die(`the auction already existed at block ${block - 1}: pass the deployment block`);
-const glyphs = (await call(a, fn('glyphs() returns (address)'))).toLowerCase();
+const motifs = (await call(a, fn('motifs() returns (address)'))).toLowerCase();
 const oneOfOne = (await call(a, fn('oneOfOne() returns (address)'))).toLowerCase();
-if ((await codeAt(glyphs, 'latest')) === '0x') die('auction.glyphs() has no code');
+if ((await codeAt(motifs, 'latest')) === '0x') die('auction.motifs() has no code');
 if ((await codeAt(oneOfOne, 'latest')) === '0x') die('auction.oneOfOne() has no code');
 const minter = fn('minter() returns (address)');
-if ((await call(glyphs, minter)).toLowerCase() !== a) die('glyphs.minter() is not the auction');
+if ((await call(motifs, minter)).toLowerCase() !== a) die('motifs.minter() is not the auction');
 if ((await call(oneOfOne, minter)).toLowerCase() !== a) die('oneOfOne.minter() is not the auction');
-if ((await call(oneOfOne, fn('glyphs() returns (address)'))).toLowerCase() !== glyphs) die('oneOfOne.glyphs() is not auction.glyphs()');
-const unit = await call(a, fn('GLYPH_PRICE() returns (uint256)'));
-if (unit !== 1_000_000_000_000_000n) die(`GLYPH_PRICE() is ${unit}, not 0.001 ETH`);
+if ((await call(oneOfOne, fn('motifs() returns (address)'))).toLowerCase() !== motifs) die('oneOfOne.motifs() is not auction.motifs()');
+const unit = await call(a, fn('MOTIF_PRICE() returns (uint256)'));
+if (unit !== 1_000_000_000_000_000n) die(`MOTIF_PRICE() is ${unit}, not 0.001 ETH`);
 const endsAt = await call(a, fn('endsAt() returns (uint64)'));
 if (endsAt !== 0n && !args.includes('--allow-started')) die('endsAt() is not 0: the auction already has bids (pass --allow-started to accept)');
-const count = Number(await call(glyphs, fn('GLYPH_COUNT() returns (uint256)')));
-if (count !== 1024) die(`glyphs.GLYPH_COUNT() is ${count}; the site draws 1,024`);
+const count = Number(await call(motifs, fn('MOTIF_COUNT() returns (uint256)')));
+if (count !== 1024) die(`motifs.MOTIF_COUNT() is ${count}; the site draws 1,024`);
 if (await call(oneOfOne, fn('minted() returns (bool)'))) die('the 1/1 is already minted');
 
 const facts = {
@@ -66,16 +66,16 @@ const facts = {
   incrementBps: Number(await call(a, fn('incrementBps() returns (uint16)'))),
   reservePrice: `${Number(await call(a, fn('reservePrice() returns (uint256)'))) / 1e18} ETH`,
   registered: `${Number(await call(a, fn('registrationCount() returns (uint256)')))} of 100 wallets`,
-  glyphCap: String(await call(a, fn('glyphCap() returns (uint256)'))),
-  maxGlyphsPerBid: String(await call(a, fn('maxGlyphsPerBid() returns (uint256)'))),
+  motifCap: String(await call(a, fn('motifCap() returns (uint256)'))),
+  maxMotifsPerBid: String(await call(a, fn('maxMotifsPerBid() returns (uint256)'))),
   treasury: A.checksum(await call(a, fn('treasury() returns (address)'))),
-  glyphs: A.checksum(glyphs),
+  motifs: A.checksum(motifs),
   oneOfOne: `${A.checksum(oneOfOne)} (${await call(oneOfOne, fn('name() returns (string)'))})`,
 };
 console.table(facts);
 
 cfg.auction = A.checksum(a);
-cfg.glyphs = A.checksum(glyphs);
+cfg.motifs = A.checksum(motifs);
 cfg.oneOfOne = A.checksum(oneOfOne);
 cfg.deployBlock = block;
 writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');

@@ -4,11 +4,11 @@
 //   node test/poc/site-late-deploy-block.poc.mjs
 // Cases:
 //   1. deployBlock later than the first bid and claim: the panel (state reads) shows the high bid,
-//      the book (BidPlaced logs from deployBlock) is empty, the bidder's ten claimed glyphs are not
+//      the book (BidPlaced logs from deployBlock) is empty, the bidder's ten claimed motifs are not
 //      in holdings(), and the afterglow gate derives 'no-holdings' for that collector.
 //   2. The gap is permanent: after a later bid the book shows one entry while the chain has two, and
 //      the top of the book now agrees with highestBidder, so "highestBidder set and book empty"
-//      catches only the first moment. The book's rewards summed against glyphsAllocated still
+//      catches only the first moment. The book's rewards summed against motifsAllocated still
 //      disagree (a check that needs no extra RPC).
 //   3. deployBlock earlier than the deployment (1): complete book and holdings. A too-early value
 //      only costs log queries; only a too-late one loses events.
@@ -48,7 +48,7 @@ function gate(chain) {
   return ctx.KILIM_AFTERGLOW_ACCESS.derive({
     status: { ...s, walletChainId: cfg.chainId }, config: chain.config(),
     account: { ...chain.account(), hasOneOfOne: false }, holdings: chain.holdings(),
-    auctionLoaded: true, inventoryFresh: true, glyphCount: 1024,
+    auctionLoaded: true, inventoryFresh: true, motifCount: 1024,
   }, 'ended');
 }
 const sumRewards = (a) => a.bids.reduce((n, b) => n + b.reward, 0);
@@ -57,11 +57,11 @@ try {
   await openBidding(rpc, d);
   const bidder = d.accounts[3].toLowerCase();
 
-  // Account 3 bids 0.01 ETH and claims its ten glyphs through a correctly configured adapter.
+  // Account 3 bids 0.01 ETH and claims its ten motifs through a correctly configured adapter.
   const right = await adapter({}, 3);
   await right.bid(await right.quote(eth(10)));
   await right.claim();
-  const held = Number((await rpc.view(d.glyphs, balanceOf, [bidder]))[0]);
+  const held = Number((await rpc.view(d.motifs, balanceOf, [bidder]))[0]);
   assert.equal(held, 10);
   const ok = right.auction();
   assert.equal(ok.bids.length, 1); assert.equal(right.holdings().length, 10);
@@ -75,7 +75,7 @@ try {
     onChainBids: await bidsOnChain(), walletHolds: held, afterglow: gate(late).reason, afterglowRight: gate(right).reason });
   assert.equal(a.highBidder, bidder);
   assert.ok(a.high > 0 && a.bids.length === 0, 'the panel shows a high bid, the book shows none');
-  assert.equal(late.holdings().length, 0, 'the claimed glyphs are not shown');
+  assert.equal(late.holdings().length, 0, 'the claimed motifs are not shown');
   assert.equal(gate(late).reason, 'no-holdings', 'the afterglow gate denies the collector');
   assert.equal(gate(right).reason, 'verified');
 
@@ -85,17 +85,17 @@ try {
   await late.refresh();
   const b = late.auction();
   console.log('case 2: after a later bid →', { book: b.bids.length, onChainBids: await bidsOnChain(), topMatchesState: b.bids[0].addr === b.highBidder,
-    bookRewards: sumRewards(b), glyphsReserved: b.glyphsReserved, holdingsOf3: late.holdings().length });
+    bookRewards: sumRewards(b), motifsReserved: b.motifsReserved, holdingsOf3: late.holdings().length });
   assert.equal(b.bids.length, 1); assert.equal(await bidsOnChain(), 2);
   assert.equal(b.bids[0].addr, b.highBidder, 'top of the book agrees with the state: that check would pass now');
-  assert.notEqual(sumRewards(b), b.glyphsReserved, 'the rewards in the book do not add up to glyphsAllocated');
+  assert.notEqual(sumRewards(b), b.motifsReserved, 'the rewards in the book do not add up to motifsAllocated');
   assert.equal(late.holdings().length, 0);
 
   // 3. Too early is harmless: everything is there.
   const early = await adapter({ deployBlock: 1 }, 3);
   const c = early.auction();
-  console.log('case 3: deployBlock = 1 →', { book: c.bids.length, holdings: early.holdings().length, bookRewards: sumRewards(c), glyphsReserved: c.glyphsReserved });
+  console.log('case 3: deployBlock = 1 →', { book: c.bids.length, holdings: early.holdings().length, bookRewards: sumRewards(c), motifsReserved: c.motifsReserved });
   assert.equal(c.bids.length, 2); assert.equal(early.holdings().length, 10);
-  assert.equal(sumRewards(c), c.glyphsReserved);
+  assert.equal(sumRewards(c), c.motifsReserved);
   console.log('done');
 } finally { await env.anvil.stop(); }

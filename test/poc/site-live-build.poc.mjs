@@ -46,7 +46,7 @@ const chains = join(work, 'chains'); mkdirSync(chains);
 try {
   for (const f of ['1.json', '11155111.json']) writeFileSync(join(chains, f), readFileSync(join(SITE, 'chains', f)));
   const mainnet = JSON.parse(readFileSync(join(chains, '1.json'), 'utf8'));
-  Object.assign(mainnet, { auction: '0x' + '11'.repeat(20), glyphs: '0x' + '22'.repeat(20), oneOfOne: '0x' + '33'.repeat(20), deployBlock: 26_100_000 });
+  Object.assign(mainnet, { auction: '0x' + '11'.repeat(20), motifs: '0x' + '22'.repeat(20), oneOfOne: '0x' + '33'.repeat(20), deployBlock: 26_100_000 });
   writeFileSync(join(chains, '1.json'), JSON.stringify(mainnet));
 
   // 1. The public builds refuse a live config, with the stale message.

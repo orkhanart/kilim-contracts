@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'onchain'))
 import pack_page as P  # noqa: E402
-from pack_glyphs import CHUNK, chunk_records, json_escape, keccak256, hex32, sha256_hex, write_outputs  # noqa: E402
+from pack_motifs import CHUNK, chunk_records, json_escape, keccak256, hex32, sha256_hex, write_outputs  # noqa: E402
 
 OUT = ROOT / 'onchain' / 'test' / 'fixtures' / 'poc-hash-in-prefix'
 NAME, DESCRIPTION, EXTERNAL_URL = 'Kilim #1', '100% on-chain', ''
@@ -26,7 +26,7 @@ NAME, DESCRIPTION, EXTERNAL_URL = 'Kilim #1', '100% on-chain', ''
 def main():
     art = (ROOT / 'onchain' / 'test' / 'fixtures' / 'synthetic-artwork.html').read_bytes()
     still = (ROOT / 'onchain' / 'test' / 'fixtures' / 'still-placeholder.png').read_bytes()
-    grids = (ROOT / 'onchain' / 'build-glyphs' / 'grids.bin').read_bytes()
+    grids = (ROOT / 'onchain' / 'build-motifs' / 'grids.bin').read_bytes()
 
     # A clean build gives HEAD, TAIL and the manifest skeleton; the hand edit replaces PREFIX.
     clean = P.build(art, still, grids, 'n', 'd', EXTERNAL_URL)

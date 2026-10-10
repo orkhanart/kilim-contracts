@@ -4,12 +4,12 @@ pragma solidity 0.8.37;
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {KilimAuction} from "../../src/KilimAuction.sol";
 import {EnglishAuction} from "../../src/auction/EnglishAuction.sol";
-import {KilimGlyphs} from "../../src/KilimGlyphs.sol";
+import {KilimMotifs} from "../../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../../src/KilimOneOfOne.sol";
 import {TestBase} from "../TestBase.sol";
 
-/// @notice Review PoC (oneofone finding, skeptic): the 1/1's constructor binds to a glyph address, not
-///         to grid content. A real KilimGlyphs built over different grids is accepted and the 1/1 then
+/// @notice Review PoC (oneofone finding, skeptic): the 1/1's constructor binds to a motif address, not
+///         to grid content. A real KilimMotifs built over different grids is accepted and the 1/1 then
 ///         draws those grids. What closes this on the deploy path is identity, not content: the auction
 ///         refuses a 1/1 bound to any collection but its own, and accepts one bound to its own whatever
 ///         the grids are; the only content check is the deploy script's golden sha256 of tokenURI(1).
@@ -42,8 +42,8 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
 
     /// @dev 1,024 grids that are not the stand-in ones.
     function _otherGrids() internal pure returns (bytes memory out) {
-        out = new bytes(GLYPH_COUNT * 32);
-        for (uint256 n = 1; n <= GLYPH_COUNT; ++n) {
+        out = new bytes(MOTIF_COUNT * 32);
+        for (uint256 n = 1; n <= MOTIF_COUNT; ++n) {
             bytes32 g = keccak256(abi.encode("some other grid", n));
             assembly ("memory-safe") {
                 mstore(add(add(out, 32), mul(sub(n, 1), 32)), g)
@@ -51,15 +51,15 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
         }
     }
 
-    /// @dev A KilimGlyphs over different grids is accepted as the 1/1's source, and tokenURI(1) then
+    /// @dev A KilimMotifs over different grids is accepted as the 1/1's source, and tokenURI(1) then
     ///      carries those grids: the constructor binds an address, never the grid content.
-    function testAKilimGlyphsOverOtherGridsIsAcceptedAndDrawn() public {
+    function testAKilimMotifsOverOtherGridsIsAcceptedAndDrawn() public {
         bytes memory other = _otherGrids();
         assertTrue(keccak256(other) != keccak256(standInGrids()));
-        KilimGlyphs overOther = newGlyphs(address(this), TREASURY, GLYPH_CAP, other, standInNames());
+        KilimMotifs overOther = newMotifs(address(this), TREASURY, MOTIF_CAP, other, standInNames());
         KilimOneOfOne own = newOneOfOne(address(this), TREASURY, overOther);
         own.mint(ALICE);
-        assertEq(address(own.glyphs()), address(overOther));
+        assertEq(address(own.motifs()), address(overOther));
         bytes32 got = keccak256(bytes(own.tokenURI(1)));
         assertEq(got, keccak256(_reference(other)));
         assertTrue(got != keccak256(_reference(standInGrids())));
@@ -72,15 +72,15 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
         bytes memory names = standInNames();
         address[] memory otherChunks = chunked(other, 767 * 32);
         address otherNames = sstore2(names);
-        newGlyphs(address(1), TREASURY, GLYPH_CAP); // forces the stand-in store to exist
+        newMotifs(address(1), TREASURY, MOTIF_CAP); // forces the stand-in store to exist
         standInPage();
 
         address auction = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 3);
-        KilimGlyphs own = newGlyphs(auction, TREASURY, GLYPH_CAP);
-        KilimGlyphs stranger = new KilimGlyphs(
+        KilimMotifs own = newMotifs(auction, TREASURY, MOTIF_CAP);
+        KilimMotifs stranger = new KilimMotifs(
             auction,
             TREASURY,
-            GLYPH_CAP,
+            MOTIF_CAP,
             otherChunks,
             keccak256(other),
             otherNames,
@@ -92,14 +92,14 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
 
         KilimAuction.Config memory c = KilimAuction.Config({
             treasury: TREASURY,
-            glyphs: address(own),
+            motifs: address(own),
             oneOfOne: address(boundToStranger),
             startsAt: uint64(block.timestamp + 1 hours),
             duration: 22 hours,
             extensionWindow: 10 minutes,
             incrementBps: 500,
             reservePrice: RESERVE,
-            maxGlyphsPerBid: 1000
+            maxMotifsPerBid: 1000
         });
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
@@ -115,10 +115,10 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
         standInPage();
 
         address auction = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
-        KilimGlyphs overOther = new KilimGlyphs(
+        KilimMotifs overOther = new KilimMotifs(
             auction,
             TREASURY,
-            GLYPH_CAP,
+            MOTIF_CAP,
             otherChunks,
             keccak256(other),
             otherNames,
@@ -129,28 +129,28 @@ contract OneOfOneBoundToOtherGridsPoC is TestBase {
         KilimOneOfOne own = newOneOfOne(auction, TREASURY, overOther);
         KilimAuction.Config memory c = KilimAuction.Config({
             treasury: TREASURY,
-            glyphs: address(overOther),
+            motifs: address(overOther),
             oneOfOne: address(own),
             startsAt: uint64(block.timestamp + 1 hours),
             duration: 22 hours,
             extensionWindow: 10 minutes,
             incrementBps: 500,
             reservePrice: RESERVE,
-            maxGlyphsPerBid: 1000
+            maxMotifsPerBid: 1000
         });
         KilimAuction a = new KilimAuction(c);
         assertEq(address(a), auction);
         assertEq(address(a.oneOfOne()), address(own));
-        assertEq(address(own.glyphs()), address(overOther));
+        assertEq(address(own.motifs()), address(overOther));
     }
 
-    /// @dev The suggested belt-and-braces check would work as described: KilimGlyphs exposes gridsHash
+    /// @dev The suggested belt-and-braces check would work as described: KilimMotifs exposes gridsHash
     ///      as an external view, so a 1/1 constructor could compare it to an argument. Shown here from
     ///      outside, since the finding asks for no change.
     function testGridsHashIsReadableForABeltAndBracesCheck() public {
         bytes memory other = _otherGrids();
-        KilimGlyphs overOther = newGlyphs(address(this), TREASURY, GLYPH_CAP, other, standInNames());
-        KilimGlyphs overStandIn = newGlyphs(address(this), TREASURY, GLYPH_CAP);
+        KilimMotifs overOther = newMotifs(address(this), TREASURY, MOTIF_CAP, other, standInNames());
+        KilimMotifs overStandIn = newMotifs(address(this), TREASURY, MOTIF_CAP);
         assertEq(overOther.gridsHash(), keccak256(other));
         assertEq(overStandIn.gridsHash(), keccak256(standInGrids()));
         assertTrue(overOther.gridsHash() != overStandIn.gridsHash());

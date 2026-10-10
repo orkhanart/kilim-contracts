@@ -6,7 +6,7 @@
 // The finding under test says: without --slow forge sends a whole phase in one burst and then
 // waits; a transaction that stops being mineable keeps forge waiting far past --timeout (the title
 // says "indefinitely"); in the contracts phase the 1/1 and auction creations are already in flight
-// when the glyph creation fails, so all three nonces are spent. It suggests --slow as the fix.
+// when the motif creation fails, so all three nonces are spent. It suggests --slow as the fix.
 // Each section starts a fresh anvil with the store etched at the manifest addresses (what runStore
 // leaves) and the CREATE2 deployer in place, so only the contracts phase is sent, except E2.
 //
@@ -41,9 +41,9 @@ const CREATE2_DEPLOYER_CODE = '0x7ffffffffffffffffffffffffffffffffffffffffffffff
 const NO_NONCE_CHECK = (2n ** 256n - 1n).toString();
 const TIMEOUT = 10; // seconds, forge --timeout
 
-const GLYPH_DIR = resolve(CONTRACTS, '../onchain/build-glyphs');
+const MOTIF_DIR = resolve(CONTRACTS, '../onchain/build-motifs');
 const PAGE_DIR = resolve(CONTRACTS, '../onchain/build-page');
-const glyphManifest = JSON.parse(readFileSync(resolve(GLYPH_DIR, 'manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(MOTIF_DIR, 'manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(PAGE_DIR, 'manifest.json'), 'utf8'));
 
 let failures = 0;
@@ -58,12 +58,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-slow-flag.mjs',
     chainId: CHAIN_ID, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, (k, v) => (typeof v === 'bigint' ? v.toString() : v), 2).replace(`"${NO_NONCE_CHECK}"`, NO_NONCE_CHECK));
 }
@@ -95,12 +95,12 @@ async function freshChain({ store = true } = {}) {
     const etch = async (dir, chunks) => {
       for (const c of chunks) await rpc.call('anvil_setCode', [c.address, '0x00' + readFileSync(resolve(dir, c.file)).toString('hex')]);
     };
-    await etch(GLYPH_DIR, [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks]);
+    await etch(MOTIF_DIR, [...motifManifest.grids.chunks, ...motifManifest.names.chunks]);
     for (const s of ['prefix', 'head', 'tail']) await etch(PAGE_DIR, pageManifest.sections[s].chunks);
   }
   const now = Number((await rpc.call('eth_getBlockByNumber', ['latest', false])).timestamp);
   const n = Number(await rpc.call('eth_getTransactionCount', [deployer, 'latest']));
-  const predicted = { glyphs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
+  const predicted = { motifs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
   const ctx = {
     anvil, rpc, deployer, other, n, predicted,
     nonceOf: async (who = deployer, tag = 'latest') => Number(await rpc.call('eth_getTransactionCount', [who, tag])),
@@ -175,7 +175,7 @@ try {
       console.log(lines(r.out));
       check(!r.killed, 'forge exited by itself');
       check(r.code !== 0, 'forge did not report success');
-      check((await c.nonceOf()) === c.n + 2 && !(await c.codeAt(c.predicted.auction)), 'glyphs and the 1/1 are mined, the auction is not: the same state the burst leaves');
+      check((await c.nonceOf()) === c.n + 2 && !(await c.codeAt(c.predicted.auction)), 'motifs and the 1/1 are mined, the auction is not: the same state the burst leaves');
     } finally { await c.stop(); }
   }
 
@@ -187,7 +187,7 @@ try {
       await c.rpc.call('evm_setAutomine', [false]);
       const run = runForge('runContracts()', [...c.rpcArgs, '--slow'], 600_000);
       const pending = await c.waitPool(1);
-      check(pending.length === 1 && Number(pending[0].nonce) === c.n, `the glyph creation is in the pool alone (nonce ${c.n})`);
+      check(pending.length === 1 && Number(pending[0].nonce) === c.n, `the motif creation is in the pool alone (nonce ${c.n})`);
       await c.rpc.call('anvil_dropTransaction', [pending[0].hash]);
       await c.rpc.call('eth_sendTransaction', [{ from: c.deployer, to: c.deployer, value: '0x0', nonce: '0x' + c.n.toString(16), gas: '0x5208' }]);
       await c.rpc.call('anvil_mine', ['0x1']);
@@ -223,7 +223,7 @@ try {
       check((await c.nonceOf()) === c.n + 3, `all three nonces are spent (nonce now ${await c.nonceOf()})`);
       const oneOfOneThere = await c.codeAt(c.predicted.oneOfOne);
       check(oneOfOneThere, 'the 1/1 was mined anyway, with a minter that will never exist (void contract on the chain)');
-      check(!(await c.codeAt(c.predicted.auction)), 'the auction creation reverted (its constructor wants code at the glyphs address)');
+      check(!(await c.codeAt(c.predicted.auction)), 'the auction creation reverted (its constructor wants code at the motifs address)');
       const block = await c.rpc.call('eth_getBlockByNumber', ['latest', true]);
       let gas = 0;
       for (const t of block.transactions) {
@@ -258,8 +258,8 @@ try {
       const slow = await runForge('runContracts()', [...c2.rpcArgs, '--slow'], 600_000);
       check(slow.code === 0, `runContracts with --slow: exit ${slow.code} in ${slow.seconds} s`);
       check(await c2.codeAt(c2.predicted.auction), 'the auction is at the predicted address');
-      const minter = (await c2.rpc.view(c2.predicted.glyphs, F.glyphs.minter))[0].toLowerCase();
-      check(minter === c2.predicted.auction.toLowerCase(), 'glyphs.minter() is the auction (the predicted nonces held under --slow)');
+      const minter = (await c2.rpc.view(c2.predicted.motifs, F.motifs.minter))[0].toLowerCase();
+      check(minter === c2.predicted.auction.toLowerCase(), 'motifs.minter() is the auction (the predicted nonces held under --slow)');
       results.slowOk = slow;
     } finally { await c2.stop(); }
   }
@@ -276,7 +276,7 @@ try {
       const slowStore = await runForge('runStore()', storeArgs, 900_000);
       const sent = await c.nonceOf(c.other);
       check(slowStore.code === 0, `runStore --slow: exit ${slowStore.code} in ${slowStore.seconds} s, ${sent} transactions`);
-      const chunks = [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks, ...['prefix', 'head', 'tail'].flatMap((s) => pageManifest.sections[s].chunks)];
+      const chunks = [...motifManifest.grids.chunks, ...motifManifest.names.chunks, ...['prefix', 'head', 'tail'].flatMap((s) => pageManifest.sections[s].chunks)];
       let all = true;
       for (const ch of chunks) all = all && (await c.codeAt(ch.address));
       check(all, `every one of the ${chunks.length} chunks has code at its manifest address`);

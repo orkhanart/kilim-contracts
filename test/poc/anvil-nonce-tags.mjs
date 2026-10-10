@@ -27,9 +27,9 @@ const CONFIG = resolve(CONTRACTS, 'deploy/poc-nonce-tags.json');
 const CREATE2_DEPLOYER = '0x4e59b44847b379578588920cA78FbF26c0B4956C';
 const CREATE2_DEPLOYER_CODE = '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3';
 
-const GLYPH_DIR = resolve(CONTRACTS, '../onchain/build-glyphs');
+const MOTIF_DIR = resolve(CONTRACTS, '../onchain/build-motifs');
 const PAGE_DIR = resolve(CONTRACTS, '../onchain/build-page');
-const glyphManifest = JSON.parse(readFileSync(resolve(GLYPH_DIR, 'manifest.json'), 'utf8'));
+const motifManifest = JSON.parse(readFileSync(resolve(MOTIF_DIR, 'manifest.json'), 'utf8'));
 const pageManifest = JSON.parse(readFileSync(resolve(PAGE_DIR, 'manifest.json'), 'utf8'));
 
 let failures = 0;
@@ -40,12 +40,12 @@ function writeConfig(deployer, nonce, startsAt) {
   writeFileSync(CONFIG, JSON.stringify({
     _comment: 'temporary, written by test/poc/anvil-nonce-tags.mjs',
     chainId: 31337, deployer, deployerNonce: nonce, minLeadSeconds: 86400,
-    glyphStore: '../onchain/build-glyphs', pageStore: '../onchain/build-page',
+    motifStore: '../onchain/build-motifs', pageStore: '../onchain/build-page',
     auction: {
       treasury: '0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac', startsAt, duration: 86400, extensionWindow: 600,
-      incrementBps: 1000, reservePrice: 10000000000000000, maxGlyphsPerBid: 1000000,
+      incrementBps: 1000, reservePrice: 10000000000000000, maxMotifsPerBid: 1000000,
     },
-    collection: { glyphCap: 1000000, description: glyphManifest.description, externalUrl: 'https://kilim.art' },
+    collection: { motifCap: 1000000, description: motifManifest.description, externalUrl: 'https://kilim.art' },
     oneOfOne: { name: pageManifest.name, description: pageManifest.description, externalUrl: pageManifest.externalUrl ?? '' },
   }, null, 2));
 }
@@ -76,10 +76,10 @@ try {
       await rpc.call('anvil_setCode', [c.address, '0x00' + readFileSync(resolve(dir, c.file)).toString('hex')]);
     }
   };
-  await etch(GLYPH_DIR, [...glyphManifest.grids.chunks, ...glyphManifest.names.chunks]);
+  await etch(MOTIF_DIR, [...motifManifest.grids.chunks, ...motifManifest.names.chunks]);
   for (const s of ['prefix', 'head', 'tail']) await etch(PAGE_DIR, pageManifest.sections[s].chunks);
   const n = await nonceOf();
-  const predicted = { glyphs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
+  const predicted = { motifs: createAddress(deployer, n), oneOfOne: createAddress(deployer, n + 1), auction: createAddress(deployer, n + 2) };
   const codeAt = async (a) => (await rpc.call('eth_getCode', [a, 'latest'])) !== '0x';
 
   section('1. what a forge script sees of the nonce while a transaction from the account is pending');
@@ -118,7 +118,7 @@ try {
   console.log('  forge\'s creations once the stray mined:', JSON.stringify(doomed));
   check(strayMined && (await nonceOf()) === n + 3, `the stray mined and so did forge's two: the deployer's nonce is now ${await nonceOf()}, three past the published ${n}`);
   check(doomed.length === 2 && doomed.every((d) => d.status === '0x0'), 'both creations reverted (the 1/1 and the auction refuse token addresses without code): their gas is spent for nothing');
-  check(!(await codeAt(predicted.glyphs)) && !(await codeAt(predicted.oneOfOne)) && !(await codeAt(predicted.auction)), 'no code at the three predicted addresses');
+  check(!(await codeAt(predicted.motifs)) && !(await codeAt(predicted.oneOfOne)) && !(await codeAt(predicted.auction)), 'no code at the three predicted addresses');
   r = await runForge(['script/DeployKilim.s.sol', '--sig', 'runContracts()', '--rpc-url', anvil.rpcUrl]);
   check(r.code !== 0 && /deployer nonce/.test(r.out), 'a re-run is refused: "deployer nonce" (the already documented recovery path)');
 } finally {

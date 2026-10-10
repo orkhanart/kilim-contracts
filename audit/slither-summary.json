@@ -6,13 +6,13 @@
       "check": "missing-zero-check",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimGlyphs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimGlyphs.sol#59) lacks a zero-check on :\n\t\t- namesChunk = namesChunk_ (src/KilimGlyphs.sol#86)\n"
+      "description": "KilimMotifs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimMotifs.sol#59) lacks a zero-check on :\n\t\t- namesChunk = namesChunk_ (src/KilimMotifs.sol#86)\n"
     },
     {
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#151-178) has external calls inside a loop: glyphs.mintGlyphs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#175)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimGlyphs(uint256,address)\n"
+      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#151-178) has external calls inside a loop: motifs.mintMotifs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#175)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimMotifs(uint256,address)\n"
     },
     {
       "check": "reentrancy-benign",
@@ -72,7 +72,7 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimGlyphs._chunkSize(address) (src/KilimGlyphs.sol#301-310) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#304-307)\n"
+      "description": "KilimMotifs._chunkSize(address) (src/KilimMotifs.sol#301-310) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#304-307)\n"
     },
     {
       "check": "assembly",
@@ -90,7 +90,7 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimGlyphs.name(uint16) (src/KilimGlyphs.sol#157-175) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#162-168)\n\t- INLINE ASM (src/KilimGlyphs.sol#171-173)\n"
+      "description": "KilimMotifs.name(uint16) (src/KilimMotifs.sol#157-175) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#162-168)\n\t- INLINE ASM (src/KilimMotifs.sol#171-173)\n"
     },
     {
       "check": "assembly",
@@ -108,19 +108,19 @@
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimGlyphs._grids() (src/KilimGlyphs.sol#286-298) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#292-296)\n"
+      "description": "KilimMotifs._grids() (src/KilimMotifs.sol#286-298) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#292-296)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimGlyphs.grid(uint16) (src/KilimGlyphs.sol#145-154) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#150-153)\n"
+      "description": "KilimMotifs.grid(uint16) (src/KilimMotifs.sol#145-154) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#150-153)\n"
     },
     {
       "check": "assembly",
       "impact": "Informational",
       "confidence": "High",
-      "description": "KilimGlyphs._copyChunk(address,bytes) (src/KilimGlyphs.sol#312-316) uses assembly\n\t- INLINE ASM (src/KilimGlyphs.sol#313-315)\n"
+      "description": "KilimMotifs._copyChunk(address,bytes) (src/KilimMotifs.sol#312-316) uses assembly\n\t- INLINE ASM (src/KilimMotifs.sol#313-315)\n"
     },
     {
       "check": "assembly",
