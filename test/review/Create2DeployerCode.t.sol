@@ -7,7 +7,7 @@ interface VmCreate2Poc {
 
 /// @notice Review PoC (deploy lens): prints the runtime code forge etches for the deterministic
 ///         CREATE2 deployer, so a local anvil can be given the same code and the deploy script can be
-///         broadcast against it end to end (see test/poc/anvil-broadcast.mjs).
+///         broadcast against it end to end.
 contract Create2DeployerCodeTest {
     VmCreate2Poc internal constant vm = VmCreate2Poc(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant CONSOLE = 0x000000000000000000636F6e736F6c652e6c6f67;

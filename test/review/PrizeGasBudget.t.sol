@@ -358,63 +358,6 @@ contract PrizeGasBudgetPoC is TestBase {
 
     // ---- 2. the AuditGaps comments: 390,000 not delivered, settle ~17,000, bid ~128,000 ----
 
-    function testAuditGapsCommentsStillHold() public {
-        // "389,005 ... 390,000 is not delivered" for the ProbeWallet.
-        for (uint256 burn = 389_000; burn <= 391_000; burn += 500) {
-            uint256 snap = vm.snapshotState();
-            ProbeWallet w = new ProbeWallet(auction);
-            _fund(address(w), 10 ether);
-            w.set(false, 0, burn, "");
-            w.bid(RESERVE);
-            vm.warp(auction.endsAt());
-            auction.settle();
-            emit log_named_uint(
-                string.concat("ProbeWallet burn ", vm.toString(burn), " delivered (1 = yes)"),
-                auction.prizeClaimed() ? 1 : 0
-            );
-            if (burn == 390_000) assertTrue(!auction.prizeClaimed());
-            if (burn == 389_000) assertTrue(auction.prizeClaimed());
-            vm.revertToState(snap);
-        }
-
-        // "settlement itself (about 17,000 today)": settle's gas with a winner that burns everything.
-        {
-            uint256 snap = vm.snapshotState();
-            ProbeWallet w = new ProbeWallet(auction);
-            _fund(address(w), 10 ether);
-            w.set(false, 0, type(uint256).max, "");
-            w.bid(RESERVE);
-            vm.warp(auction.endsAt());
-            uint256 before = gasleft();
-            auction.settle();
-            uint256 used = before - gasleft();
-            emit log_named_uint("settle() with a gas-burning winner, gas used", used);
-            emit log_named_uint("settle() less PRIZE_GAS (the 'about 17,000')", used - PRIZE_GAS);
-            assertTrue(used < 600_000);
-            vm.revertToState(snap);
-        }
-
-        // "the bid itself (about 128,000 today)": a bid against a leader that burns the refund's gas.
-        {
-            uint256 snap = vm.snapshotState();
-            ProbeWallet leader = new ProbeWallet(auction);
-            _fund(address(leader), 10 ether);
-            leader.set(false, type(uint256).max, 0, "");
-            leader.bid(RESERVE);
-            uint256 amount = auction.minimumBid();
-            vm.prank(ALICE);
-            uint256 before = gasleft();
-            auction.bid{value: amount}(amount, 0, 0);
-            uint256 used = before - gasleft();
-            emit log_named_uint("bid() outbidding a gas-burning leader, gas used", used);
-            emit log_named_uint("bid() less REFUND_GAS (the 'about 128,000')", used - 150_000);
-            assertTrue(used < 320_000);
-            vm.revertToState(snap);
-        }
-    }
-
-    // ---- 3. the settle floor: below it nothing settles; at and above it the delivery has its full gas ----
-
     function testSettleFloorIsExactAndTheDeliveryAlwaysGetsFullGas() public {
         // A winner that needs the whole budget: delivered only if the hook really gets PRIZE_GAS less
         // the overhead. If any gas limit settled with a short delivery, this winner would be left to

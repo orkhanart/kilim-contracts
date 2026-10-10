@@ -8,6 +8,8 @@ import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 
 interface Vm {
     function warp(uint256) external;
+    function etch(address, bytes calldata) external;
+    function chainId(uint256) external;
     function roll(uint256) external;
     function prank(address) external;
     function startPrank(address) external;

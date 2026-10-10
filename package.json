@@ -5,15 +5,17 @@
   "description": "Kilim motifs, the 1/1 and the native ETH auction contracts",
   "scripts": {
     "build": "node scripts/verify-upstream.mjs && node scripts/forge.mjs build --sizes --skip test --skip script",
-    "test": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
+    "test": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\" && pnpm -s test:pack && pnpm -s test:page",
     "test:contracts": "node scripts/verify-upstream.mjs && node scripts/forge.mjs test -vv",
     "test:site": "node scripts/forge.mjs build && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
-    "test:ci": "node scripts/verify-upstream.mjs && FOUNDRY_PROFILE=ci node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\"",
+    "test:ci": "node scripts/verify-upstream.mjs && FOUNDRY_PROFILE=ci node scripts/forge.mjs test -vv && node --test --test-concurrency=1 \"../site/test/*.test.mjs\" && pnpm -s test:pack && pnpm -s test:page",
     "test:page": "node --test ../onchain/test/page.test.mjs",
     "test:pack": "python3 -m unittest discover -s ../onchain/test -p 'test_*.py'",
+    "stores": "node scripts/stores.mjs",
+    "check:stores": "node scripts/stores.mjs --check",
     "pack:motifs": "python3 ../onchain/pack_motifs.py ../research/motifs/curate/living-language-v3/index.html ../onchain/build-motifs",
     "pack:page": "python3 ../onchain/pack_page.py",
-    "deploy:dry": "KILIM_DEPLOY_CONFIG=deploy/local.json node scripts/forge.mjs script script/DeployKilim.s.sol --sig 'run()'",
+    "deploy:dry": "node scripts/stores.mjs --check && KILIM_DEPLOY_CONFIG=deploy/local.json node scripts/forge.mjs script script/DeployKilim.s.sol --sig 'run()'",
     "coverage": "node scripts/forge.mjs coverage --report lcov --report summary",
     "fmt": "node scripts/forge.mjs fmt --check",
     "audit:static": "node scripts/slither.mjs",
@@ -24,7 +26,9 @@
     "site-config": "node scripts/site-config.mjs",
     "site:build": "python3 ../site/build.py",
     "site:orkhanart": "python3 ../site/build.py --target orkhanart",
-    "site:sync-orkhanart": "python3 ../site/tools/sync_orkhanart.py"
+    "site:sync-orkhanart": "python3 ../site/tools/sync_orkhanart.py",
+    "pack:fixtures": "python3 ../onchain/test/pack_fixtures.py",
+    "expected": "node scripts/expected.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.6.1"

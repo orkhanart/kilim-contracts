@@ -175,20 +175,8 @@ contract MotifsAttackSurfacePoC is TestBase {
             shifted[i + 3] = section[i];
         }
         KilimMotifs own = newMotifs(address(this), TREASURY, 100, standInGrids(), shifted);
-        assertEq(own.name(1), "n");
-        assertEq(own.name(1024), "n");
-    }
-
-    // ------------------------------------------------------------ the overloaded name
-
-    /// @dev Both `name()` and `name(uint16)` are callable by selector; the ERC-721 one keeps 0x06fdde03.
-    function testNameSelectorsCoexist() public view {
-        (bool ok, bytes memory out) = address(nft).staticcall(abi.encodeWithSelector(0x06fdde03));
-        assertTrue(ok);
-        assertEq(abi.decode(out, (string)), "Motif Bazaar");
-        (ok, out) = address(nft).staticcall(abi.encodeWithSignature("name(uint16)", uint16(1)));
-        assertTrue(ok);
-        assertEq(abi.decode(out, (string)), standInName(1));
+        assertEq(own.motifName(1), "n");
+        assertEq(own.motifName(1024), "n");
     }
 }
 

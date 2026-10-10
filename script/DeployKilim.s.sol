@@ -13,6 +13,8 @@ interface VmDeploy {
     function parseJsonAddress(string calldata, string calldata) external pure returns (address);
     function parseJsonBytes32(string calldata, string calldata) external pure returns (bytes32);
     function parseJsonString(string calldata, string calldata) external pure returns (string memory);
+    function parseJsonBool(string calldata, string calldata) external pure returns (bool);
+    function rpc(string calldata method, string calldata params) external returns (bytes memory);
     function keyExistsJson(string calldata, string calldata) external pure returns (bool);
     function startBroadcast(address) external;
     function stopBroadcast() external;
@@ -37,10 +39,16 @@ interface VmDeploy {
 ///                              both with the auction predicted at n + 2 as minter, then KilimAuction at
 ///                              n + 2. Every immutable is read back and the auction's address is checked
 ///                              against the prediction.
-///         `run()` does both (the local dry run, `pnpm deploy:dry`, and the testnet rehearsal). The config
-///         is a JSON file named by $KILIM_DEPLOY_CONFIG; see deploy/mainnet.example.json,
+///           3. runAuction():   only if the third creation was lost: with the two token contracts already
+///                              at n and n + 1 and the deployer at n + 2, deploys KilimAuction alone,
+///                              after the same checks, so the published addresses survive.
+///         `run()` does 1 and 2 for the local dry run (`pnpm deploy:dry`); the rehearsal uses the two
+///         phases as mainnet does. The store is sent by forge's --sender, never by the config's
+///         deployer once its nonce is published: 38 chunks would spend that nonce. The config is a JSON
+///         file named by $KILIM_DEPLOY_CONFIG; see deploy/mainnet.example.json,
 ///         deploy/sepolia.example.json and docs/STORAGE.md. On Ethereum mainnet (chain 1) the deployer
 ///         must be the artist's wallet, the auction settings must be the decided launch values, the
+///         config must name the content by hash (`expected`), the artwork must read KILIM_GRIDS, the
 ///         published nonce is always checked and the inspection window must be nonzero. Other chains
 ///         accept any valid settings and print each one next to the launch value.
 /// @dev forge simulates the whole script before broadcasting, so any revert here means nothing is sent.
@@ -110,6 +118,27 @@ contract DeployKilim {
         string oneOfOneName;
         string oneOfOneDescription;
         string oneOfOneExternalUrl;
+        /// @dev The content this config was signed off for, by hash. Required on chain 1; elsewhere it
+        ///      is compared whenever the config carries it.
+        bool hasExpected;
+        Expected expected;
+    }
+
+    /// @dev `.expected` in the config. The first five are the keccak hashes the constructors check, the
+    ///      two goldens are the sha256 of the tokenURIs, and the last four are the sha256 of the files the
+    ///      packers read: the artist's page (for the motifs), the artwork page, the still and the loader.
+    struct Expected {
+        bytes32 gridsHash;
+        bytes32 namesHash;
+        bytes32 prefixHash;
+        bytes32 headHash;
+        bytes32 tailHash;
+        bytes32 motifGolden;
+        bytes32 oneOfOneGolden;
+        bytes32 motifSource;
+        bytes32 artwork;
+        bytes32 still;
+        bytes32 loader;
     }
 
     /// @dev One stored section: its published hash, the chunk files' bytes and their CREATE2 addresses.
@@ -146,16 +175,22 @@ contract DeployKilim {
             revert Refused("run() is not for mainnet: use runStore then runContracts");
         }
         Config memory c = loadConfig(vm.envString("KILIM_DEPLOY_CONFIG"));
-        deployStore(c);
+        deployStore(c, msg.sender);
         deployContracts(c);
     }
 
+    /// @notice The store, sent by forge's --sender (any funded wallet).
     function runStore() external {
-        deployStore(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")));
+        deployStore(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")), msg.sender);
     }
 
     function runContracts() external {
         deployContracts(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")));
+    }
+
+    /// @notice Completes a deployment whose third transaction was lost. See `deployAuction`.
+    function runAuction() external {
+        deployAuction(loadConfig(vm.envString("KILIM_DEPLOY_CONFIG")));
     }
 
     function loadConfig(string memory path) public view returns (Config memory c) {
@@ -179,16 +214,46 @@ contract DeployKilim {
         c.oneOfOneName = vm.parseJsonString(j, ".oneOfOne.name");
         c.oneOfOneDescription = vm.parseJsonString(j, ".oneOfOne.description");
         c.oneOfOneExternalUrl = vm.parseJsonString(j, ".oneOfOne.externalUrl");
+        c.hasExpected = vm.keyExistsJson(j, ".expected");
+        if (c.hasExpected) c.expected = _loadExpected(j);
+    }
+
+    /// @dev Every key must be there: a config that names some of the content names all of it.
+    function _loadExpected(string memory j) internal pure returns (Expected memory e) {
+        e.gridsHash = vm.parseJsonBytes32(j, ".expected.gridsHash");
+        e.namesHash = vm.parseJsonBytes32(j, ".expected.namesHash");
+        e.prefixHash = vm.parseJsonBytes32(j, ".expected.prefixHash");
+        e.headHash = vm.parseJsonBytes32(j, ".expected.headHash");
+        e.tailHash = vm.parseJsonBytes32(j, ".expected.tailHash");
+        e.motifGolden = vm.parseJsonBytes32(j, ".expected.motifGolden");
+        e.oneOfOneGolden = vm.parseJsonBytes32(j, ".expected.oneOfOneGolden");
+        e.motifSource = vm.parseJsonBytes32(j, ".expected.motifSource");
+        e.artwork = vm.parseJsonBytes32(j, ".expected.artwork");
+        e.still = vm.parseJsonBytes32(j, ".expected.still");
+        e.loader = vm.parseJsonBytes32(j, ".expected.loader");
     }
 
     // ------------------------------------------------------------ phase 1: the chunks
 
-    /// @notice Verify both stores against their manifests, then deploy whatever chunk is missing.
-    function deployStore(Config memory c) public returns (Store memory s) {
+    /// @notice Verify both stores against their manifests, then deploy whatever chunk is missing, from
+    ///         `sender` (forge's --sender). A chunk's address depends on its bytes alone, so any wallet
+    ///         can send it. The config's deployer may send the store only while no nonce is published
+    ///         for it: every chunk it sends moves the nonce the three contracts are promised at.
+    function deployStore(Config memory c, address sender) public returns (Store memory s) {
         _requireChain(c);
         s = loadStore(c);
         Section[5] memory sections = [s.grids, s.names, s.prefix, s.head, s.tail];
         string[5] memory labels = ["grids ", "names ", "prefix", "head  ", "tail  "];
+        uint256 missing;
+        for (uint256 i; i < sections.length; ++i) {
+            for (uint256 k; k < sections[i].addresses.length; ++k) {
+                if (sections[i].addresses[k].code.length == 0) ++missing;
+            }
+        }
+        _log(string.concat("store sender ", vm.toString(sender), ", chunks to send ", vm.toString(missing)));
+        if (missing != 0 && sender == c.deployer && c.deployerNonce != NO_NONCE_CHECK) {
+            revert Refused("the store would spend the published deployer nonce: send it from another wallet");
+        }
 
         // Dry run: measure every chunk deployment that is still missing, and print its gas.
         uint256 snap = vm.snapshotState();
@@ -197,7 +262,7 @@ contract DeployKilim {
         }
         vm.revertToState(snap);
 
-        vm.startBroadcast(c.deployer);
+        vm.startBroadcast(sender);
         for (uint256 i; i < sections.length; ++i) {
             _deployMissing(sections[i], labels[i], false);
         }
@@ -242,11 +307,61 @@ contract DeployKilim {
         if (!_sameText(vm.parseJsonString(g, ".description"), c.collectionDescription)) {
             revert Refused("collection description differs from the packed motifs");
         }
+        // The collection's link is in no hash or golden: the packer records it so it is compared here.
+        if (!_sameText(vm.parseJsonString(g, ".externalUrl"), c.collectionExternalUrl)) {
+            revert Refused("collection externalUrl differs from the packed motifs");
+        }
         if (
             !_sameText(vm.parseJsonString(pg, ".name"), c.oneOfOneName)
                 || !_sameText(vm.parseJsonString(pg, ".description"), c.oneOfOneDescription)
                 || !_sameText(vm.parseJsonString(pg, ".externalUrl"), c.oneOfOneExternalUrl)
         ) revert Refused("1/1 name, description or externalUrl differs from the packed page");
+        _requireDataUrlSafe(s.prefix);
+        _requireExpected(c, s);
+        // The 1/1 is handed the motif grids when it is read. A page that never reads them is a stand-in.
+        if (
+            block.chainid == MAINNET_CHAIN_ID
+                && !(vm.keyExistsJson(pg, ".artwork.readsGrids")
+                    && vm.parseJsonBool(pg, ".artwork.readsGrids"))
+        ) revert Refused("mainnet: the artwork does not read KILIM_GRIDS");
+    }
+
+    /// @dev PREFIX travels raw inside the token's data: URL, where '#' cuts the JSON off and '%XX' is
+    ///      decoded. The packer refuses both in the texts; this refuses a store edited afterwards.
+    function _requireDataUrlSafe(Section memory prefix) internal pure {
+        for (uint256 k; k < prefix.chunks.length; ++k) {
+            bytes memory data = prefix.chunks[k];
+            for (uint256 i; i < data.length; ++i) {
+                if (data[i] == "#" || data[i] == "%") revert Refused("prefix: '#' or '%' in the token JSON");
+            }
+        }
+    }
+
+    /// @dev The store must be the content the config names: the five section hashes, both goldens and the
+    ///      four files the packers read. Chain 1 refuses a config without them.
+    function _requireExpected(Config memory c, Store memory s) internal view {
+        if (!c.hasExpected) {
+            if (block.chainid == MAINNET_CHAIN_ID) revert Refused("mainnet needs the expected hashes");
+            return;
+        }
+        Expected memory e = c.expected;
+        _expect(e.gridsHash, s.grids.hash, "gridsHash");
+        _expect(e.namesHash, s.names.hash, "namesHash");
+        _expect(e.prefixHash, s.prefix.hash, "prefixHash");
+        _expect(e.headHash, s.head.hash, "headHash");
+        _expect(e.tailHash, s.tail.hash, "tailHash");
+        _expect(e.motifGolden, vm.parseJsonBytes32(s.motifManifest, ".golden.tokenURI.sha256"), "motifGolden");
+        _expect(
+            e.oneOfOneGolden, vm.parseJsonBytes32(s.pageManifest, ".golden.tokenURI.sha256"), "oneOfOneGolden"
+        );
+        _expect(e.motifSource, vm.parseJsonBytes32(s.motifManifest, ".source.sha256"), "motifSource");
+        _expect(e.artwork, vm.parseJsonBytes32(s.pageManifest, ".artwork.sha256"), "artwork");
+        _expect(e.still, vm.parseJsonBytes32(s.pageManifest, ".still.sha256"), "still");
+        _expect(e.loader, vm.parseJsonBytes32(s.pageManifest, ".loaderTemplate.sha256"), "loader");
+    }
+
+    function _expect(bytes32 want, bytes32 have, string memory what) internal pure {
+        if (want == bytes32(0) || want != have) revert Refused(string.concat("expected ", what));
     }
 
     /// @dev One section: every chunk file must match its manifest entry and its CREATE2 address, every
@@ -332,15 +447,15 @@ contract DeployKilim {
         _requireLaunchSettings(c);
         Store memory s = loadStore(c);
         _requireStored(s);
-        // On every chain: the auction constructor accepts no other reserve (its REGISTRATION_BALANCE).
-        if (c.auction.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("reserve price");
-        if (
-            c.auction.startsAt < block.timestamp + c.minLeadSeconds
-                || c.auction.startsAt > block.timestamp + MAX_LEAD
-        ) revert Refused("startsAt outside the inspection window");
-        if (c.auction.treasury == address(0)) revert Refused("zero address");
+        _requireAuctionSettings(c);
         uint256 nonce = vm.getNonce(c.deployer);
-        if (c.deployerNonce != NO_NONCE_CHECK && nonce != c.deployerNonce) revert Refused("deployer nonce");
+        if (c.deployerNonce != NO_NONCE_CHECK) {
+            if (nonce != c.deployerNonce) {
+                _log(string.concat("the deployer's nonce is ", vm.toString(nonce)));
+                revert Refused("deployer nonce");
+            }
+            _requireNothingPending(c.deployer, nonce);
+        }
         address predicted = vm.computeCreateAddress(c.deployer, nonce + 2);
 
         // Dry run: deploy all three as the deployer (a prank, nothing is sent), measure each, check the
@@ -360,9 +475,90 @@ contract DeployKilim {
         vm.stopBroadcast();
         if (address(d.auction) != predicted) revert Refused("auction address differs from the prediction");
         _checkContracts(c, s, d);
+        _logDeployed(d);
+    }
+
+    /// @notice Completes a deployment whose third creation was lost (dropped, replaced or reverted)
+    ///         after the first two succeeded. The two token contracts name the address at nonce n + 2 as
+    ///         their minter, so an auction deployed there, and only there, makes them whole: the published
+    ///         addresses and the motif layout survive. Needs the published nonce n in the config, the
+    ///         deployer at n + 2, and both tokens reading back exactly as this config would deploy them.
+    function deployAuction(Config memory c) public returns (Deployed memory d) {
+        _requireChain(c);
+        _printSettings(c);
+        _requireLaunchSettings(c);
+        Store memory s = loadStore(c);
+        _requireStored(s);
+        _requireAuctionSettings(c);
+        if (c.deployerNonce == NO_NONCE_CHECK) {
+            revert Refused("completing needs the published deployerNonce");
+        }
+        uint256 nonce = vm.getNonce(c.deployer);
+        if (nonce != c.deployerNonce + 2) revert Refused("deployer nonce is not the published one plus two");
+        _requireNothingPending(c.deployer, nonce);
+        address predicted = vm.computeCreateAddress(c.deployer, nonce);
+        d.motifs = KilimMotifs(vm.computeCreateAddress(c.deployer, c.deployerNonce));
+        d.oneOfOne = KilimOneOfOne(vm.computeCreateAddress(c.deployer, c.deployerNonce + 1));
+        if (address(d.motifs).code.length == 0 || address(d.oneOfOne).code.length == 0) {
+            revert Refused("the two token contracts are not at the published addresses");
+        }
+        if (predicted.code.length != 0) revert Refused("the auction is already deployed");
+        _checkTokens(c, s, d.motifs, d.oneOfOne, predicted);
+        KilimAuction.Config memory a = _auctionConfig(c, d);
+
+        uint256 snap = vm.snapshotState();
+        vm.startPrank(c.deployer);
+        uint256 g = gasleft();
+        d.auction = new KilimAuction(a);
+        g -= gasleft();
+        vm.stopPrank();
+        _measured(g, type(KilimAuction).creationCode, abi.encode(a), "KilimAuction deployment gas");
+        if (address(d.auction) != predicted) revert Refused("auction address differs from the prediction");
+        _checkContracts(c, s, d);
+        _checkGolden(c, s, d);
+        vm.revertToState(snap);
+
+        vm.startBroadcast(c.deployer);
+        d.auction = new KilimAuction(a);
+        vm.stopBroadcast();
+        if (address(d.auction) != predicted) revert Refused("auction address differs from the prediction");
+        _checkContracts(c, s, d);
+        _logDeployed(d);
+    }
+
+    function _logDeployed(Deployed memory d) internal view {
         _log(string.concat("KilimMotifs    ", vm.toString(address(d.motifs))));
         _log(string.concat("KilimOneOfOne  ", vm.toString(address(d.oneOfOne))));
         _log(string.concat("KilimAuction   ", vm.toString(address(d.auction))));
+    }
+
+    /// @dev What every chain requires of the auction's settings.
+    function _requireAuctionSettings(Config memory c) internal view {
+        // The auction constructor accepts no other reserve (its REGISTRATION_BALANCE).
+        if (c.auction.reservePrice != LAUNCH_RESERVE_PRICE) revert Refused("reserve price");
+        if (
+            c.auction.startsAt < block.timestamp + c.minLeadSeconds
+                || c.auction.startsAt > block.timestamp + MAX_LEAD
+        ) revert Refused("startsAt outside the inspection window");
+        if (c.auction.treasury == address(0)) revert Refused("zero address");
+    }
+
+    /// @dev `vm.getNonce` is the nonce at the latest block. A transaction from the deployer still waiting
+    ///      in the pool is invisible to it, and would take the published nonce before the creations do.
+    function _requireNothingPending(address deployer, uint256 latest) internal {
+        if (_pendingNonce(deployer) != latest) revert Refused("a transaction from the deployer is pending");
+    }
+
+    /// @dev eth_getTransactionCount(deployer, "pending") from the node the script runs against. Called
+    ///      only when the nonce is checked, so the in-memory dry run (no node) never reaches it. The
+    ///      cheatcode returns the JSON quantity as big-endian bytes.
+    function _pendingNonce(address who) internal virtual returns (uint256 n) {
+        bytes memory data =
+            vm.rpc("eth_getTransactionCount", string.concat('["', vm.toString(who), '","pending"]'));
+        if (data.length == 0 || data.length > 32) revert Refused("pending nonce unreadable");
+        for (uint256 i; i < data.length; ++i) {
+            n = (n << 8) | uint8(data[i]);
+        }
     }
 
     /// @dev The three creations in order. `measure` (dry run only) prints each transaction's gas,
@@ -408,15 +604,23 @@ contract DeployKilim {
                 "KilimOneOfOne deployment gas"
             );
         }
-        KilimAuction.Config memory a = c.auction;
-        a.motifs = address(d.motifs);
-        a.oneOfOne = address(d.oneOfOne);
+        KilimAuction.Config memory a = _auctionConfig(c, d);
         g = gasleft();
         d.auction = new KilimAuction(a);
         g -= gasleft();
         if (measure) {
             _measured(g, type(KilimAuction).creationCode, abi.encode(a), "KilimAuction deployment gas");
         }
+    }
+
+    function _auctionConfig(Config memory c, Deployed memory d)
+        internal
+        pure
+        returns (KilimAuction.Config memory a)
+    {
+        a = c.auction;
+        a.motifs = address(d.motifs);
+        a.oneOfOne = address(d.oneOfOne);
     }
 
     /// @dev The stored page as the 1/1's constructor takes it.
@@ -480,25 +684,9 @@ contract DeployKilim {
 
     /// @dev Every immutable, read back, must be what was deployed.
     function _checkContracts(Config memory c, Store memory s, Deployed memory d) internal view {
+        _checkTokens(c, s, d.motifs, d.oneOfOne, address(d.auction));
         KilimMotifs k = d.motifs;
-        if (
-            k.minter() != address(d.auction) || k.royaltyReceiver() != c.auction.treasury
-                || k.motifCap() != c.motifCap || k.gridsHash() != s.grids.hash
-                || k.namesHash() != s.names.hash || k.namesChunk() != s.names.addresses[0]
-                || !_same(k.gridChunks(), s.grids.addresses)
-                || !_sameText(k.description(), c.collectionDescription)
-                || !_sameText(k.externalUrl(), c.collectionExternalUrl)
-        ) revert Refused("motifs read-back");
         KilimOneOfOne o = d.oneOfOne;
-        if (
-            o.minter() != address(d.auction) || o.royaltyReceiver() != c.auction.treasury
-                || address(o.motifs()) != address(k) || o.prefixHash() != s.prefix.hash
-                || o.headHash() != s.head.hash || o.tailHash() != s.tail.hash
-                || !_same(o.prefixChunks(), s.prefix.addresses) || !_same(o.headChunks(), s.head.addresses)
-                || !_same(o.tailChunks(), s.tail.addresses) || !_sameText(o.name(), c.oneOfOneName)
-                || !_sameText(o.description(), c.oneOfOneDescription)
-                || !_sameText(o.externalUrl(), c.oneOfOneExternalUrl) || o.minted()
-        ) revert Refused("1/1 read-back");
         KilimAuction a = d.auction;
         if (
             a.treasury() != c.auction.treasury || a.startsAt() != c.auction.startsAt
@@ -508,6 +696,30 @@ contract DeployKilim {
                 || a.motifCap() != c.motifCap || a.maxMotifsPerBid() != c.auction.maxMotifsPerBid
                 || a.endsAt() != 0
         ) revert Refused("auction read-back");
+    }
+
+    /// @dev The two token contracts, read back: `minter` must be the auction's address, deployed or not yet.
+    function _checkTokens(Config memory c, Store memory s, KilimMotifs k, KilimOneOfOne o, address minter)
+        internal
+        view
+    {
+        if (
+            k.minter() != minter || k.royaltyReceiver() != c.auction.treasury
+                || k.deploymentChainId() != block.chainid || k.motifCap() != c.motifCap
+                || k.gridsHash() != s.grids.hash || k.namesHash() != s.names.hash
+                || k.namesChunk() != s.names.addresses[0] || !_same(k.gridChunks(), s.grids.addresses)
+                || !_sameText(k.description(), c.collectionDescription)
+                || !_sameText(k.externalUrl(), c.collectionExternalUrl)
+        ) revert Refused("motifs read-back");
+        if (
+            o.minter() != minter || o.royaltyReceiver() != c.auction.treasury
+                || address(o.motifs()) != address(k) || o.prefixHash() != s.prefix.hash
+                || o.headHash() != s.head.hash || o.tailHash() != s.tail.hash
+                || !_same(o.prefixChunks(), s.prefix.addresses) || !_same(o.headChunks(), s.head.addresses)
+                || !_same(o.tailChunks(), s.tail.addresses) || !_sameText(o.name(), c.oneOfOneName)
+                || !_sameText(o.description(), c.oneOfOneDescription)
+                || !_sameText(o.externalUrl(), c.oneOfOneExternalUrl) || o.minted()
+        ) revert Refused("1/1 read-back");
     }
 
     /// @dev Inside the dry run only: mint one motif and the 1/1 as the auction would, compare both
@@ -569,7 +781,8 @@ contract DeployKilim {
 
     /// @dev Chain 1 only: the artist's wallet deploys, every auction setting and the 1/1's name must be
     ///      the decided launch value, the published nonce is always checked, and the inspection window
-    ///      must be nonzero.
+    ///      must be nonzero. `loadStore` adds the content: the expected hashes and an artwork that reads
+    ///      the grids.
     function _requireLaunchSettings(Config memory c) internal view {
         if (block.chainid != MAINNET_CHAIN_ID) return;
         KilimAuction.Config memory a = c.auction;
@@ -602,7 +815,7 @@ contract DeployKilim {
             string.concat(
                 "  deployerNonce     ",
                 c.deployerNonce == NO_NONCE_CHECK ? string("not checked") : vm.toString(c.deployerNonce),
-                " (pending: ",
+                " (at the latest block: ",
                 vm.toString(uint256(vm.getNonce(c.deployer))),
                 ")"
             )

@@ -140,6 +140,74 @@ contract KilimMotifsTest is TestBase {
         new KilimMotifs(minter, royalty, cap, gridChunks, gridsHash, namesChunk, namesHash, "", "");
     }
 
+    /// @dev Review round, 10 October 2026: `grid` indexes exactly two chunks, so the constructor must refuse
+    ///      any other count. One chunk holding all 32,768 bytes is past the chain's code size limit, but
+    ///      the constructor does not lean on that rule: planted with vm.etch it is refused all the same.
+    function testOnlyTheTwoChunkLayoutIsAccepted() public {
+        bytes memory grids = standInGrids();
+        bytes memory names = standInNames();
+        address namesChunk = sstore2(names);
+        address big = address(0xB16C0DE);
+        vm.etch(big, abi.encodePacked(hex"00", grids));
+        address[] memory one = new address[](1);
+        one[0] = big;
+        vm.expectRevert(KilimMotifs.InvalidConfiguration.selector);
+        new KilimMotifs(
+            address(this), TREASURY, 1000, one, keccak256(grids), namesChunk, keccak256(names), "", ""
+        );
+
+        // Three chunks holding the same bytes: refused, whatever their sizes.
+        address[] memory three = chunked(grids, 10_944);
+        assertEq(three.length, 3);
+        vm.expectRevert(KilimMotifs.InvalidConfiguration.selector);
+        new KilimMotifs(
+            address(this), TREASURY, 1000, three, keccak256(grids), namesChunk, keccak256(names), "", ""
+        );
+
+        address[] memory two = chunked(grids, 767 * 32);
+        assertEq(two.length, 2);
+        KilimMotifs ok = new KilimMotifs(
+            address(this), TREASURY, 1000, two, keccak256(grids), namesChunk, keccak256(names), "", ""
+        );
+        assertEq(ok.grid(768), standInGrid(768));
+        assertEq(ok.grid(1024), standInGrid(1024));
+    }
+
+    /// @dev Review round: which motif a token shows is fixed by the chain id recorded at deployment. A
+    ///      chain that later changes its id (a minority fork) shows the same motifs and the same tokenURIs.
+    function testMotifsDoNotMoveWhenTheChainIdChanges() public {
+        uint256 home = block.chainid;
+        assertEq(nft.deploymentChainId(), home);
+        uint16[16] memory before;
+        bytes32[16] memory uri;
+        for (uint256 id = 1; id <= 16; ++id) {
+            before[id - 1] = nft.motifOf(id);
+            uri[id - 1] = keccak256(bytes(nft.tokenURI(id)));
+            assertEq(
+                before[id - 1], uint16(uint256(keccak256(abi.encode(home, address(nft), id))) % 1024 + 1)
+            );
+        }
+        uint16 last = nft.motifOf(MOTIF_CAP);
+        vm.chainId(home + 1);
+        assertEq(nft.deploymentChainId(), home);
+        for (uint256 id = 1; id <= 16; ++id) {
+            assertEq(nft.motifOf(id), before[id - 1]);
+            assertEq(keccak256(bytes(nft.tokenURI(id))), uri[id - 1]);
+        }
+        assertEq(nft.motifOf(MOTIF_CAP), last);
+        vm.chainId(home);
+    }
+
+    /// @dev Review round: the motif getter is `motifName`, so the ABI has one `name`, ERC-721's.
+    function testTheMotifNameGetterDoesNotOverloadName() public view {
+        (bool ok, bytes memory out) = address(nft).staticcall(abi.encodeWithSelector(0x06fdde03));
+        assertTrue(ok);
+        assertEq(abi.decode(out, (string)), "Motif Bazaar");
+        (ok,) = address(nft).staticcall(abi.encodeWithSignature("name(uint16)", uint16(1)));
+        assertTrue(!ok);
+        assertEq(nft.motifName(1), standInName(1));
+    }
+
     function testAChunkWithoutCodeIsRefused() public {
         address[] memory gridChunks = chunked(standInGrids(), 767 * 32);
         gridChunks[0] = address(0xC0DE1E55);
@@ -379,20 +447,20 @@ contract KilimMotifsTest is TestBase {
         vm.expectRevert(abi.encodeWithSelector(KilimMotifs.InvalidMotif.selector, 1025));
         nft.grid(1025);
         vm.expectRevert(abi.encodeWithSelector(KilimMotifs.InvalidMotif.selector, 0));
-        nft.name(0);
+        nft.motifName(0);
         vm.expectRevert(abi.encodeWithSelector(KilimMotifs.InvalidMotif.selector, 1025));
-        nft.name(1025);
+        nft.motifName(1025);
     }
 
     function testNamesAtBothEndsAndInTheMiddle() public view {
-        assertEq(nft.name(1), standInName(1));
-        assertEq(nft.name(2), standInName(2));
-        assertEq(nft.name(29), standInName(29));
-        assertEq(nft.name(30), standInName(30)); // the same meaning as motif 1
-        assertEq(nft.name(767), standInName(767));
-        assertEq(nft.name(768), standInName(768));
-        assertEq(nft.name(1023), standInName(1023));
-        assertEq(nft.name(1024), standInName(1024));
+        assertEq(nft.motifName(1), standInName(1));
+        assertEq(nft.motifName(2), standInName(2));
+        assertEq(nft.motifName(29), standInName(29));
+        assertEq(nft.motifName(30), standInName(30)); // the same meaning as motif 1
+        assertEq(nft.motifName(767), standInName(767));
+        assertEq(nft.motifName(768), standInName(768));
+        assertEq(nft.motifName(1023), standInName(1023));
+        assertEq(nft.motifName(1024), standInName(1024));
     }
 
     function testNamesMayBeEmptyAndLong() public {
@@ -402,9 +470,9 @@ contract KilimMotifsTest is TestBase {
         }
         bytes memory section = namesSection(names);
         KilimMotifs own = newMotifs(address(this), TREASURY, 100, standInGrids(), section);
-        assertEq(own.name(1), "");
-        assertEq(own.name(2), "x");
-        assertEq(own.name(1024), "The longest name there is, forty-four bytes!");
+        assertEq(own.motifName(1), "");
+        assertEq(own.motifName(2), "x");
+        assertEq(own.motifName(1024), "The longest name there is, forty-four bytes!");
         assertEq(own.namesHash(), keccak256(section));
     }
 

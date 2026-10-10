@@ -27,6 +27,9 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
     address public immutable minter;
     address public immutable royaltyReceiver;
     uint256 public immutable motifCap;
+    /// @notice The chain this contract was deployed on. `motifOf` uses it, never the live chain id, so a
+    ///         chain that changes its id later cannot change which motif a token shows.
+    uint256 public immutable deploymentChainId;
     bytes32 public immutable gridsHash;
     bytes32 public immutable namesHash;
     address public immutable namesChunk;
@@ -63,9 +66,11 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
     ) ERC721("Motif Bazaar", "MOTIF") {
         if (
             minter_ == address(0) || royaltyReceiver_ == address(0) || motifCap_ == 0
-                || motifCap_ > type(uint32).max || gridChunks_.length == 0
+                || motifCap_ > type(uint32).max
+                || gridChunks_.length != (MOTIF_COUNT + GRIDS_PER_CHUNK - 1) / GRIDS_PER_CHUNK
         ) revert InvalidConfiguration();
-        // Every grid chunk but the last is full, so a grid's chunk and offset follow from its number.
+        // Exactly as many chunks as `grid` indexes, and every one but the last full, so a grid's chunk
+        // and offset follow from its number.
         uint256 total = 0;
         for (uint256 i; i < gridChunks_.length; ++i) {
             uint256 size = _chunkSize(gridChunks_[i]);
@@ -81,6 +86,7 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
         minter = minter_;
         royaltyReceiver = royaltyReceiver_;
         motifCap = motifCap_;
+        deploymentChainId = block.chainid;
         gridsHash = gridsHash_;
         namesHash = namesHash_;
         namesChunk = namesChunk_;
@@ -135,10 +141,11 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
     // ------------------------------------------------------------ motif data
 
     /// @notice Which of the 1,024 motifs token `id` shows, for any id in 1..motifCap, minted or not.
-    ///         Fixed at deployment, independent of bidder, recipient and claim time. Public, NOT randomness.
+    ///         Fixed at deployment (the chain id is the one recorded then), independent of bidder,
+    ///         recipient and claim time. Public, NOT randomness.
     function motifOf(uint256 id) public view returns (uint16) {
         if (id == 0 || id > motifCap) revert InvalidTokenId(id);
-        return uint16(uint256(keccak256(abi.encode(block.chainid, address(this), id))) % MOTIF_COUNT + 1);
+        return uint16(uint256(keccak256(abi.encode(deploymentChainId, address(this), id))) % MOTIF_COUNT + 1);
     }
 
     /// @notice Motif `motif`'s 16 x 16 grid: row 0 first, bit (r, c) is bit 255 - (r * 16 + c).
@@ -154,7 +161,8 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
     }
 
     /// @notice Motif `motif`'s name. Names are plain ASCII and not unique.
-    function name(uint16 motif) public view returns (string memory) {
+    /// @dev Not an overload of ERC-721's `name()`: libraries that look functions up by name need one `name`.
+    function motifName(uint16 motif) public view returns (string memory) {
         if (motif == 0 || motif > MOTIF_COUNT) revert InvalidMotif(motif);
         address chunk = namesChunk;
         uint256 start;
@@ -189,7 +197,7 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
     function tokenURI(uint256 id) public view override returns (string memory) {
         _requireOwned(id);
         uint16 motif = motifOf(id);
-        string memory motifName = _escapeJson(name(motif));
+        string memory label = _escapeJson(motifName(motif));
         string memory number = uint256(motif).toString();
         return string.concat(
             "data:application/json;base64,",
@@ -197,7 +205,7 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
                 bytes(
                     string.concat(
                         '{"name":"',
-                        motifName,
+                        label,
                         " (motif ",
                         number,
                         ')","description":"',
@@ -207,7 +215,7 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
                         '","attributes":[{"trait_type":"Motif","value":',
                         number,
                         '},{"trait_type":"Name","value":"',
-                        motifName,
+                        label,
                         '"}]}'
                     )
                 )

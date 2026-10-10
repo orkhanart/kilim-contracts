@@ -1,5 +1,5 @@
 {
-  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_motifs.py and onchain/pack_page.py once the motifs and the page are final.",
+  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_motifs.py and onchain/pack_page.py once the motifs and the page are final. The `expected` block names the content by hash (five section hashes, the two tokenURI goldens, and the sha256 of the artist's page, the artwork, the still and the loader): print it with `pnpm -s expected` from the packed stores, compare it with the published values, and paste it in. On chain 1 the script refuses a config without it, a zero in it, a store that differs from it, and an artwork that never reads KILIM_GRIDS.",
   "chainId": 1,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
   "deployerNonce": "TODO: the published nonce for the motif collection, the first of the three contract transactions",
@@ -24,5 +24,18 @@
     "name": "The Unwoven Kilim",
     "description": "TODO: the 1/1 description, exactly as packed (build-page/manifest.json description)",
     "externalUrl": "TODO: the 1/1 external url, exactly as packed (build-page/manifest.json externalUrl)"
+  },
+  "expected": {
+    "gridsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "namesHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "prefixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "headHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "tailHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "motifGolden": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "oneOfOneGolden": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "motifSource": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "artwork": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "still": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "loader": "0x0000000000000000000000000000000000000000000000000000000000000000"
   }
 }

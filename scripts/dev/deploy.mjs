@@ -54,7 +54,7 @@ export const F = {
   motifs: bySignature([
     'balanceOf(address owner) returns (uint256)', 'ownerOf(uint256 tokenId) returns (address)',
     'tokenURI(uint256 tokenId) returns (string)', 'motifOf(uint256 id) returns (uint16)',
-    'name(uint16 motif) returns (string)', 'grid(uint16 motif) returns (bytes32)',
+    'motifName(uint16 motif) returns (string)', 'grid(uint16 motif) returns (bytes32)',
     'minter() returns (address)', 'MOTIF_COUNT() returns (uint256)', 'motifCap() returns (uint256)',
     'motifsMinted() returns (uint256)', 'motifsBurned() returns (uint256)',
   ]),

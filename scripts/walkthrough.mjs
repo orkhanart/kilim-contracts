@@ -191,7 +191,7 @@ try {
   assert.equal(Number(await W.view(d.motifs, F.motifs.motifsMinted)), minted);
   for (const id of [a1.firstId, a1.lastId, c1.firstId]) {
     const motif = Number(await W.view(d.motifs, F.motifs.motifOf, [BigInt(id)]));
-    const name = await W.view(d.motifs, F.motifs.name, [motif]);
+    const name = await W.view(d.motifs, F.motifs.motifName, [motif]);
     const uri = await W.view(d.motifs, F.motifs.tokenURI, [BigInt(id)]);
     assert.ok(motif >= 1 && motif <= 1024);
     assert.ok(uri.startsWith('data:application/json;base64,'));

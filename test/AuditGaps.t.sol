@@ -121,11 +121,11 @@ contract AuditGapsTest is TestBase {
 
     function testAWinnerNeedingMostOfThePrizeCapIsDeliveredAtAnyGasLimit() public {
         ProbeWallet winner = _wallet();
-        // Just under the most a winner's callback can use: 389,005 of the 500,000 by a one-gas binary
-        // search on 10 October 2026 (the cold call into the 1/1, its minted flag, the safe mint and the
-        // auction's prizeClaimed take the rest). This also pins the delivery's own cost: retune it if
-        // the contracts or the compiler settings change. 390,000 is not delivered.
-        winner.set(false, 0, 388_000, "");
+        // Under the most a winner's callback can use. This winner is built inside the test, so the 1/1
+        // and the winner are already warm when settle() runs and the budget here is about 389,000; a
+        // settle() sent on mainnet finds both cold and leaves about 4,900 less (ColdPrizeBudgetTest
+        // below measures that state). 385,000 is delivered in both.
+        winner.set(false, 0, 385_000, "");
         winner.bid(RESERVE);
         vm.warp(auction.endsAt());
         uint256 delivered;
@@ -345,5 +345,96 @@ contract AuditGapsTest is TestBase {
         vm.prank(TREASURY);
         fresh.register();
         assertEq(fresh.registrationCount(), 0);
+    }
+}
+
+/// @dev A winner whose NFT hook burns `block.timestamp - close` gas: the amount is set by the clock, so
+///      the winner can be built in setUp and never touched before settle() runs.
+contract ClockHungryWinner is IERC721Receiver {
+    KilimAuction private immutable auction;
+    uint256 private immutable close;
+
+    constructor(KilimAuction a, uint256 close_) {
+        auction = a;
+        close = close_;
+    }
+
+    function bid(uint256 amount) external {
+        auction.bid{value: amount}(amount, 0, 0);
+    }
+
+    function onERC721Received(address, address, uint256, bytes calldata) external view returns (bytes4) {
+        uint256 start = gasleft();
+        uint256 burn = block.timestamp - close;
+        while (start - gasleft() < burn) {}
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    receive() external payable {}
+}
+
+/// @notice Review round, 10 October 2026: the prize delivery measured as a mainnet settle() meets it.
+///         The auction, the 1/1 and the winner are built in setUp, so inside the test they are cold: no
+///         account or storage slot has been read yet when settle() is called.
+contract ColdPrizeBudgetTest is TestBase {
+    uint256 private constant PRIZE_GAS = 500_000;
+    KilimAuction private auction;
+    ClockHungryWinner private winner;
+    uint256 private close;
+
+    event log_named_uint(string key, uint256 value);
+
+    function setUp() public {
+        auction = new KilimAuction(config());
+        _openBidding(auction);
+        close = block.timestamp + auction.duration();
+        winner = new ClockHungryWinner(auction, close);
+        _fund(address(winner), 1 ether);
+        winner.bid(RESERVE);
+        assertEq(auction.endsAt(), close);
+    }
+
+    function _delivered(uint256 burn) private returns (bool delivered) {
+        uint256 snap = vm.snapshotState();
+        vm.warp(close + burn);
+        auction.settle();
+        delivered = auction.prizeClaimed();
+        vm.revertToState(snap);
+    }
+
+    /// @dev What a winner's hook may use today, cold, to one gas. The bounds are loose on purpose: a
+    ///      compiler or library change may move the number by a few hundred gas, not by thousands.
+    function testColdHookBudgetToday() public {
+        uint256 lo = 370_000;
+        uint256 hi = 400_000;
+        assertTrue(_delivered(lo));
+        assertTrue(!_delivered(hi));
+        while (hi - lo > 1) {
+            uint256 mid = (lo + hi) / 2;
+            if (_delivered(mid)) lo = mid;
+            else hi = mid;
+        }
+        emit log_named_uint("cold hook budget today (gas a winner's hook may use)", lo);
+        emit log_named_uint("delivery overhead, cold", PRIZE_GAS - lo);
+        assertTrue(lo >= 385_000 && lo < 389_000);
+    }
+
+    /// @dev A winner burning 385,000 is delivered at every gas limit that settles, cold.
+    function testAColdWinnerNeedingMostOfTheCapIsDeliveredAtAnyGasLimit() public {
+        vm.warp(close + 385_000);
+        uint256 delivered;
+        for (uint256 gasLimit = 100_000; gasLimit <= 900_000; gasLimit += 5_000) {
+            uint256 snap = vm.snapshotState();
+            (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
+            if (ok) {
+                assertTrue(auction.prizeClaimed());
+                assertEq(auction.oneOfOne().ownerOf(1), address(winner));
+                ++delivered;
+            } else {
+                assertTrue(!auction.settled());
+            }
+            vm.revertToState(snap);
+        }
+        assertTrue(delivered != 0);
     }
 }

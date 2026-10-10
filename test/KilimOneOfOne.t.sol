@@ -205,8 +205,9 @@ contract KilimOneOfOneTest is TestBase {
         assertEq(own.ownerOf(1), address(recipient));
     }
 
-    function testNoTransferReachesTheContractOrTheMinter() public {
+    function testNoTransferReachesTheContractTheMinterOrTheMotifCollection() public {
         nft.mint(ALICE);
+        address collection = address(nft.motifs());
         vm.startPrank(ALICE);
         vm.expectRevert(KilimOneOfOne.InvalidRecipient.selector);
         nft.transferFrom(ALICE, address(nft), 1);
@@ -214,6 +215,9 @@ contract KilimOneOfOneTest is TestBase {
         nft.transferFrom(ALICE, address(this), 1);
         vm.expectRevert(KilimOneOfOne.InvalidRecipient.selector);
         nft.safeTransferFrom(ALICE, address(this), 1);
+        // Review round: the motif collection could never send it on, so it is refused as well.
+        vm.expectRevert(KilimOneOfOne.InvalidRecipient.selector);
+        nft.transferFrom(ALICE, collection, 1);
         nft.transferFrom(ALICE, BOB, 1);
         vm.stopPrank();
         assertEq(nft.ownerOf(1), BOB);

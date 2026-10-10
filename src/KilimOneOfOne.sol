@@ -430,8 +430,9 @@ contract KilimOneOfOne is ERC721 {
         return value < 10 ? 48 + value : 87 + value;
     }
 
+    /// @dev The motif collection cannot move a token it holds, so the 1/1 sent there would be lost.
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
-        if (to == address(this) || to == minter) revert InvalidRecipient();
+        if (to == address(this) || to == minter || to == address(motifs)) revert InvalidRecipient();
         return super._update(to, tokenId, auth);
     }
 }

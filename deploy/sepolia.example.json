@@ -1,5 +1,5 @@
 {
-  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/STORAGE.md for the order. The stores come from onchain/pack_motifs.py and onchain/pack_page.py.",
+  "_comment": "Template for the Sepolia rehearsal. Copy it, fill every TODO, get it signed off, then see docs/STORAGE.md for the order. The stores come from onchain/pack_motifs.py and onchain/pack_page.py. Rehearse as mainnet: runStore from a wallet that is not the deployer, publish the deployer's nonce, then runContracts. Fill the `expected` block with `pnpm -s expected` (or delete it: off mainnet it is optional, but a config that carries it is held to it).",
   "chainId": 11155111,
   "deployer": "TODO: the rehearsal deployer address",
   "deployerNonce": "TODO: the published nonce for the motif collection, the first of the three contract transactions",
@@ -24,5 +24,18 @@
     "name": "The Unwoven Kilim",
     "description": "A generative ASCII carpet drawn from the 1,024 Kilim motifs.",
     "externalUrl": ""
+  },
+  "expected": {
+    "gridsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "namesHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "prefixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "headHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "tailHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "motifGolden": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "oneOfOneGolden": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "motifSource": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "artwork": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "still": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "loader": "0x0000000000000000000000000000000000000000000000000000000000000000"
   }
 }

@@ -17,7 +17,7 @@ A chunk's runtime code is `0x00` followed by the data (the leading `STOP` keeps 
 
 ## Grids
 
-`grids.bin`: 1,024 × 32 bytes, motif `n` (1-based) at offset `(n − 1) × 32`. A grid is 16 rows of 16 bits, row 0 first, column 0 in the most significant bit: bit `(r, c)` is bit `255 − (r × 16 + c)` of the `bytes32`. Cut into chunks of **767 grids = 24,544 bytes** so no grid straddles two chunks: today 24,544 + 8,224. `gridsHash = keccak256(grids.bin)`.
+`grids.bin`: 1,024 × 32 bytes, motif `n` (1-based) at offset `(n − 1) × 32`. A grid is 16 rows of 16 bits, row 0 first, column 0 in the most significant bit: bit `(r, c)` is bit `255 − (r × 16 + c)` of the `bytes32`. Cut into chunks of **767 grids = 24,544 bytes** so no grid straddles two chunks: 24,544 + 8,224, exactly two chunks (the constructor refuses any other count). `gridsHash = keccak256(grids.bin)`.
 
 `grid(n)` copies 32 bytes out of chunk `(n − 1) / 767` at offset `1 + ((n − 1) mod 767) × 32`; `grids()` copies every chunk into one 32,768-byte answer, which is what the 1/1 reads.
 
@@ -55,7 +55,7 @@ Every value is computed off-chain from the files, checked by the constructors ag
 | motif golden | `pack_motifs.py` | the sha256 of the `tokenURI` of a token showing motif 1, from the JSON and SVG reproduced in Python byte for byte, with the collection description | the dry run mints such a token as the auction and compares (`motif tokenURI differs from golden`) |
 | 1/1 golden | `pack_page.py` | the sha256 of the whole `tokenURI(1)`, from the three sections plus `grids.bin` | the dry run mints the 1/1 as the auction and compares (`1/1 tokenURI differs from golden`) |
 
-Because the 1/1's golden covers the grids hex, it pins the motif store as well as the page: a store packed from other grids fails it. `motifOf(id)` does not depend on the grids (`keccak256(abi.encode(chainid, address(this), id)) % 1024 + 1`), so which motif a token shows is fixed by the motif contract's address, that is, by the deployer and the nonce.
+Because the 1/1's golden covers the grids hex, it pins the motif store as well as the page: a store packed from other grids fails it. `motifOf(id)` does not depend on the grids (`keccak256(abi.encode(deploymentChainId, address(this), id)) % 1024 + 1`, with the chain id recorded at deployment), so which motif a token shows is fixed by the motif contract's address, that is, by the deployer and the nonce.
 
 To check a deployed store independently: at the tagged commit run `pnpm -s pack:motifs -- --check --description "<the deployed description>"` and `pnpm -s pack:page -- … --check` with the deployed name, description and URL, then compare the manifests' addresses and hashes with the chain (`gridChunks()`, `namesChunk()`, `gridsHash()`, `namesHash()`, `prefixChunks()`, `headChunks()`, `tailChunks()`, `prefixHash()`, `headHash()`, `tailHash()`), and `sha256(tokenURI(1))` with the page manifest's golden once the token exists.
 
