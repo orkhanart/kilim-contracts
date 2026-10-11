@@ -142,18 +142,23 @@ contract GasFloorsTest is TestBase {
         pool.bid(auction, 0.01 ether);
         vm.warp(auction.endsAt());
 
-        // Every gas limit a griefer could pick either reverts (nothing settled) or delivers the 1/1.
-        for (uint256 gasLimit = 60_000; gasLimit <= 700_000; gasLimit += 4_000) {
+        // Every gas limit a griefer could pick either reverts (nothing settled) or delivers the 1/1. The
+        // sweep reaches past the settle floor, so some limits must settle: a floor raised out of its
+        // range would otherwise pass unexamined.
+        uint256 delivered;
+        for (uint256 gasLimit = 60_000; gasLimit <= 900_000; gasLimit += 4_000) {
             uint256 snap = vm.snapshotState();
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {
                 assertTrue(auction.prizeClaimed());
                 assertEq(auction.oneOfOne().ownerOf(1), address(pool));
+                ++delivered;
             } else {
                 assertTrue(!auction.settled());
             }
             vm.revertToState(snap);
         }
+        assertTrue(delivered != 0);
         auction.settle();
         assertEq(auction.oneOfOne().ownerOf(1), address(pool));
         assertEq(pool.received(), 1);

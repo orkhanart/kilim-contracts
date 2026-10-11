@@ -2,6 +2,7 @@
 pragma solidity 0.8.37;
 
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {TestBase} from "./TestBase.sol";
 import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
@@ -353,6 +354,19 @@ contract AttackPatternsTest is TestBase {
         vm.prank(ALICE);
         auction.withdrawRefund(CAROL);
         assertEq(auction.refunds(ALICE), 0);
+        // Her address now has code with no NFT hook, so it cannot take her motifs. The claim to herself
+        // reverts and keeps the credits; the same claim to another address goes through.
+        uint256 credits = auction.motifCredits(ALICE);
+        assertEq(credits, 10);
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidReceiver.selector, ALICE));
+        vm.prank(ALICE);
+        auction.claimMotifs(credits, ALICE);
+        assertEq(auction.motifCredits(ALICE), credits);
+        assertEq(nft.motifsMinted(), 0);
+        vm.prank(ALICE);
+        auction.claimMotifs(credits, CAROL);
+        assertEq(nft.balanceOf(CAROL), credits);
+        assertEq(auction.motifCredits(ALICE), 0);
 
         // Bob, the winner, delegates to code with no NFT hook before settlement.
         vmx.etch(BOB, address(new PlainDelegate()).code);

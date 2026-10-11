@@ -23,6 +23,12 @@ contract ReenterEth {
     }
 }
 
+interface GasPriceVm {
+    function addr(uint256) external returns (address);
+    function sign(uint256, bytes32) external returns (uint8, bytes32, bytes32);
+    function txGasPrice(uint256) external;
+}
+
 contract NativeRegistrationTest is TestBase {
     KilimAuction auction;
 
@@ -86,6 +92,39 @@ contract NativeRegistrationTest is TestBase {
         assertEq(auction.registrationCount(), 1);
     }
 
+    /// @dev On a real chain the sender's gas is prepaid before register() runs, and the balance is
+    ///      checked after that. A wallet funded with exactly 0.01 ETH that sends register() itself is
+    ///      refused; the same wallet registers through registerFor, where the sponsor pays the gas. Forge
+    ///      charges a pranked sender no gas, so the prepayment is taken out by hand (contracts/AUDIT.md
+    ///      FA-15).
+    function testExactlyTheBalanceRegistersOnlyThroughASponsor() public {
+        GasPriceVm gvm = GasPriceVm(address(vm));
+        uint256 key = 0x5EED;
+        address wallet = gvm.addr(key);
+        vm.deal(wallet, 0.01 ether);
+        uint256 funded = vm.snapshotState();
+
+        // The wallet sends register() itself with a 60,000 gas limit at 1 gwei.
+        gvm.txGasPrice(1 gwei);
+        uint256 prepaid = 60_000 * tx.gasprice;
+        assertTrue(prepaid != 0);
+        vm.deal(wallet, wallet.balance - prepaid);
+        vm.expectRevert(EnglishAuction.InsufficientRegistrationBalance.selector);
+        vm.prank(wallet);
+        auction.register();
+        assertTrue(!auction.registered(wallet));
+
+        // The same funded wallet signs instead, and someone else sends it and pays the gas.
+        vm.revertToState(funded);
+        uint256 deadline = block.timestamp + 15 minutes;
+        (uint8 v, bytes32 r, bytes32 s) = gvm.sign(key, auction.registrationDigest(wallet, deadline));
+        vm.prank(BOB);
+        auction.registerFor(wallet, deadline, abi.encodePacked(r, s, v));
+        assertTrue(auction.registered(wallet));
+        assertEq(auction.registrationCount(), 1);
+        assertEq(wallet.balance, 0.01 ether);
+    }
+
     function testCannotBypassThreshold() public {
         vm.expectRevert(EnglishAuction.RegistrationIncomplete.selector);
         start(ALICE);
@@ -121,7 +160,7 @@ contract NativeRegistrationTest is TestBase {
         auction.register();
         unlock();
         start(registrant(0));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(EnglishAuction.BidTooLow.selector, 0.011 ether));
         start(BOB);
         assertEq(BOB.balance, 1 ether);
         assertEq(auction.motifCredits(BOB), 0);

@@ -574,7 +574,8 @@ contract KilimAuctionTest is TestBase {
         receiver.configure(true, address(0), "");
         vm.warp(auction.endsAt());
         auction.settle();
-        vm.expectRevert();
+        // The mint reaches the receiver, and the 1/1's safe mint passes on the receiver's own refusal.
+        vm.expectRevert(abi.encodeWithSignature("Error(string)", "NFT rejected"));
         vm.prank(address(receiver));
         auction.claimPrize(address(receiver));
         assertTrue(!auction.prizeClaimed());
@@ -641,7 +642,7 @@ contract KilimAuctionTest is TestBase {
         _bid(ALICE, 25);
         Receiver receiver = new Receiver();
         receiver.configure(true, address(0), "");
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("Error(string)", "NFT rejected"));
         vm.prank(ALICE);
         auction.claimMotifs(4, address(receiver));
         assertEq(auction.motifCredits(ALICE), 25);
@@ -793,21 +794,54 @@ contract KilimAuctionTest is TestBase {
         assertEq(deployed.oneOfOne().minter(), next);
         assertEq(address(deployed.oneOfOne().motifs()), address(deployed.motifs()));
         assertEq(deployed.motifCap(), deployed.motifs().motifCap());
-        // Tokens built for one address refuse an auction at another: a creation in between moves it.
+        // Tokens built for one address refuse an auction at another: a creation in between moves it, and
+        // both tokens then name the wrong minter.
         KilimAuction.Config memory c = config();
         new Receiver();
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
-        // A 1/1 over a different motif collection is refused too.
-        c = config();
-        KilimMotifs other = newMotifs(
-            vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2), TREASURY, MOTIF_CAP
-        );
-        c.oneOfOne = address(
-            newOneOfOne(
-                vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1), TREASURY, other
-            )
-        );
+    }
+
+    /// @dev The constructor checks three bindings in one condition. Each test below breaks exactly one
+    ///      of them, so a check deleted on its own fails a test (contracts/AUDIT.md FA-13). The auction
+    ///      is always the creation right after the tokens.
+    function testAuctionRefusesAMotifCollectionWithAnotherMinter() public {
+        KilimAuction.Config memory c = config();
+        address auction_ = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
+        KilimMotifs motifs = newMotifs(ALICE, TREASURY, MOTIF_CAP);
+        KilimOneOfOne one = newOneOfOne(auction_, TREASURY, motifs);
+        assertEq(one.minter(), auction_);
+        assertEq(address(one.motifs()), address(motifs));
+        c.motifs = address(motifs);
+        c.oneOfOne = address(one);
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
+    }
+
+    function testAuctionRefusesAOneOfOneWithAnotherMinter() public {
+        KilimAuction.Config memory c = config();
+        address auction_ = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2);
+        KilimMotifs motifs = newMotifs(auction_, TREASURY, MOTIF_CAP);
+        KilimOneOfOne one = newOneOfOne(ALICE, TREASURY, motifs);
+        assertEq(motifs.minter(), auction_);
+        assertEq(address(one.motifs()), address(motifs));
+        c.motifs = address(motifs);
+        c.oneOfOne = address(one);
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
+    }
+
+    /// @dev Both tokens name this auction as minter, but the 1/1 draws its motifs from another collection.
+    function testAuctionRefusesAOneOfOneOverAnotherMotifCollection() public {
+        KilimAuction.Config memory c = config();
+        address auction_ = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 3);
+        KilimMotifs motifs = newMotifs(auction_, TREASURY, MOTIF_CAP);
+        KilimMotifs other = newMotifs(auction_, TREASURY, MOTIF_CAP);
+        KilimOneOfOne one = newOneOfOne(auction_, TREASURY, other);
+        assertEq(motifs.minter(), auction_);
+        assertEq(one.minter(), auction_);
+        c.motifs = address(motifs);
+        c.oneOfOne = address(one);
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);
     }
@@ -825,7 +859,7 @@ contract KilimAuctionTest is TestBase {
         else if (choice == 7) c.maxMotifsPerBid = MOTIF_CAP + 1;
         else if (choice == 8) c.motifs = ALICE; // no code
         else if (choice == 9) c.oneOfOne = ALICE; // no code
-        else if (choice == 10) c.motifs = c.oneOfOne; // not a collection with this auction as minter
+        else if (choice == 10) c.motifs = c.oneOfOne; // the 1/1 draws its motifs from another contract
         else c.reservePrice = 0;
         vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
         new KilimAuction(c);

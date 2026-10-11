@@ -361,7 +361,8 @@ contract PrizeGasBudgetPoC is TestBase {
     function testSettleFloorIsExactAndTheDeliveryAlwaysGetsFullGas() public {
         // A winner that needs the whole budget: delivered only if the hook really gets PRIZE_GAS less
         // the overhead. If any gas limit settled with a short delivery, this winner would be left to
-        // claimPrize while settled, which the loop below would catch.
+        // claimPrize while settled, which the loop below would catch. The sweep starts far below the floor,
+        // so a floor check that moved or was deleted shows as a short delivery or a bare out-of-gas.
         uint256 warm = _maxBurn(_deliveredWarm, 380_000, 400_000);
         Burner w = new Burner(warm);
         _fund(address(w), 1 ether);
@@ -370,7 +371,7 @@ contract PrizeGasBudgetPoC is TestBase {
         vm.warp(auction.endsAt());
         uint256 lowestOk = type(uint256).max;
         uint256 bareOutOfGas;
-        for (uint256 gasLimit = SETTLE_FLOOR - 2_000; gasLimit <= SETTLE_FLOOR + 30_000; gasLimit += 100) {
+        for (uint256 gasLimit = 400_000; gasLimit <= SETTLE_FLOOR + 30_000; gasLimit += 100) {
             uint256 snap = vm.snapshotState();
             (bool ok, bytes memory data) =
                 address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
@@ -394,7 +395,8 @@ contract PrizeGasBudgetPoC is TestBase {
         emit log_named_uint(
             "limits that failed with no revert data (bare out-of-gas before the check)", bareOutOfGas
         );
-        assertTrue(lowestOk != type(uint256).max);
+        assertEq(bareOutOfGas, 0);
+        assertTrue(lowestOk >= SETTLE_FLOOR && lowestOk < SETTLE_FLOOR + 30_000);
     }
 
     // ---- 4. a claim that fails in its second id range rolls everything back ----

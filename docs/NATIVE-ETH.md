@@ -127,6 +127,8 @@ A contract that bids must be able to do these things later, or it locks its own 
 - call `claimMotifs(quantity, to)`;
 - accept an ERC-721 token, or call `claimPrize(to)`.
 
+A claim of motifs to the bidder's own address needs an ERC-721 receiver hook there; an EOA with an EIP-7702 delegation counts as a contract for this, and without the hook it claims to another address (`test/AttackPatterns.t.sol`, 11 October 2026).
+
 ## Sponsored registration
 
 `registerFor` lets a sponsor pay the gas for someone else's registration. The contract has no sponsor role and never repays the sponsor. The optional service that does this is in `registration-relayer/`; its spending limits and setup are in `registration-relayer/README.md`. It is not activated.

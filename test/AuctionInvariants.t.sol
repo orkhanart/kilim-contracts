@@ -4,6 +4,7 @@ pragma solidity 0.8.37;
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {KilimMotifs} from "../src/KilimMotifs.sol";
+import {EnglishAuction} from "../src/auction/EnglishAuction.sol";
 import {TestBase, InvariantBase} from "./TestBase.sol";
 
 /// @dev A bidder wallet whose ETH receiver can accept, reject, or burn all the gas it is given,
@@ -43,6 +44,7 @@ contract AuctionHandler is TestBase {
     uint256 public bidCalls;
     uint256 public deferredRefunds;
     uint256 public refundCalls;
+    uint256 public failedRefundCalls;
     uint256 public claimCalls;
     uint256 public prizeCalls;
 
@@ -98,12 +100,33 @@ contract AuctionHandler is TestBase {
         ++refundCalls;
     }
 
+    /// @dev A pull refund sent to a wallet that rejects ETH fails and leaves the refund owed, in full.
+    ///      Wallets that burn the gas are left out: with the run's gas limit the burn would take minutes.
+    function refundExpectingFailure(uint8 actorSeed, uint8 destination) external {
+        address actor = actors[actorSeed % 3];
+        uint256 amount = auction.refunds(actor);
+        address to = actors[destination % 3];
+        if (amount == 0 || MoodyWallet(payable(to)).mood() != 1) return;
+        uint256 liability = auction.refundLiability();
+        uint256 heldBefore = to.balance;
+        vm.prank(actor);
+        try auction.withdrawRefund(to) {
+            assertTrue(false);
+        } catch (bytes memory reason) {
+            assertEq(bytes32(reason), bytes32(EnglishAuction.EthTransferFailed.selector));
+        }
+        assertEq(auction.refunds(actor), amount);
+        assertEq(auction.refundLiability(), liability);
+        assertEq(to.balance, heldBefore);
+        ++failedRefundCalls;
+    }
+
     function claim(uint8 actorSeed, uint8 quantitySeed, uint8 destination) external {
         address actor = actors[actorSeed % 3];
         uint256 credits = auction.motifCredits(actor);
         address to = actors[destination % 3];
         if (credits == 0 || !_takesNfts(to)) return;
-        uint256 quantity = 1 + uint256(quantitySeed) % 64;
+        uint256 quantity = 1 + uint256(quantitySeed) % auction.motifs().MAX_MINT_BATCH();
         if (quantity > credits) quantity = credits;
         vm.prank(actor);
         auction.claimMotifs(quantity, to);
@@ -126,12 +149,21 @@ contract AuctionHandler is TestBase {
         vm.warp(block.timestamp + uint256(delta) % 3601);
     }
 
-    /// @dev Settlement is impossible until a first bid starts the clock.
+    /// @dev Settlement is impossible until a first bid starts the clock. A winner that takes NFTs holds
+    ///      the 1/1 as soon as settle() returns; one that refuses them is left to claimPrize.
     function finish(uint8 seed) external {
         uint64 closesAt = auction.endsAt();
         if (auction.settled() || closesAt == 0) return;
         if (seed % 16 == 0 && block.timestamp < closesAt) vm.warp(closesAt);
-        if (block.timestamp >= closesAt) auction.settle();
+        if (block.timestamp < closesAt) return;
+        address winner = auction.highestBidder();
+        auction.settle();
+        if (_takesNfts(winner)) {
+            assertTrue(auction.prizeClaimed());
+            assertEq(auction.oneOfOne().ownerOf(1), winner);
+        } else {
+            assertTrue(!auction.prizeClaimed());
+        }
     }
 
     function proceeds(uint8 destination) external {
@@ -307,6 +339,11 @@ contract AuctionInvariants is InvariantBase {
         assertEq(auction.oneOfOne().ownerOf(1), handler.actors(1));
         handler.refund(0, 0);
         assertEq(handler.refundCalls(), 0);
+        // A pull to a wallet that rejects ETH fails and changes nothing.
+        handler.changeMood(1, 1, false);
+        handler.refundExpectingFailure(0, 1);
+        assertEq(handler.failedRefundCalls(), 1);
+        handler.changeMood(1, 0, false);
         handler.refund(0, 2);
         assertEq(handler.refundCalls(), 1);
         assertEq(auction.refundLiability(), 0);

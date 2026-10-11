@@ -140,6 +140,34 @@ contract KilimMotifsTest is TestBase {
         new KilimMotifs(minter, royalty, cap, gridChunks, gridsHash, namesChunk, namesHash, "", "");
     }
 
+    /// @dev A names chunk shorter than the offset table is refused by its length, before any offset is
+    ///      read (contracts/AUDIT.md FA-13). Without that check the read would run off the end and panic.
+    function testANamesChunkShorterThanTheOffsetTableIsRefused() public {
+        bytes memory grids = standInGrids();
+        address[] memory gridChunks = chunked(grids, 767 * 32);
+        bytes memory names = standInNames();
+        uint256[2] memory lengths = [uint256(100), nft.NAME_OFFSET_TABLE() - 1];
+        for (uint256 k; k < 2; ++k) {
+            bytes memory short = new bytes(lengths[k]);
+            assembly ("memory-safe") {
+                mcopy(add(short, 32), add(names, 32), mload(short))
+            }
+            address namesChunk = sstore2(short);
+            vm.expectRevert(KilimMotifs.InvalidConfiguration.selector);
+            new KilimMotifs(
+                address(this),
+                TREASURY,
+                1000,
+                gridChunks,
+                keccak256(grids),
+                namesChunk,
+                keccak256(short),
+                "",
+                ""
+            );
+        }
+    }
+
     /// @dev Review round, 10 October 2026: `grid` indexes exactly two chunks, so the constructor must refuse
     ///      any other count. One chunk holding all 32,768 bytes is past the chain's code size limit, but
     ///      the constructor does not lean on that rule: planted with vm.etch it is refused all the same.
