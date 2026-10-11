@@ -100,13 +100,16 @@ Two guards protect a bidder from another bid landing first:
 At or after `endsAt`, anyone calls `settle()`. It records the winner and the proceeds, emits `AuctionSettled`, then mints the 1/1 (token id 1 of The Unwoven Kilim, through `KilimOneOfOne.mint`) to the winner in a self-call (`deliverPrize`) with 500,000 gas.
 
 - If the winner's wallet accepts it, `PrizeClaimed(winner, winner)` is emitted and nothing more is needed.
-- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims). If the wallet only needed more gas than the 500,000, anyone can also call `deliverPrizeToWinner()`: it sends the 1/1 to the winner's own address with the gas the caller gives, and reverts, changing nothing, if the wallet still refuses it. A winning contract that cannot call `claimPrize` itself is therefore not left without the 1/1.
+- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims). If the wallet only needed more gas than the 500,000, the winner calls `claimPrize` too, to its own address, with as much gas as it gives. Only the winner can claim the 1/1, so only the winner chooses where it goes (decided 11 October; the open `deliverPrizeToWinner()` of the review round is removed). A winning contract must therefore be able to make a call; any contract that could bid can.
 
 `settle()` must have enough gas for the delivery's full allowance (`PRIZE_GAS + PRIZE_GAS / 63 + 50_000`, that is 557,936). With less it reverts with `InsufficientGas`, nothing is settled, and anyone can call it again. A low-gas call therefore cannot skip the delivery. Measured on 10 October 2026, `settle()` succeeds from a gas limit of 585,836 on the call itself, about 607,000 as a transaction (the 21,000 base cost and the call data come on top); the site sends a fixed 1,200,000.
+- `highestBidMotifs()` returns the ids the highest bid reserved, after settlement the winning bid's: `count` ids from `firstMotifId`, the same ones its `BidPlaced` event names, and 0 and 0 when it earned none. They stay the same after they are claimed. Kilim Bazaar reads them to treat the winner's own motifs apart (FA-08).
 
 ## 7. Proceeds
 
 After settlement the treasury calls `withdrawProceeds(to)` and receives the winning bid in ETH. Only the treasury can call it, and only once there is something to withdraw. The treasury address can neither register nor bid.
+
+**The artist's own bids.** The treasury, orkhanart.eth, can neither register nor bid. The contract cannot tell whether another wallet belongs to the artist. Had the artist bid from another wallet and won, the winning bid would come back to the artist, so it would have cost only gas, and that wallet would keep every motif its bids reserved, as any bidder does. The artist commits not to bid in this auction from any wallet; bidders rely on that word (K-07, FA-07).
 
 ## 8. What the auction holds
 

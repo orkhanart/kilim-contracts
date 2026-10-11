@@ -12,7 +12,7 @@
       "check": "calls-loop",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#151-178) has external calls inside a loop: motifs.mintMotifs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#175)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimMotifs(uint256,address)\n"
+      "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#166-193) has external calls inside a loop: motifs.mintMotifs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#190)\n\tCalls stack containing the loop:\n\t\tKilimAuction.claimMotifs(uint256,address)\n"
     },
     {
       "check": "reentrancy-benign",
@@ -24,7 +24,7 @@
       "check": "reentrancy-events",
       "impact": "Low",
       "confidence": "Medium",
-      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#203-209):\n\tExternal calls:\n\t- oneOfOne.mint(winner) (src/KilimAuction.sol#207)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#208)\n"
+      "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#218-224):\n\tExternal calls:\n\t- oneOfOne.mint(winner) (src/KilimAuction.sol#222)\n\tEvent emitted after the call(s):\n\t- PrizeClaimed(winner,winner) (src/KilimAuction.sol#223)\n"
     },
     {
       "check": "reentrancy-events",

@@ -153,16 +153,6 @@ contract AuctionHandler is TestBase {
         auction.claimPrize(to);
         ++prizeCalls;
     }
-
-    /// @dev Anyone may send the 1/1 to the winner again once the winner's wallet takes NFTs.
-    function sendPrizeAgain(uint8 callerSeed) external {
-        address winner = auction.highestBidder();
-        if (!auction.settled() || auction.prizeClaimed() || !_takesNfts(winner)) return;
-        vm.prank(actors[callerSeed % 3]);
-        auction.deliverPrizeToWinner();
-        assertEq(auction.oneOfOne().ownerOf(1), winner);
-        ++prizeCalls;
-    }
 }
 
 contract AuctionInvariants is InvariantBase {
@@ -217,6 +207,15 @@ contract AuctionInvariants is InvariantBase {
         assertEq(sum + auction.motifsClaimed(), auction.motifsAllocated());
         assertEq(auction.motifs().motifsMinted(), auction.motifsClaimed());
         assertTrue(auction.motifsAllocated() <= auction.motifCap());
+    }
+
+    /// The highest bid's reported ids are a block that was really allocated: none before any bid, and
+    /// either none (an empty pool) or a nonempty range ending inside the allocated ids.
+    function invariantHighestBidMotifsAreAllocatedIds() public view {
+        (uint256 first, uint256 count) = auction.highestBidMotifs();
+        if (auction.highestBidder() == address(0)) assertTrue(first == 0 && count == 0);
+        assertTrue((first == 0) == (count == 0));
+        if (count != 0) assertTrue(first >= 1 && first + count - 1 <= auction.motifsAllocated());
     }
 
     /// Reserved ranges match credits exactly, sit inside the allocated block, never overlap,

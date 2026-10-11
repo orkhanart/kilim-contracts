@@ -43,6 +43,9 @@ contract KilimAuction is EnglishAuction {
     mapping(address => uint256) public motifCredits;
     mapping(address => CreditRange[]) private _creditRanges;
     mapping(address => uint256) private _nextCreditRange;
+    /// @dev The motif ids the current highest bid reserved; see highestBidMotifs. One slot.
+    uint128 private _highestBidFirstMotifId;
+    uint128 private _highestBidMotifCount;
 
     /// @dev Gas allowed for sending the 1/1 to the winner at settlement, receiver callback included.
     uint256 private constant PRIZE_GAS = 500_000;
@@ -119,15 +122,27 @@ contract KilimAuction is EnglishAuction {
         if (expectedFirstMotifId != 0 && firstMotifId != expectedFirstMotifId) {
             revert MotifRangeMoved(firstMotifId);
         }
+        // Both values are bounded by motifCap, which the collection keeps under uint32 max.
         if (reward != 0) {
-            // Both values are bounded by motifCap, which the collection keeps under uint32 max.
             _creditRanges[msg.sender].push(CreditRange(uint128(firstMotifId), uint128(reward)));
             motifCredits[msg.sender] += reward;
             motifsAllocated += reward;
         }
+        // Every accepted bid is the new highest: its ids are the ones highestBidMotifs reports.
+        _highestBidFirstMotifId = uint128(firstMotifId);
+        _highestBidMotifCount = uint128(reward);
         _collectBid(amount);
         _refundOutbid(outbid, outbidAmount);
         emit BidPlaced(msg.sender, amount, reward, firstMotifId, endsAt);
+    }
+
+    /// @notice The motif ids the current highest bid reserved, after settlement the winning bid's:
+    ///         `count` ids from `firstMotifId`, the same ones its BidPlaced event names. Both are 0 when
+    ///         it earned none (the pool was empty) or before the first bid. The ids stay the same after
+    ///         they are claimed; who holds them is `motifs.ownerOf`. For Kilim Bazaar, which treats the
+    ///         winner's own motifs apart, and for anyone who wants to read them without the logs.
+    function highestBidMotifs() external view returns (uint256 firstMotifId, uint256 count) {
+        return (_highestBidFirstMotifId, _highestBidMotifCount);
     }
 
     /// @notice Quote credits, not bid validity. Bidding continues after rewards are exhausted.
@@ -208,8 +223,10 @@ contract KilimAuction is EnglishAuction {
         emit PrizeClaimed(winner, winner);
     }
 
-    /// @notice Only needed if settlement could not send it: the winner claims the 1/1. Settlement is
-    ///         impossible without a bid, so there is no unsold branch: with no bids the auction never ends.
+    /// @notice Only needed if settlement could not send it: the winner claims the 1/1, to any address that
+    ///         can hold it and with as much gas as they give. Nobody else can: the winner chooses where it
+    ///         goes. Settlement is impossible without a bid, so there is no unsold branch: with no bids the
+    ///         auction never ends.
     function claimPrize(address to) external nonReentrant {
         if (!settled) revert NotSettled();
         address winner = highestBidder;
@@ -219,20 +236,6 @@ contract KilimAuction is EnglishAuction {
         prizeClaimed = true;
         oneOfOne.mint(to);
         emit PrizeClaimed(winner, to);
-    }
-
-    /// @notice Only needed if settlement could not send it: anyone may send the 1/1 to the winner again,
-    ///         with as much gas as the caller gives. It goes to the winner's own address and nowhere else.
-    /// @dev Settlement gives the delivery a fixed PRIZE_GAS. A winning contract whose receiver needs
-    ///      more, and that cannot call `claimPrize` itself, would otherwise never get the 1/1. If the
-    ///      winner's wallet refuses the token the call reverts and nothing changes.
-    function deliverPrizeToWinner() external nonReentrant {
-        if (!settled) revert NotSettled();
-        if (prizeClaimed) revert PrizeAlreadyClaimed();
-        address winner = highestBidder;
-        prizeClaimed = true;
-        oneOfOne.mint(winner);
-        emit PrizeClaimed(winner, winner);
     }
 
     function _validateRecipient(address to) internal view override {

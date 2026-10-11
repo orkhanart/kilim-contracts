@@ -152,7 +152,7 @@ The auction has no `receive` or fallback function, so a plain transfer reverts. 
 
 The treasury address cannot bid or register (`TreasuryCannotBid`). A seller can still bid from other wallets; that is undetectable on-chain.
 
-**Status:** Disclosure matter.
+**Status:** Disclosure matter. Since 11 October (FA-07) the disclosure says that such bids would cost the seller only gas, and the artist commits not to bid from any wallet (docs/NATIVE-ETH.md, section 7).
 
 ### K-08 — Launch blocker: independent audit, rehearsal and deployment inputs
 
@@ -512,5 +512,16 @@ No mutation campaign on the current contracts (FA-18). No transaction on Sepolia
   - **Review:** three reviewers checked every drawing path (the atlas, the sculpture, the echo, studies, games, frames, Kilim Bazaar pieces, the Canvas2D recovery), the bit order against `KilimMotifs`, and the proof's stability. Their one confirmed finding, that the proof could be skipped on the real store, is fixed.
   - **Store** re-packed from this artwork: 45 chunks, 245.8M gas, `KilimOneOfOne` creation 6,597,641, `tokenURI(1)` read at 4,516,602 gas. `pnpm -s expected` no longer notes a page that ignores the grids.
   - **Tests:** forge 256 of 256, packers 25 of 25, page 3 of 3, site 87 of 87.
+
+- **FA-08, a getter for the winning bid's motifs.** On the artist's choice (option A), `KilimAuction.highestBidMotifs() → (firstMotifId, count)` reports the ids the current highest bid reserved, and after settlement the winning bid's. They are the same ids its `BidPlaced` event names: 0 and 0 when it earned none, and unchanged after they are claimed.
+  - **Storage:** one packed slot, written by every accepted bid (every accepted bid is the new highest). The smallest call gas for an outbidding bid is now 523,963, essentially unchanged: the refund floor dominates.
+  - **Rules:** `launch/KILIM-BAZAAR-RULES.md` now reads the winner's ids from the getter instead of the formula that broke when the reward was capped. What the Master costs when the winning bid earned fewer motifs than its price is still to decide.
+  - **Tests:** `testHighestBidMotifsAreTheWinningBidsOwnIds` (bids, a capped reward, claims, an empty pool, settlement), `testHighestBidMotifsFollowEveryBid`, and the invariant `invariantHighestBidMotifsAreAllocatedIds`.
+- **FA-06, only the winner claims the 1/1.** On the artist's choice ("let the winner press"), `deliverPrizeToWinner()` is removed. Restricted to the winner it would have duplicated `claimPrize(to)`, which already lets the winner claim with its own gas, to itself or anywhere. After a failed delivery nobody else can now send the 1/1 anywhere, so the race of FA-06 is gone. V-15's rescue for a winning contract that cannot make calls goes with it; any contract that could bid can make calls, and checklist 1 already asks bidders to use a wallet that can send transactions later.
+  - **Tests:** `testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan` (also proves the old selector no longer exists), `testAWinnerThatRefusesTheTokenClaimsItElsewhereAndCannotReenter`, `testThePrizeIsClaimedOnce`. The invariant handler no longer calls the removed function.
+  - **Size:** `KilimAuction` creation is 3,312,691 gas in the dry run.
+- **FA-07, the seller's other wallets disclosed.** NATIVE-ETH.md (section 7), K-07 and the terms list in checklist 1 now say that a bid by the artist from another wallet would cost only gas if it won, and that the artist commits not to bid from any wallet.
+
+forge 259 of 259 after these three (256, plus the two getter tests and the invariant); Slither unchanged (no high or medium; 10 low, 25 informational); `forge fmt --check` clean; ABIs and `audit/build-manifest.json` re-exported. The site's tests pass against the new ABI.
 
 The figures for the whole store in STORAGE.md, the README and the checklists (FA-11) are still to be regenerated from `pnpm -s deploy:dry`; the lines about the still and the grids are updated.

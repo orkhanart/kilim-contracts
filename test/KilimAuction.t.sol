@@ -1140,6 +1140,67 @@ contract KilimAuctionTest is TestBase {
         assertEq(nft.ownerOf(30), BOB);
     }
 
+    /// @dev highestBidMotifs is the current highest bid's own reserved ids, and after settlement the
+    ///      winning bid's: what Kilim Bazaar reads (contracts/AUDIT.md FA-08). It follows every bid, a
+    ///      capped reward and an empty pool, and does not move when the ids are claimed.
+    function testHighestBidMotifsAreTheWinningBidsOwnIds() public {
+        KilimAuction.Config memory c = config(30);
+        c.maxMotifsPerBid = 25;
+        auction = new KilimAuction(c);
+        nft = auction.motifs();
+        _openBidding(auction);
+        (uint256 first, uint256 count) = auction.highestBidMotifs();
+        assertEq(first, 0);
+        assertEq(count, 0);
+        _bid(ALICE, 25); // ids 1-25
+        (first, count) = auction.highestBidMotifs();
+        assertEq(first, 1);
+        assertEq(count, 25);
+        _bid(BOB, 27); // ids 26-30: the reward is capped by the pool, not 27
+        (first, count) = auction.highestBidMotifs();
+        assertEq(first, 26);
+        assertEq(count, 5);
+        // claiming does not move them
+        vm.prank(ALICE);
+        auction.claimMotifs(25, ALICE);
+        vm.prank(BOB);
+        auction.claimMotifs(5, BOB);
+        (first, count) = auction.highestBidMotifs();
+        assertEq(first, 26);
+        assertEq(count, 5);
+        assertEq(nft.ownerOf(26), BOB);
+        // the pool is empty: the next highest bid earned none
+        _bid(ALICE, 29);
+        (first, count) = auction.highestBidMotifs();
+        assertEq(first, 0);
+        assertEq(count, 0);
+        // after settlement it is the winning bid's
+        _bid(CAROL, 33);
+        vm.warp(auction.endsAt());
+        auction.settle();
+        assertEq(auction.highestBidder(), CAROL);
+        (first, count) = auction.highestBidMotifs();
+        assertEq(first, 0);
+        assertEq(count, 0);
+    }
+
+    /// @dev Over a long auction the getter always names the last accepted bid's range, which its
+    ///      BidPlaced event also carries.
+    function testHighestBidMotifsFollowEveryBid() public {
+        uint256 units = 10;
+        address[3] memory who = [ALICE, BOB, CAROL];
+        for (uint256 i; i < 12; ++i) {
+            uint256 before = auction.motifsAllocated();
+            uint256 reward = auction.rewardForBid(units * UNIT);
+            _bid(who[i % 3], units);
+            (uint256 first, uint256 count) = auction.highestBidMotifs();
+            assertEq(first, before + 1);
+            assertEq(count, reward);
+            assertEq(auction.motifsAllocated(), before + reward);
+            units = auction.minimumBid() / UNIT;
+        }
+    }
+
     function testGas64MotifClaimAcrossBids() public {
         _bid(ALICE, 25); // ids 1-25
         _bid(BOB, 27);

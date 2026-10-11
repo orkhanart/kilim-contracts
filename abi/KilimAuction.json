@@ -159,13 +159,6 @@
   },
   {
     "type": "function",
-    "name": "deliverPrizeToWinner",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "duration",
     "inputs": [],
     "outputs": [
@@ -253,6 +246,24 @@
     "outputs": [
       {
         "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "highestBidMotifs",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "firstMotifId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "count",
         "type": "uint256",
         "internalType": "uint256"
       }
