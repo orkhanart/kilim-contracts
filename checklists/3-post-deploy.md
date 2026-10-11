@@ -19,7 +19,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 ## Website goes live (before `startsAt`)
 
 - [ ] Point the site at the deployment: `pnpm -s site-config --chain <id> --auction <address> --tx <the auction's creation transaction, from forge's broadcast file>` (it checks the receipt, takes the deployment block from it, verifies the auction and reads the two token contracts from it; `--block <n>` instead needs a node that still answers for that block), then run `pnpm site:sync-orkhanart` (it rebuilds the live auction page and the landing into the orkhan.art checkout), commit there and deploy. Open `orkhan.art/kilim/auction` and check it is live, with the published addresses.
-- [ ] The opening email: the auction address reaches the sign-up service on orkhan.art's server (pull `site/chains/1.json` into its checkout, or set `KILIM_AUCTION`), and `node cli.mjs status` in `notify-server/` shows it with "waiting for the auction to open" and the list size. Send yourself `node cli.mjs test <your address>` once more (`notify-server/README.md`).
+- [ ] The opening email: the auction address reaches the sign-up service on orkhan.art's server (pull `site/chains/1.json` into its checkout, or set `KILIM_AUCTION`), and `node cli.mjs status` in `notify-server/` shows it with "waiting for bidding to open (the 100th check-in)" and the list size. Send yourself `node cli.mjs test <your address>` once more (`notify-server/README.md`).
 - [ ] Pin and display the official addresses. Confirm the site only ever asks a wallet to send to the published auction and Motif Bazaar addresses.
 - [ ] Smoke test in read-only mode against the live contracts:
   - the page shows 0 of 100 registered and offers no bid;
