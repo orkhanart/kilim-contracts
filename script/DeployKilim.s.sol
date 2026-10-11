@@ -46,7 +46,7 @@ interface VmDeploy {
 ///                              spent that nonce; both token contracts are then void and this refuses.
 ///         `run()` does 1 and 2 for the local dry run (`pnpm deploy:dry`); the rehearsal uses the two
 ///         phases as mainnet does. The store is sent by forge's --sender, never by the config's
-///         deployer once its nonce is published: 38 chunks would spend that nonce. The config is a JSON
+///         deployer once its nonce is published: 45 chunks would spend that nonce. The config is a JSON
 ///         file named by $KILIM_DEPLOY_CONFIG; see deploy/mainnet.example.json,
 ///         deploy/sepolia.example.json and docs/STORAGE.md. On Ethereum mainnet (chain 1) the deployer
 ///         must be the artist's wallet, the auction settings must be the decided launch values, the
@@ -490,7 +490,8 @@ contract DeployKilim {
     ///         them. A third creation that was mined and reverted, or replaced by another transaction at
     ///         n + 2, spent that nonce: nothing can be deployed at the minter's address any more, both
     ///         token contracts are void, and this refuses ("deployer nonce is not the published one plus
-    ///         two"). A dropped first or second creation spends nothing: run runContracts again.
+    ///         two"). A dropped first creation spends nothing: run runContracts again. A dropped second (the first
+    ///         mined) leaves the deployer at n + 1, which no command completes: see checklists/2-deploy.md.
     function deployAuction(Config memory c) public returns (Deployed memory d) {
         _requireChain(c);
         _printSettings(c);

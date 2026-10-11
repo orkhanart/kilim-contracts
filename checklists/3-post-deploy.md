@@ -80,7 +80,7 @@ Registration opens at `startsAt`. Bidding is closed until exactly 100 wallets ha
 - [ ] Check what settlement did with the 1/1:
   - `PrizeClaimed(winner, winner)`, `oneOfOne.minted() == true` and `oneOfOne.ownerOf(1) == winner`: delivered, nothing more to do;
   - `PrizeDeliveryFailed(winner)`: the winner's wallet rejected it or needed more than 500,000 gas. Help the winner call `claimPrize(to)`: to its own address with a higher gas limit if it only needed more gas, or to another address that accepts it. Only the winner can.
-- [ ] Read `oneOfOne.tokenURI(1)` with an explicit gas value (about 4M is needed; send 8M) and confirm its sha256 is the page manifest's golden. Check the token on the marketplace: the still, then the page.
+- [ ] Read `oneOfOne.tokenURI(1)` with an explicit gas value (about 4.5M is needed; send 8M) and confirm its sha256 is the page manifest's golden. Check the token on the marketplace: the still, then the page.
 - [ ] The treasury calls `withdrawProceeds(to)` to the pre-chosen address. Confirm the ETH arrives and `proceedsDue` reads 0.
 - [ ] Give the winner what the terms promise: The Unwoven Kilim's page is served from the chain, and the way to open it full-window is the `animation_url` of `tokenURI(1)` saved as an `.html` file. (With no bids the auction never ends, so there is nothing to settle.)
 - [ ] Publish the result: winning bid, winner address, motifs allocated and claimed, and the settlement transaction.

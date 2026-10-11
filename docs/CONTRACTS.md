@@ -25,7 +25,7 @@ The artwork file itself is still titled "KILIM / What the weave remembers" insid
 
 No contract has an admin, pause, upgrade, metadata setter or ownership role. Everything is fixed by constructor arguments. Each token contract has one `minter`, an immutable address given at construction: the auction's address, predicted from the deployer's nonce (see Deployment). One contract = one marketplace collection page, which is why the 1/1 is not inside the motif collection.
 
-Why separate contracts: the auction is money, the motifs are a collection, the 1/1 is a single work with 450 KB of stored page, and the weaver's rules are not decided. Each can be audited and read on its own.
+Why separate contracts: the auction is money, the motifs are a collection, the 1/1 is a single work with about 1.0 MB of stored page, and the weaver's rules are not decided. Each can be audited and read on its own.
 
 ## KilimMotifs
 

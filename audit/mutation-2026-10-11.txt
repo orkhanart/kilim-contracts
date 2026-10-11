@@ -311,7 +311,7 @@ O18: KILLED  src/KilimOneOfOne.sol:437  transfer to the motif collection allowed
 Survivors
 
 E30  src/auction/EnglishAuction.sol:114  register without reentrancy guard
-     EQUIVALENT: _register makes no external call (wallet.balance is the BALANCE opcode), so there is nothing to re-enter from.
+     EQUIVALENT: _register makes no external call (wallet.balance is the BALANCE opcode), so there is nothing to re-enter from; and register entered from a callback (a refund's receive, a receiver hook during a claim or the prize) touches only the registration flag and count, which no outer call has half-written.
 E31  src/auction/EnglishAuction.sol:121  registerFor without reentrancy guard
      EQUIVALENT: the only call out is SignatureChecker's ERC-1271 check, a STATICCALL (OpenZeppelin 5.6.1 SignatureChecker.sol:112): the wallet cannot write state or re-enter a writing function.
 E34  src/auction/EnglishAuction.sol:124  drop wallet != 0 in registerFor
@@ -335,7 +335,7 @@ O10  src/KilimOneOfOne.sol:92  mint to the 1/1 contract (_update still guards)
 O11  src/KilimOneOfOne.sol:92  mint to the auction (_update still guards)
      EQUIVALENT: as O10, for the minter: _update refuses it with the same selector.
 E113  src/auction/EnglishAuction.sol:243  refund gas floor ignores the 1/64 held back
-     EQUIVALENT IN EFFECT: measured: at the smallest gas limit that lets a rival's bid through, the outbid leader's receive() starts with 140,492 gas, with and without the mutant, the same as with 2,000,000. The 300,000 reserve covers the 1/64 held back; the floor moves 2,517 gas and nothing the refund gets changes.
+     EQUIVALENT IN EFFECT: measured: at the smallest gas limit that lets a rival's bid through, the outbid leader's receive() starts with 140,492 gas, with and without the mutant, the same as with 2,000,000. The 300,000 reserve covers the 1/64 held back; the floor moves 2,380 gas (REFUND_GAS / 63; the smallest limit that succeeds moves 2,517) and nothing the refund gets changes.
 E115  src/auction/EnglishAuction.sol:243  refund gas floor < -> <=
      EQUIVALENT IN EFFECT: moves the refund floor by exactly one gas.
 A60  src/KilimAuction.sol:210  settle gas floor ignores the 1/64 held back
@@ -353,9 +353,9 @@ A06  src/KilimAuction.sol:84  drop 1/1 minter binding
 A61  src/KilimAuction.sol:210  settle gas floor without the 50,000 after the call
      REAL GAP: property (F-02, the comment at KilimAuction.sol:208): whenever settle() succeeds, the delivery got the full PRIZE_GAS. Measured: at the smallest gas limit that settles, the winner's onERC721Received starts with 391,944 gas under the mutant against 392,264 normally, 320 gas short of its allowance. testLowGasSettleCannotSkipThePrize steps the gas limit by 4,000 and uses a receiver that needs far less, so it cannot see this. Test: find the smallest gas limit that settles (binary search, as GasFloors._estimate does for bids) and assert the receiver saw the same gas as under a generous limit. Risk: very low; only a receiver needing within about 320 gas of the allowance is affected, and its winner can still use claimPrize.
 M09  src/KilimMotifs.sol:81  drop grid total check
-     REAL GAP: property: the two grid chunks hold exactly 32,768 bytes. Every test that breaks the layout also breaks the hash, and the hash check refuses with the same selector. Without the total check a short last chunk (missing grids read as zeros) or a long one (extra bytes never shown) passes with a gridsHash over what _grids() returns. Test: chunks of 24,544 + 8,192 - 32 bytes with that hash must revert InvalidConfiguration. Risk: very low; deployer input, and the deploy config pins the packer's hash of the real 32,768 bytes.
+     REAL GAP: property: the two grid chunks hold exactly 32,768 bytes. Every test that breaks the layout also breaks the hash, and the hash check refuses with the same selector. Without the total check a short last chunk (missing grids read as zeros) or a long one (extra bytes never shown) passes with a gridsHash over what _grids() returns. Test: a last chunk of 8,192 bytes (one grid short of 8,224) with a gridsHash over those bytes must revert InvalidConfiguration. Risk: very low; deployer input, and the deploy config pins the packer's hash of the real 32,768 bytes.
 M14  src/KilimMotifs.sol:316  chunk without 0x00 lead accepted
-     REAL GAP: property: every chunk is an SSTORE2 data contract, code 0x00 || data. No test gives a chunk with a nonzero first byte and a hash that matches its data (the 1/1's fuzz case 8 uses the motif contract, whose hash fails first). Test: vm.etch a chunk as 0x01 || data, pass keccak256(data), expect InvalidConfiguration. Risk: very low; the data read is the same, only the chunk could be callable code.
+     REAL GAP: property: every chunk is an SSTORE2 data contract, code 0x00 || data. No test gives a chunk with a nonzero first byte and a hash that matches its data (in the 1/1's fuzz case 8 the lead-byte check refuses the motif contract first; with that check dropped, the hash check refuses it with the same selector). Test: vm.etch a chunk as 0x01 || data, pass keccak256(data), expect InvalidConfiguration. Risk: very low; the data read is the same, only the chunk could be callable code.
 O04  src/KilimOneOfOne.sol:369  empty section accepted
      REAL GAP: property: each page section has at least one chunk. testFuzzInvalidConfiguration case 6 empties the prefix but keeps its old hash, so the hash check refuses it. Test: prefixChunks empty with prefixHash = keccak256("") must revert InvalidConfiguration. Risk: very low; deployer input pinned by the deploy config.
 O07  src/KilimOneOfOne.sol:396  chunk without 0x00 lead accepted
@@ -365,3 +365,11 @@ Gas measurements (E113, A60, A61): a scratch test, not in the repo, finds by bin
 with which the call succeeds and records gasleft() on entry to the receiver (the outbid leader's receive() for
 the refund, the winner's onERC721Received for the prize), then repeats under a 2,000,000 limit. Smallest limits:
 bid 521,009 (518,492 under E113); settle 583,100 (575,030 under A60, 533,025 under A61).
+
+Follow-up, October 11, 2026, after the record (commits 7c969a80 and the one that adds this note)
+Tests added since: A05 and A06 are killed by the FA-13 tests that break each minter binding alone
+(testAuctionRefusesAMotifCollectionWithAnotherMinter and its siblings in test/KilimAuction.t.sol); A61 by the
+tightened testSettleFloorIsExactAndTheDeliveryAlwaysGetsFullGas (lowest settling limit >= SETTLE_FLOOR; checked
+by re-applying the mutant: the test fails); E96 by testRejectsFractionalUnitBid (a 0.0001 ETH remainder) and E21 by
+testIncrementOfExactlyOneHundredPercentIsAccepted. M09, M14, O04 and O07 remain: constructor inputs masked by the
+hash check, very low risk, pinned in practice by the deploy config's expected hashes. Non-equivalent survivors left: 4.

@@ -6,7 +6,7 @@ Don't start unless the pre-deploy go/no-go is signed off. A deployed auction **c
 
 Two phases, in this order ([docs/STORAGE.md](../docs/STORAGE.md#deployment-and-what-the-script-refuses)):
 
-1. **The store** (`runStore()`): every chunk (motif grids, names, page prefix, head and tail) through the CREATE2 deployer `0x4e59b44847b379578588920cA78FbF26c0B4956C`, salt 0. Sent by forge's `--sender`: any funded wallet **other than orkhanart.eth once its nonce is published** (46 chunks today would move that nonce, and the script refuses it). Any time before the contracts; idempotent, so it can be rerun and sends only what is missing.
+1. **The store** (`runStore()`): every chunk (motif grids, names, page prefix, head and tail) through the CREATE2 deployer `0x4e59b44847b379578588920cA78FbF26c0B4956C`, salt 0. Sent by forge's `--sender`: any funded wallet **other than orkhanart.eth once its nonce is published** (45 chunks today would move that nonce, and the script refuses it). Any time before the contracts; idempotent, so it can be rerun and sends only what is missing.
 2. **The contracts** (`runContracts()`): from orkhanart.eth at its published nonce n: `KilimMotifs` (Motif Bazaar) at n, `KilimOneOfOne` (The Unwoven Kilim) at n + 1, both with the auction's predicted address (n + 2) as `minter`, then `KilimAuction` at n + 2.
 
 `run()` does both in one go for the local dry run only (`pnpm -s deploy:dry`). The Sepolia rehearsal uses the two phases as mainnet does, with the nonce published after the store, but with the gas flags of [the section below](#the-sepolia-rehearsal-runs-glamsterdam): Sepolia already runs Glamsterdam. On mainnet `run()` is refused.
@@ -41,10 +41,12 @@ On Sepolia, add two flags to both commands:
 With `--skip-simulation` forge takes each gas limit from the node's `eth_estimateGas` times the multiplier. The node's estimate is itself short: 38,532,308 for a full chunk, about 94,000 under the minimum, so the estimate alone would fail. A multiplier of 105 or more covers it; pass 120 explicitly rather than rely on forge's default. The script still runs its own checks before anything is sent.
 
 - [ ] The script's 8M policy and every gas figure it prints are Cancun measurements. They do not describe a Glamsterdam chain: on Sepolia they pass and say nothing about what the chain charges.
-- [ ] Record the Sepolia receipts as the post-fork figures: each chunk's gas used, and the three contracts (estimated on 11 October at about 18.6M for `KilimMotifs`, 24.9M for `KilimOneOfOne` and 18.1M for `KilimAuction`). The whole store is about 1.95G gas there. Fund the Sepolia wallets for that.
+- [ ] Record the Sepolia receipts as the post-fork figures: each chunk's gas used, and the three contracts (estimated on 11 October at about 18.6M for `KilimMotifs`, 24.9M for `KilimOneOfOne` and 18.1M for `KilimAuction`). The whole store is about 1.6G gas there. Fund the Sepolia wallets for that.
 - [ ] Send the first chunk and read its receipt before leaving the rest to run.
 
 ## Pre-flight
+
+`cast` is not part of the project's toolchain (only forge and anvil are). Where a line below uses it, the same JSON-RPC call works with curl, for example `curl -s -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_getCode","params":["0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac","latest"]}' "$RPC"` must answer `"result":"0x"`, and `eth_getBlockByNumber` with `["latest",false]` shows the header fields.
 
 `script/DeployKilim.s.sol` checks the items marked **(script)** itself and **refuses to send** if any fail. Confirm every item by hand as well.
 
@@ -62,7 +64,7 @@ With `--skip-simulation` forge takes each gas limit from the node's `eth_estimat
 - [ ] **(script)** On chain 1: `deployer` and `treasury` are `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac` (orkhanart.eth); `incrementBps` 1000 (+10%); `duration` 86400 (24 hours from the first bid); `extensionWindow` 600 (10 minutes, no limit on extensions); `motifCap` and `maxMotifsPerBid` 1,000,000; `oneOfOne.name` "The Unwoven Kilim". **By hand:** fresh proof that the key still works ([1-pre-deploy.md](1-pre-deploy.md)). Switching the treasury to a Safe would mean changing `LAUNCH_TREASURY` in the script, its tests and the signed-off config, then re-tagging.
 - [ ] **(script)** `startsAt` is in Unix **seconds** (not milliseconds), at least `minLeadSeconds` (the inspection window) ahead, and at most a year out. On chain 1, `minLeadSeconds` must be nonzero. **By hand:** it is the window that was announced; the script accepts any nonzero value.
 - [ ] **(script)** The dry run of the three contracts: the auction's address equals the prediction (nonce + 2), every immutable reads back as deployed, a motif's `tokenURI` and the 1/1's `tokenURI(1)` hash to the manifests' goldens, and each deployment and each read stays under 8M gas.
-- [ ] **(script)** forge simulates the whole script before sending anything. **By hand:** the commands carry `--slow` and `--timeout`; each broadcast gas limit is forge's own Cancun simulation of that transaction times 130%, not the node's estimate (on Sepolia: the flags above); and the keys hold enough ETH (on a mainnet before Glamsterdam, the store about 252M gas in all with the page of 10 October, the three contracts about 13.4M).
+- [ ] **(script)** forge simulates the whole script before sending anything. **By hand:** the commands carry `--slow` and `--timeout`; each broadcast gas limit is forge's own Cancun simulation of that transaction times 130%, not the node's estimate (on Sepolia: the flags above); and the keys hold enough ETH (on a mainnet before Glamsterdam, the store about 245.8M gas in all with the page of 11 October and the WebP still, the three contracts about 13.1M).
 - [ ] The git tag is checked out, and `pnpm -s artifacts` matches the frozen `audit/build-manifest.json`.
 
 ## Send

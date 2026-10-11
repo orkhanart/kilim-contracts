@@ -125,6 +125,23 @@ contract KilimAuctionTest is TestBase {
         vm.expectRevert(EnglishAuction.NonWholeUnitBid.selector);
         vm.prank(ALICE);
         auction.bid{value: 25 * UNIT + 1}(25 * UNIT + 1, 0, 0);
+        // The unit is 0.001 ETH exactly, not a finer one (mutation E96 of 11 October).
+        vm.expectRevert(EnglishAuction.NonWholeUnitBid.selector);
+        vm.prank(ALICE);
+        auction.bid{value: 25 * UNIT + UNIT / 10}(25 * UNIT + UNIT / 10, 0, 0);
+    }
+
+    /// @dev A raise of 100% (incrementBps 10,000) is the largest the constructor accepts; one more is refused
+    ///      (mutation E21 of 11 October). The launch value is 1,000, pinned by the deploy script on chain 1.
+    function testIncrementOfExactlyOneHundredPercentIsAccepted() public {
+        KilimAuction.Config memory c = config();
+        c.incrementBps = 10_000;
+        KilimAuction a = new KilimAuction(c);
+        assertEq(a.incrementBps(), 10_000);
+        c = config();
+        c.incrementBps = 10_001;
+        vm.expectRevert(EnglishAuction.InvalidConfiguration.selector);
+        new KilimAuction(c);
     }
 
     /// @dev The ETH sent must equal the bid: less, more or none all revert and leave nothing behind.

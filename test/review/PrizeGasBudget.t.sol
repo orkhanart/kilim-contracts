@@ -362,7 +362,10 @@ contract PrizeGasBudgetPoC is TestBase {
         // A winner that needs the whole budget: delivered only if the hook really gets PRIZE_GAS less
         // the overhead. If any gas limit settled with a short delivery, this winner would be left to
         // claimPrize while settled, which the loop below would catch. The sweep starts far below the floor,
-        // so a floor check that moved or was deleted shows as a short delivery or a bare out-of-gas.
+        // so a floor check that was deleted, raised or lowered by more than its slack shows as a short delivery,
+        // a bare out-of-gas or a lowest limit below SETTLE_FLOOR. The settle's own work before the check is
+        // about 28,000 gas, so a floor lowered by less than that is not seen here: the 50,000 it keeps for the
+        // work after the call carries that much slack (mutation record of 11 October, A61).
         uint256 warm = _maxBurn(_deliveredWarm, 380_000, 400_000);
         Burner w = new Burner(warm);
         _fund(address(w), 1 ether);

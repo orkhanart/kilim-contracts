@@ -524,4 +524,34 @@ No mutation campaign on the current contracts (FA-18). No transaction on Sepolia
 
 forge 259 of 259 after these three (256, plus the two getter tests and the invariant); Slither unchanged (no high or medium; 10 low, 25 informational); `forge fmt --check` clean; ABIs and `audit/build-manifest.json` re-exported. The site's tests pass against the new ABI.
 
-The figures for the whole store in STORAGE.md, the README and the checklists (FA-11) are still to be regenerated from `pnpm -s deploy:dry`; the lines about the still and the grids are updated.
+
+#### The cleanup of 11 October
+
+Four groups worked in separate worktrees and each was checked by an adversarial reviewer; the commits were then merged and the whole suite run again.
+- **FA-02, Glamsterdam in the runbook.** checklists/2-deploy.md has a section for the Sepolia rehearsal: broadcast with `--skip-simulation --gas-estimate-multiplier 120`, so that forge takes Ethereum's estimate (the raw estimate is about 94,000 short for a full chunk). It says that the 8M policy and the script's figures are Cancun measurements, and it adds a deploy-day check that mainnet has not forked. The wrong sentence about where the broadcast gas limit comes from is corrected. STORAGE.md and checklist 1 say the repricing covers the three contracts too.
+- **FA-04, lost transactions.** `runAuction()` completes only a third creation that was dropped and never mined. A reverted or replaced one spends n + 2 and voids both token contracts. A dropped first creation spends nothing; a dropped second (the first mined) leaves the deployer at n + 1, which no command completes. Reworded in the script, the README, STORAGE.md and checklist 2. Test: `testCompletingRefusesAThirdCreationThatWasMined`.
+- **FA-05.** STORAGE.md says the dry-run creation figure is conservative against the 8M policy. The measurement itself is unchanged.
+- **FA-10.** `pack_motifs.py` refuses records that are not in motif order, because the page indexes them by position.
+- **FA-12.** `scripts/site-config.mjs` refuses a deployment whose `gridsHash` or `namesHash` differs from `site/motifs.js`, and a `startsAt` in the past unless `--allow-started` is given.
+- **FA-13 to FA-16, tests.**
+  - Each constructor binding is broken alone: `testAuctionRefusesAMotifCollectionWithAnotherMinter` and two siblings, plus a short names chunk for `KilimMotifs`.
+  - The F-02 sweep reaches 900,000 and requires a delivery; the exact-floor test requires the lowest settling limit to be at least the floor and finds no bare out-of-gas.
+  - The invariant handler checks who holds the 1/1 after settle and pulls a refund to a refusing wallet.
+  - A wallet holding exactly 0.01 ETH that pays its own gas cannot `register()` directly but can be sponsored.
+  - An EIP-7702 bidder without a receiver hook cannot claim motifs to itself, keeps its credits and claims elsewhere (also in NATIVE-ETH.md).
+  - Two assertions now name the exact revert reason.
+- **FA-14, deploy tests.** The V-01 check names its reason ("expected prefixHash"), and a zero in each of the eleven `expected` values is refused through both phases on chain 1.
+- **FA-17.** The deploy script refuses a deployer with code ("deployer has code (EIP-7702 delegation or contract wallet)") in the contracts phase and in `runAuction()`. Test: `testRefusesADeployerWithCode`.
+- **FA-18, mutation campaign.** [audit/mutation-2026-10-11.txt](audit/mutation-2026-10-11.txt): 279 single-line mutants of the four contracts at `ecd34af5`, of which 254 were killed. Of the 25 survivors, 16 are equivalent and 9 were gaps in the tests. Since then:
+  - A05 and A06 are killed by the FA-13 tests, and A61 by the exact-floor test (checked by re-applying the mutant).
+  - E96 is killed by `testRejectsFractionalUnitBid` (a 0.0001 ETH remainder), and E21 by `testIncrementOfExactlyOneHundredPercentIsAccepted`.
+  - Four very-low-risk constructor-input survivors remain (M09, M14, O04, O07): each is masked by the hash check, and the deploy config pins the hashes.
+
+  This supersedes F-27 and the mutation statements dated before it.
+- **FA-19.** `scripts/probe-rpc.mjs` now says "gas suffices", not "renders". The recorded outputs of 10 October keep their wording.
+
+**Found while fixing FA-17: the deployer wallet carries an EIP-7702 delegation on mainnet.** `eth_getCode(0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac)` answers `0xef0100` followed by `63c0c19a282a1b52b07dd5a65b58948a07dae32b`, MetaMask's smart-account delegator: two public nodes, checked twice on 11 October. The nonce is 1,566; there is no delegation on Sepolia. As things stand the deploy script refuses the contracts phase, which is correct. The wallet must be switched back to a standard account before the nonce is published: one transaction, which spends a nonce. Checklist 1 now says so. The same address is the treasury and the royalty receiver, so until then ETH sent to it runs the delegate's code.
+
+After the cleanup: forge **267 of 267** (266 after the merge, plus `testIncrementOfExactlyOneHundredPercentIsAccepted`; the E96 case extends an existing test); packers 25 of 25; page 3 of 3; site 92 of 92; `forge fmt --check` clean.
+
+The figures for the whole store in STORAGE.md, the README, the checklists and ARTWORK-ONCHAIN.md (FA-11) are regenerated from `pnpm -s deploy:dry` of 11 October: 45 chunks, 245.8M gas, `KilimOneOfOne` creation 6,597,641 gas, and `tokenURI(1)` reading 1,067,899 bytes at 4,516,602 gas.
