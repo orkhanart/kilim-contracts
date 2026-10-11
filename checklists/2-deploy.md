@@ -69,7 +69,7 @@ With `--skip-simulation` forge takes each gas limit from the node's `eth_estimat
 
 ## Send
 
-- [ ] **Store phase.** Broadcast the chunk transactions (46 with the page of 10 October). Record each hash. Compare the addresses the script prints with the published ones. The chunks can go up over several days, from any wallet but the deployer.
+- [ ] **Store phase.** Broadcast the chunk transactions (45 with the artwork and still of 11 October). Record each hash. Compare the addresses the script prints with the published ones. The chunks can go up over several days, from any wallet but the deployer.
 - [ ] **Contracts phase.** Broadcast the three creation transactions from orkhanart.eth, in order, at nonces n, n + 1, n + 2. They send no ETH: the auction holds nothing until the first bid.
 - [ ] Record each transaction hash, block number and gas used.
 - [ ] Confirm the three addresses match the published predictions.

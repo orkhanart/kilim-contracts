@@ -60,6 +60,8 @@ A bid is accepted when all of this holds:
 
 There is no deadline between the 100th registration and the first bid, and a bid transaction carries no deadline of its own.
 
+**Gas for a bid.** A bid that outbids someone must reach the refund with 452,380 gas left, or it reverts with `InsufficientGas` and changes nothing. A wallet's own gas estimate is the bare minimum at the moment it is taken, and a bid that lands inside the last 10 minutes also moves the close, which costs more: in the dress rehearsal of 11 October a late bid sent with an estimate taken just before the window reverted (`audit/rehearsal-2026-10-11.txt`, step 7). Send outbids with a margin. The site sends 1,500,000 and asks for the ETH that covers it.
+
 ## 3. The clock
 
 `startsAt` opens registration. It does not start a countdown.

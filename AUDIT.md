@@ -570,3 +570,19 @@ The figures for the whole store in STORAGE.md, the README, the checklists and AR
   - `tokenURI(1)`: 1,068,635 bytes, read at 4,519,744 gas.
 - **Tests.** forge 267 of 267; site 93 of 93; packers 25 of 25; page 3 of 3 (the grids proof passes with the new grids); artwork 87 of 87; `pnpm -s deploy:dry` green.
 
+### Launch preparation, 11 October 2026
+
+- **The dress rehearsal on a mainnet fork** ([audit/rehearsal-2026-10-11.txt](audit/rehearsal-2026-10-11.txt)): the deploy script against anvil forking mainnet at block 26,170,178, with orkhanart.eth's real nonce and its EIP-7702 delegation.
+  - **Refusals:** it refused all five wrong states it was shown: the store missing, the store sent from the deployer, the delegation still on, the nonce unchanged, and a pending transaction.
+  - **Deployment:** with the delegation cleared it deployed the 45 chunks and the three contracts at the predicted addresses. Receipts: store 225,022,981 gas (the dry run counts 9% more), contracts 11,533,172.
+  - **The auction:** 100 registrations, six bids (EOAs and a contract wallet with a receive hook), refunds paid in the same transaction, a late bid extending the close, settle delivering the 1/1, every motif claimed (3,531), and proceeds withdrawn. The auction ended holding exactly its liabilities.
+  - **Reads:** both tokenURIs equal the goldens. `highestBidMotifs()` equals the winning `BidPlaced` range.
+- **FA-21 (Info), found there.** A late outbid sent with a node's bare `eth_estimateGas`, taken before the 10-minute window and mined inside it, reverts with `InsufficientGas`: the bid then also writes `endsAt`. Nothing is lost but gas. The site sends a fixed 1,500,000. NATIVE-ETH.md section 2 now tells bidders to add a margin.
+- **The nonce after the switch-back.** MetaMask's switch-back is an EIP-7702 transaction sent by the wallet itself, so it uses two nonces. Expect 1,568, not 1,567. The checklists and `deploy/mainnet.json` say to publish the nonce read, never an assumed one.
+- **`script/DisplayTest.s.sol`**, for the Sepolia display test. It deploys the two token contracts over the store, with the launch texts and a helper contract as minter, mints the 1/1 and nine motifs at once, checks both tokenURIs against the goldens, and refuses mainnet. In the auction the 1/1 exists only after settlement, which a rehearsal cannot wait for. Tests: `test/DisplayTest.t.sol` (3).
+- **Configs and the launch sheet.**
+  - `deploy/sepolia.json` is filled. Its `startsAt` placeholder (0) is set when the rehearsal runs.
+  - `deploy/mainnet.json` is filled except `deployerNonce` and `startsAt`. Its texts and `expected` block equal the packed stores.
+  - [checklists/0-launch-steps.md](checklists/0-launch-steps.md) is the artist's sheet, in order.
+- **[audit/HANDOFF-2026-10-11.md](audit/HANDOFF-2026-10-11.md):** the package for the independent audit (K-08), at the tag `audit-candidate-2026-10-11`.
+

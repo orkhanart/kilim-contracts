@@ -1,0 +1,41 @@
+{
+  "_comment": "The Sepolia rehearsal, filled 11 October 2026 (checklists/0-launch-steps.md, then 2-deploy.md). Rehearse as mainnet: runStore from a store wallet that is NOT orkhanart.eth, then runContracts from orkhanart.eth. Sepolia runs Glamsterdam: add --skip-simulation --gas-estimate-multiplier 120 to both commands. deployerNonce is orkhanart.eth's Sepolia nonce read on 11 October 2026 (eth_getTransactionCount = 2, no code there): send nothing else from it on Sepolia before runContracts, or update this number. startsAt is a placeholder (0, in the past): runStore ignores it, runContracts refuses it ('startsAt outside the inspection window'). Right before runContracts, set it to the unix time now + 3600 (python3 -c 'import time; print(int(time.time()) + 3600)'): it must be at least minLeadSeconds (600, a 10-minute inspection window for the rehearsal) after the block the contracts land in, and less than a year out. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 55f33486...).",
+  "chainId": 11155111,
+  "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+  "deployerNonce": 2,
+  "minLeadSeconds": 600,
+  "motifStore": "../onchain/build-motifs",
+  "pageStore": "../onchain/build-page",
+  "auction": {
+    "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+    "startsAt": 0,
+    "duration": 86400,
+    "extensionWindow": 600,
+    "incrementBps": 1000,
+    "reservePrice": 10000000000000000,
+    "maxMotifsPerBid": 1000000
+  },
+  "collection": {
+    "motifCap": 1000000,
+    "description": "One of the 1,024 Kilim motifs.",
+    "externalUrl": "https://kilim.art"
+  },
+  "oneOfOne": {
+    "name": "The Unwoven Kilim",
+    "description": "A generative ASCII carpet drawn from the 1,024 Kilim motifs.",
+    "externalUrl": ""
+  },
+  "expected": {
+    "gridsHash": "0x966b338f2228d7a4809f4287e0ae2835c96c8cf03f5d27514d6650a8c3b12ddb",
+    "namesHash": "0xf92beabc41c8297d69e7e0eccd7abbc8293a19e4f91719cbac76c4d7971b1396",
+    "prefixHash": "0xd59efff574dc7c2b7b084873bfc8514c5ff0260cc0f6cc55dd3723d0296888a4",
+    "headHash": "0x69dd43c64deca3dd5cc1b7a9d6ee082e14054a2931591ba93e4280e1550a261a",
+    "tailHash": "0x25b853dcdb5725d48dae54b6d7822e46d508e7f8de896693e7deaebe8228b794",
+    "motifGolden": "0x5a1d6c2f4ef8fc417999a6cb406c9ce166de5383138f85dcb73726b9e80e74ae",
+    "oneOfOneGolden": "0x69bca6eb9f6fe65278e4bfc808a57ac8bab7cc5ef2615bf2775c32475d678607",
+    "motifSource": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
+    "artwork": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
+    "still": "0xfed32204a81588656725915761f4f0f906250bdabaa5d1a3c14bcbb64ad8b277",
+    "loader": "0x4b611d0641dc74b87eba33f0b72f378a0805ebc543df258378d996e619a17f72"
+  }
+}

@@ -1,0 +1,255 @@
+Dress rehearsal of the mainnet deployment and the whole auction, on a local fork of Ethereum mainnet.
+October 11, 2026. Nothing was sent to any real network, no key was used, nothing was signed: every
+transaction went to a local anvil, from accounts it impersonated.
+
+Commit 77a5cc10 (contracts/, onchain/ and the artwork at that commit; HEAD moved to 5ce7aaf8 during the run,
+and git diff 77a5cc10 HEAD shows no change under contracts/, onchain/ or research/motifs/curate/living-language-v3/).
+forge 1.7.1, anvil 1.7.1 (its current mainnet hardfork, with EIP-7825's 16,777,216 gas cap per transaction), solc 0.8.37.
+Fork: anvil --fork-url https://ethereum-rpc.publicnode.com --chain-id 1 --port 8645
+      at mainnet block 26,170,178 (0x7acbdd26ae18802b00d724075ebff5562a395d5a5aa95364bd3805b7518a8867),
+      timestamp 1791733355, base fee 171,060,156 wei (0.171 gwei), gas limit 60,000,000.
+Mainnet at that block has no blockAccessListHash and no slotNumber: not Glamsterdam, so the Cancun gas
+figures and forge's own simulation apply (no --skip-simulation).
+Stores: pnpm -s check:stores passes (build-motifs gridsHash 0x966b338f...; build-page tokenURI sha256
+0x69bca6eb...), from mint/artwork.html sha256 0x55f33486..., still.webp sha256 0xfed32204...
+
+RESULT: every step passed. The deploy script refused each of the five wrong states it was shown (store
+missing, store from the deployer, delegation still on, nonce not yet moved, a pending transaction), then
+deployed the 45 chunks and the three contracts at the predicted addresses. The auction ran from
+registration to an empty contract. One observation about raw gas estimates for late bids (step 7, bid 6).
+
+
+1. ANVIL
+   Started as above. Port 8645.
+
+2. THE FORK, BEFORE ANYTHING
+   CREATE2 deployer 0x4e59b44847b379578588920cA78FbF26c0B4956C has code (the standard 69-byte factory).
+   orkhanart.eth 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac:
+     code    0xef010063c0c19a282a1b52b07dd5a65b58948a07dae32b (the MetaMask EIP-7702 delegation)
+     nonce   1,566 latest, 1,566 pending
+     balance 0.302146 ETH
+
+3. CONFIG deploy/rehearsal-fork.json (temporary; deleted at the end)
+   Built from deploy/mainnet.example.json:
+     deployerNonce   1567 (the nonce after the one delegation-clearing transaction)
+     minLeadSeconds  86400
+     startsAt        1791906155 (the fork block's timestamp + 172,800 s)
+     collection      "One of the 1,024 Kilim motifs." | https://kilim.art
+     1/1             "The Unwoven Kilim" | "A generative ASCII carpet drawn from the 1,024 Kilim motifs." | ""
+     expected        the block pnpm -s expected prints (gridsHash 0x966b338f..., namesHash 0xf92beabc...,
+                     prefixHash 0xd59efff5..., headHash 0x69dd43c6..., tailHash 0x25b853dc...,
+                     motifGolden 0x5a1d6c2f..., oneOfOneGolden 0x69bca6eb..., motifSource = artwork 0x55f33486...,
+                     still 0xfed32204..., loader 0x4b611d06...)
+   The five texts equal build-motifs/manifest.json, build-page/manifest.json and deploy/local.json.
+   It also equals deploy/mainnet.json (written by another session during this run) in every field except the
+   two it leaves TODO: deployerNonce and startsAt.
+
+   Every forge command below:
+     KILIM_DEPLOY_CONFIG=deploy/rehearsal-fork.json node scripts/forge.mjs script script/DeployKilim.s.sol
+       --sig '<phase>()' --rpc-url http://127.0.0.1:8645 --unlocked --sender <address>
+       --broadcast --slow --timeout 600     (and --no-storage-caching from 5c on, see the note under 5)
+
+4. THE CONTRACTS PHASE WITH THE DELEGATION STILL ON (deployer impersonated with anvil_impersonateAccount)
+   4a. Before the store:  runContracts() refused: "store not deployed: runStore first". Nothing sent.
+       (The script checks the store before the deployer's code, so the delegation refusal needs the store.)
+   4b. After the store (step 5b), delegation still on, nonce 1,566:
+       runContracts() refused: "deployer has code (EIP-7702 delegation or contract wallet)". Nothing sent;
+       the deployer's nonce stayed 1,566.
+
+5. THE STORE, THEN THE CONTRACTS
+   5a. runStore() with --sender orkhanart.eth: refused, "the store would spend the published deployer nonce:
+       send it from another wallet" (45 chunks to send). Nothing sent.
+   5b. runStore() from a second impersonated wallet 0x5707e00000000000000000000000000000000001 (funded with
+       100 test ETH, no code, nonce 0). Mainnet rules: forge simulated every transaction (no --skip-simulation),
+       45 chunk transactions to the CREATE2 deployer, --slow, all status 1, blocks 26,170,179 to 26,170,223.
+       Every manifest address now holds 0x00 followed by its chunk file, byte for byte (checked with eth_getCode).
+  #  chunk            bytes  CREATE2 address                              gas used  script dry run  gas limit
+   1 grids_00.bin     24544  0x52AdF9Dde0211EF2F7E5367AF4128fe48f125DE9  5,301,417       5,712,227  7,753,322
+   2 grids_01.bin      8224  0xE1D77BD0Ec2278Cf1900c72365F8f99386379354  1,806,077       1,823,096  2,494,642
+   3 names_00.bin     13739  0xaC19aC8c4863159f67Ed485554c5bc9aD540102b  3,030,091       3,261,527  4,431,507
+   4 prefix_00.bin    24575  0x5dC8059c941D7A7c9297E86a81DcE478aBBc02C1  5,379,458       5,797,261  7,867,457
+   5 prefix_01.bin    24575  0x7a2F5d93950cC4B6aC85ed88A8dF4962f9bEa63c  5,379,458       5,801,950  7,867,457
+   6 prefix_02.bin    24575  0x3Ea0bc0d182A000106B041fe5ab46a0CcD7a7725  5,379,458       5,806,639  7,867,457
+   7 prefix_03.bin    24575  0x83FdA42F7A370bba42902306D6eDB52F6106df11  5,379,458       5,811,329  7,867,457
+   8 prefix_04.bin    24575  0xf3A23808556974b36A3A6151D62828800E44b0f3  5,379,458       5,816,018  7,867,457
+   9 prefix_05.bin    24575  0x76D3728CA9292300BaD71801CA6220789B918DF0  5,379,458       5,820,707  7,867,457
+  10 prefix_06.bin      552  0xbf34C31eFB9419C03bD87c555947833DB3c1aeCc    173,181         173,698    239,205
+  11 head_00.bin        197  0xCe2627ac21F808C56948281d721FEA8e40074546     96,269          96,731    132,970
+  12 tail_00.bin      24575  0xC52d3dF58036F8E00C72AF62E0D5184bf71Ca16E  5,379,458       5,825,684  7,867,457
+  13 tail_01.bin      24575  0x7db9301517fD666703a62197254CdB186611AC4F  5,379,458       5,830,373  7,867,457
+  14 tail_02.bin      24575  0x1C922325de281e90eC797589D54Bea2Dd3ecCD9b  5,379,458       5,835,062  7,867,457
+  15 tail_03.bin      24575  0x4a563d8684cB7247FcF33E1E179a2CeaC09C20e9  5,379,458       5,839,752  7,867,457
+  16 tail_04.bin      24575  0x0653993CF786ecB75a90e80168397a6501E5Ed55  5,379,458       5,844,440  7,867,457
+  17 tail_05.bin      24575  0x253BF1cB53A44De52aAa36d128f7750037BEbC05  5,379,458       5,849,130  7,867,457
+  18 tail_06.bin      24575  0xF4096024134806eE1E8351484fB99e4356c46335  5,379,458       5,853,819  7,867,457
+  19 tail_07.bin      24575  0x5435E863786dA1379bDf640FBBb017684868b544  5,379,458       5,859,124  7,867,457
+  20 tail_08.bin      24575  0xC36833FA37449c1CA8F507E032F1Ba65fd931224  5,379,458       5,863,819  7,867,457
+  21 tail_09.bin      24575  0x8Fb009556E547Afc76617B94b38f143706b9bfBA  5,379,458       5,868,515  7,867,457
+  22 tail_10.bin      24575  0xb350af9b366981a2CA62Ad9D7252B0A2Cf7aDE81  5,379,458       5,873,209  7,867,457
+  23 tail_11.bin      24575  0x7D88aA7Cdbf76A83642C3FF74FfF4dfB5a71b686  5,379,458       5,877,261  7,867,457
+  24 tail_12.bin      24575  0xD3Cf4243e4104D9e8C60690A3d9D0fA57205C6f5  5,379,458       5,881,950  7,867,457
+  25 tail_13.bin      24575  0x90E8786E63d7adf4D915181192784d9898EF765d  5,379,458       5,886,639  7,867,457
+  26 tail_14.bin      24575  0x0Dd928B113336C621f3C3A3c286d6b2CC78AfAe0  5,379,458       5,891,328  7,867,457
+  27 tail_15.bin      24575  0xC43C8D500fC2daFa4bA1D88539f3a36e75Ef4373  5,379,458       5,896,018  7,867,457
+  28 tail_16.bin      24575  0x6868AfAf6c0056aDA55a51C5c3B9e3c5CBA076a4  5,379,458       5,900,707  7,867,457
+  29 tail_17.bin      24575  0x8cc485295fe2aFeae672838347DAa2561363929e  5,379,458       5,905,396  7,867,457
+  30 tail_18.bin      24575  0xB22A672E2cD7F3922B5C76b02eA2aAe6333D7880  5,379,458       5,910,085  7,867,457
+  31 tail_19.bin      24575  0xF2DAaF72c21dfcf43bF4051edB03f65477f3f67F  5,379,458       5,914,774  7,867,457
+  32 tail_20.bin      24575  0xC101F724E6693A6336704179f76bdDC18a962085  5,379,458       5,919,463  7,867,457
+  33 tail_21.bin      24575  0x162045ECcE8311b966F0ace42Dd60C52Ba6c2fb6  5,379,458       5,924,152  7,867,457
+  34 tail_22.bin      24575  0xAb08C99fCFcC32ADbB5cd1aacb1119f69AA27C92  5,379,458       5,929,549  7,867,457
+  35 tail_23.bin      24575  0xCF3907C2058c0f7E425550E408926FD1C227EdC4  5,379,458       5,934,244  7,867,457
+  36 tail_24.bin      24575  0x229FBc8f4Fb3AF178fA37A703B6E7019c5a91355  5,379,458       5,938,939  7,867,457
+  37 tail_25.bin      24575  0x59ccDF49ecc4C9DdEAB8d2e4d747D374790031D1  5,379,458       5,943,634  7,867,457
+  38 tail_26.bin      24575  0xE89F08CdF883FAe14714B3110bE088De7ffafa65  5,379,458       5,948,330  7,867,457
+  39 tail_27.bin      24575  0x3C91fEfCC450d51e48467766b1D51198CfCFCB80  5,379,458       5,952,284  7,867,457
+  40 tail_28.bin      24575  0xaA450B83b1CD1171830229498Ad73B36939A96cf  5,379,458       5,956,973  7,867,457
+  41 tail_29.bin      24575  0x5F7a67953fee0cc49960d8355b2dA476a1DD821f  5,379,458       5,961,662  7,867,457
+  42 tail_30.bin      24575  0x8128d1670a280a910BdB5ea0de7B83Beb71A00E4  5,379,458       5,966,351  7,867,457
+  43 tail_31.bin      24575  0x6475268879A22eaBfee93573C8806D204Bb3A55D  5,379,458       5,971,041  7,867,457
+  44 tail_32.bin      24575  0x0D4f2610b0C1dFA3B3B4471D433A2186c5B2841A  5,379,458       5,975,730  7,867,457
+  45 tail_33.bin      21981  0x95D603c659FfAB51A24fDeB6d5EF6c2083cE36dF  4,817,084       5,354,245  6,653,596
+       Store total: 225,022,981 gas used (45 transactions). The script's own dry-run figures sum to 246,004,865
+       (they add the intrinsic cost of the creation data to forge's execution measurement and come out about 8%
+       high per full chunk: 5.80M against 5.38M used). forge's gas limits (130% of its simulation) sum to
+       328,536,065; the largest is 7,867,457, under the 8M policy and the 16,777,216 cap.
+
+   Simulating the artist's switch back to a standard account:
+       anvil_setCode(orkhanart.eth, 0x): code is 0x.
+   5c. With the code cleared and the nonce still 1,566: runContracts() refused, "deployer nonce" (the script
+       prints "the deployer's nonce is 1566"). Nothing sent.
+       NOTE: the first try of 5c, without mining a block after anvil_setCode, still refused with "deployer has
+       code": forge caches the fork state per block number, and anvil_setCode does not mine a block. After
+       evm_mine and with --no-storage-caching it read the new state. A real chain moves the block with the
+       transaction, so this concerns rehearsals only: mine a block after any anvil_set* before running forge.
+       anvil_setNonce(orkhanart.eth, 1567), evm_mine: nonce 1,567 latest and pending, the state after one transaction.
+   5d. A transaction from the deployer waiting in the pool (automine off, a 0 ETH self-transfer at 1,567;
+       latest 1,567, pending 1,568): runContracts() refused, "a transaction from the deployer is pending".
+       Nothing sent. The pooled transaction was dropped (anvil_dropTransaction), automine restored; latest and
+       pending back at 1,567, pool empty.
+   5e. runContracts() from orkhanart.eth at 1,567: the settings block printed no flag; the dry run measured
+       KilimMotifs 3,210,755, KilimOneOfOne 6,138,869, KilimAuction 2,864,214, the motif tokenURI (token 1476)
+       287,312 and the 1/1's tokenURI 4,519,744 gas and matched both goldens; then three transactions, --slow,
+       all status 1:
+
+       nonce  contract        block       gas used   gas limit  address
+       1567   KilimMotifs     26,170,227  3,182,888  4,137,754  0xA9D5d1dac003538D13cd28Ca3bDfF75914928AFA
+       1568   KilimOneOfOne   26,170,228  5,856,851  7,613,906  0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF
+       1569   KilimAuction    26,170,229  2,493,433  3,241,462  0xeD82CE5F5E943ef80F3D32a907281936186742eC
+       Total for the three: 11,533,172 gas used (the script's dry run: 12,213,838; gas limits: 14,993,122).
+       Runtime sizes 10,891, 9,981 and 10,975 bytes. The deployer's nonce afterwards: 1,570.
+
+6. PREDICTED AGAINST DEPLOYED
+   computeCreateAddress(0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac, n), independently in node:
+       1567  predicted 0xA9D5d1dac003538D13cd28Ca3bDfF75914928AFA  deployed 0xA9D5d1dac003538D13cd28Ca3bDfF75914928AFA  equal
+       1568  predicted 0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF  deployed 0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF  equal
+       1569  predicted 0xeD82CE5F5E943ef80F3D32a907281936186742eC  deployed 0xeD82CE5F5E943ef80F3D32a907281936186742eC  equal
+   These are the real mainnet addresses only if the three creations go out at 1,567, 1,568 and 1,569, that is,
+   if the switch-back is the only transaction from orkhanart.eth before runContracts.
+   Chunk addresses: all 45 equal the manifests' CREATE2 addresses (any sender, any time).
+   tokenURIs, read by eth_call with gas 16,777,216 (results under step 7):
+     KilimMotifs.tokenURI after the claims: token 1476 (the first id showing motif 1, which the script's dry
+       run also picked) has sha256 0x5a1d6c2f4ef8fc417999a6cb406c9ce166de5383138f85dcb73726b9e80e74ae, 2,053 bytes:
+       the motif manifest's golden. Tokens 1, 10, 172, 1772 and 3531 each equal the packer's own
+       motif_token_uri (onchain/pack_motifs.py) for the motif motifOf gives them.
+     KilimOneOfOne.tokenURI(1) after settlement: 1,068,635 bytes, sha256
+       0x69bca6eb9f6fe65278e4bfc808a57ac8bab7cc5ef2615bf2775c32475d678607: the page manifest's golden.
+       eth_estimateGas for that read: 4,751,312.
+     Before the mint, tokenURI cannot be read (no token exists); not tried as a check.
+
+7. THE AUCTION ON THE FORK (node with JSON-RPC, anvil_autoImpersonateAccount; scratch auction.mjs)
+   Throwaway wallets 0x...5eed00000000 + i (i = 0..99), no code on mainnet; 0..4 hold 10 test ETH (alice, bob,
+   carol, dave, erin), the rest 0.05. A contract wallet (BidderWallet: exec() forwards a call; receive() adds
+   to a counter, writes storage and emits Received) at 0x320bf23598d54a091ee430ff692c27109258f032.
+   Before startsAt (chain time 1791733495): register() reverts RegistrationClosed; bid(0.01) reverts
+     RegistrationIncomplete.
+   Warp to startsAt 1791906155.
+   A wallet holding 0.009 ETH: register() reverts InsufficientRegistrationBalance. The treasury: register()
+     reverts TreasuryCannotBid.
+   100 registrations, blocks 26,170,231 to 26,170,330: gas 70,221 (the first) to 53,121 (the 100th), total
+     5,329,200. With 99 registered a bid reverts RegistrationIncomplete. After the 100th: registrationCount 100,
+     endsAt still 0, the auction's balance 0 (nothing deposited). A 101st wallet: RegistrationClosed.
+   Refusals before the first bid: the treasury's bid TreasuryCannotBid; 0.009 ETH BidTooLow; 0.01 with
+     msg.value 0.009 IncorrectPayment; after the first bid, 0.0105 (not a whole 0.001) BidTooLow.
+   Bids (gas limit 1,500,000, as the site's BID_GAS; each BidPlaced checked against the quote):
+     bid 1  alice   0.010 ETH  EOA, opens the clock       10 motifs from id 1     endsAt 1791992565  gas 209,596
+     bid 2  bob     0.011 ETH  EOA, the minimum (+10%)    11 motifs from id 11                       gas 132,113
+            refund 0.010 to alice in the same transaction (RefundPaid; her balance +0.010 in that block)
+     bid 3  wallet  0.050 ETH  the contract wallet        50 motifs from id 22                       gas 143,390
+            refund 0.011 to bob in the same transaction
+     bid 4  carol   0.100 ETH  EOA                       100 motifs from id 72                       gas 178,287
+            refund 0.050 to the contract wallet in the same transaction: its receive hook ran (Received 0.05 ETH,
+            received() = 0.05 ETH); no RefundDeferred
+     bid 5  dave    1.600 ETH  EOA                     1,600 motifs from id 172                      gas 132,125
+            refund 0.100 to carol in the same transaction
+     A bid locked to a stale range (expectedFirstMotifId 1): MotifRangeMoved.
+     bid 6  alice   1.760 ETH  EOA, 300 s before the close 1,760 motifs from id 1772  endsAt 1791992865  gas 100,979
+            refund 1.600 to dave in the same transaction. The close moved from 1791992565 to 1791992865
+            (600 s after the bid). Bids 2 to 5 came outside the window and left endsAt unchanged.
+     OBSERVATION (bid 6): the same bid sent first with the node's own eth_estimateGas, taken at the latest block
+     (outside the window), as its gas limit (538,791), and mined inside the window, reverted with
+     InsufficientGas after 89,520 gas and changed nothing. The node's estimate is the smallest limit that passes
+     the refund guard in the state it saw, and a bid inside the window also writes endsAt. The site is not
+     affected: it sends outbids with a fixed 1,500,000 (site/chain.js BID_GAS), which bid 6 then used. Any
+     other frontend, or a wallet that keeps a raw estimate for an outbid, can hit this near the window.
+   At endsAt - 1: settle() reverts AuctionNotEnded. At endsAt: a 2 ETH bid reverts AuctionNotOpen.
+   settle() by erin (not the winner), gas limit 1,000,000: gas 157,208. AuctionSettled(alice, 1.76 ETH),
+     PrizeClaimed(alice, alice) in the same transaction: KilimOneOfOne.ownerOf(1) = alice, minted() true,
+     prizeClaimed() true. settle() again: AlreadySettled.
+   highestBidMotifs() = (1772, 1760), equal to the winning bid's BidPlaced (firstMotifId 1772, motifReward 1760):
+     ids 1772..3531, owned by alice after her claims.
+   Claims: credits alice 1,770, bob 11, wallet 50, carol 100, dave 1,600; motifsAllocated 3,531.
+     claimMotifs(65) reverts InvalidQuantity. dave claims 64 (ids 172..235): gas 1,780,564.
+     The rest in batches of 64 (the wallet through exec): 57 claim transactions in all. A claim of 64 used
+     1,729,252 to 1,781,879 gas; the smaller remainders 387,833 (11), 1,018,697 (36), 1,157,099 (42),
+     1,481,019 (50). Claims in total: 95,855,511 gas.
+     Afterwards motifsClaimed = motifsMinted = motifsAllocated = 3,531; every bidder's balanceOf equals its
+     credits; unclaimedMotifRanges is empty for all five.
+   Motif tokenURIs (eth_call gas 16,777,216; eth_estimateGas in brackets):
+     token 1     motif 346  0x71dc560081a6b0bcb3ee25809ba74041dd47632c8d5923c308c0cfc6991bf801  (307,176)
+     token 10    motif 846  0xdaa49efab8d61322aab0c20644833f5dc10e99235124345686700ccd26cdf62b  (264,101)
+     token 172   motif 722  0xbe7e6048811e2523de26c309258a29b5ad08aeff4de13cc76b23e968b89f5b7d  (265,716)
+     token 1476  motif 1    0x5a1d6c2f4ef8fc417999a6cb406c9ce166de5383138f85dcb73726b9e80e74ae  (321,392)  = golden
+     token 1772  motif 719  0x47a520a502b9d7fbd783dfcc88747b646f0ad43096ef41498b2a2afff1a6622e  (374,972)
+     token 3531  motif 32   0x5922696dedc5399fc1387fcdff9b9cba999e7c261ee746b5b5257c55eebd743e  (309,023)
+     each equal to pack_motifs.motif_token_uri for its motif.
+   Proceeds: withdrawProceeds by bob reverts Unauthorized. withdrawProceeds(orkhanart.eth) by orkhanart.eth
+     (impersonated): ProceedsWithdrawn 1.76 ETH, the treasury's balance +1.76 ETH less its gas; gas 35,469.
+     Again: NothingToWithdraw.
+   End: the auction's balance 0 wei = liabilities() 0 (refundLiability 0, proceedsDue 0, refunds() 0 for every
+     bidder). A plain ETH transfer to the auction reverts.
+   Final fork block 26,170,399.
+   How it was run: the first pass registered the 100 wallets and stopped on a wrong expectation in the script
+   (a second register() from a registered wallet after the 100th reverts RegistrationClosed, not
+   AlreadyRegistered: the full-count check comes first). An anvil snapshot was taken after the registrations;
+   a second pass stopped on bid 6 (the observation above) and a third on a 10 ETH probe that bob could not pay
+   for; each was reverted to that snapshot and the passes above are the fourth, complete run.
+
+8. pnpm -s walkthrough (the site adapter on a fresh local anvil, not the fork)
+   Exit 0, 14 steps, "Walkthrough complete: every step matched the chain." Its 1/1 tokenURI also
+   1,068,635 bytes.
+
+9. GAS AND WHAT IT WOULD COST
+   At the fork block's base fee, 171,060,156 wei (0.171 gwei), with no priority fee:
+     the store, 45 chunks            225,022,981 gas   0.038492 ETH
+     KilimMotifs                       3,182,888 gas   0.000544 ETH
+     KilimOneOfOne                     5,856,851 gas   0.001002 ETH
+     KilimAuction                      2,493,433 gas   0.000427 ETH
+     the three creations              11,533,172 gas   0.001973 ETH
+     everything                      236,556,153 gas   0.040465 ETH
+   At 1 gwei the same would be 0.2250, 0.0115 and 0.2366 ETH.
+   What the wallets must hold before sending: each transaction's gas limit times its max fee. The largest
+   limits are 7,867,457 for a chunk and 7,613,906 for KilimOneOfOne. orkhanart.eth holds 0.302146 ETH on mainnet
+   at this block, before the switch-back's fee: enough for the three creations (14,993,122 gas of limits,
+   0.0026 ETH at this base fee) many times over. The store wallet needs about 0.04 ETH used at this fee and must
+   hold each chunk's limit times its max fee on top.
+   User transactions measured here: registration 53,121 to 70,221; the first bid 209,596; outbids 100,979 to
+   178,287; settle 157,208; a claim of 64 about 1.73M to 1.78M; withdrawProceeds 35,469.
+
+10. CLEAN-UP
+   anvil stopped. deploy/rehearsal-fork.json deleted. The eight files this rehearsal's two broadcasts left in
+   contracts/broadcast/DeployKilim.s.sol/1/ and contracts/cache/DeployKilim.s.sol/1/ (gitignored:
+   runStore-latest, runContracts-latest and their run-<time> copies, holding fork-only transaction hashes) were
+   moved out of the repository, so a later mainnet `--resume` cannot pick them up. The dry-run/ folders there
+   are other simulations (a runStore from 0x1111..., and runContracts from orkhanart.eth at 1567-1569 on a chain
+   without the store) and were left alone.

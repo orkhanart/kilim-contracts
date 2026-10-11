@@ -1,0 +1,41 @@
+{
+  "_comment": "The Ethereum mainnet deployment, filled 11 October 2026 except the two values only the artist decides (checklists/0-launch-steps.md, then 1-pre-deploy.md and 2-deploy.md). The auction values are the decided launch settings; on chain 1 script/DeployKilim.s.sol refuses any other, any deployer but orkhanart.eth, a skipped nonce check, a zero minLeadSeconds, a missing or different expected block, and a deployer with code. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 55f33486...). minLeadSeconds is 86400, the recommended 24-hour inspection window. Both TODO fields must be whole numbers without quotes before either command runs (the script cannot read the config while they are text).",
+  "chainId": 1,
+  "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+  "deployerNonce": "TODO: orkhanart.eth's mainnet nonce after the transaction that switches it back to a standard account. It was 1566 on 11 October 2026 with the EIP-7702 delegation still on; MetaMask's own switch-back is an EIP-7702 transaction sent by the wallet itself and uses two nonces, so expect 1568 (1567 if it is relayed); use the number you read, never an assumption. Read it with eth_getTransactionCount (latest and pending must agree), check eth_getCode answers 0x, publish it, then send nothing else from the wallet until runContracts.",
+  "minLeadSeconds": 86400,
+  "motifStore": "../onchain/build-motifs",
+  "pageStore": "../onchain/build-page",
+  "auction": {
+    "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+    "startsAt": "TODO: the launch date, when registration opens, in unix seconds (not milliseconds). It must be at least 86400 seconds (minLeadSeconds) after the block runContracts lands in, and less than 365 days after it. Example: python3 -c 'import calendar,time; print(calendar.timegm(time.strptime(\"2026-11-20 18:00\", \"%Y-%m-%d %H:%M\")))' for 20 November 2026, 18:00 UTC.",
+    "duration": 86400,
+    "extensionWindow": 600,
+    "incrementBps": 1000,
+    "reservePrice": 10000000000000000,
+    "maxMotifsPerBid": 1000000
+  },
+  "collection": {
+    "motifCap": 1000000,
+    "description": "One of the 1,024 Kilim motifs.",
+    "externalUrl": "https://kilim.art"
+  },
+  "oneOfOne": {
+    "name": "The Unwoven Kilim",
+    "description": "A generative ASCII carpet drawn from the 1,024 Kilim motifs.",
+    "externalUrl": ""
+  },
+  "expected": {
+    "gridsHash": "0x966b338f2228d7a4809f4287e0ae2835c96c8cf03f5d27514d6650a8c3b12ddb",
+    "namesHash": "0xf92beabc41c8297d69e7e0eccd7abbc8293a19e4f91719cbac76c4d7971b1396",
+    "prefixHash": "0xd59efff574dc7c2b7b084873bfc8514c5ff0260cc0f6cc55dd3723d0296888a4",
+    "headHash": "0x69dd43c64deca3dd5cc1b7a9d6ee082e14054a2931591ba93e4280e1550a261a",
+    "tailHash": "0x25b853dcdb5725d48dae54b6d7822e46d508e7f8de896693e7deaebe8228b794",
+    "motifGolden": "0x5a1d6c2f4ef8fc417999a6cb406c9ce166de5383138f85dcb73726b9e80e74ae",
+    "oneOfOneGolden": "0x69bca6eb9f6fe65278e4bfc808a57ac8bab7cc5ef2615bf2775c32475d678607",
+    "motifSource": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
+    "artwork": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
+    "still": "0xfed32204a81588656725915761f4f0f906250bdabaa5d1a3c14bcbb64ad8b277",
+    "loader": "0x4b611d0641dc74b87eba33f0b72f378a0805ebc543df258378d996e619a17f72"
+  }
+}
