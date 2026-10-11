@@ -5,10 +5,13 @@
 //   --tx is the auction's creation transaction (from forge's broadcast file): its receipt gives the
 //   deployment block on any node. --block asks the node for the code at that block and the one before,
 //   which public nodes answer only for the last hundred or so blocks; later it needs an archive --rpc.
+//   --allow-started accepts an auction whose startsAt has passed or that already has bids.
 //   (--config <file> targets another config file with the same shape; the tests use it)
 //
 // Reads the chain's own config (site/chains/<id>.json), verifies the auction and its two token
 // contracts on that chain, and writes auction, motifs, oneOfOne and deployBlock into the config.
+// The collection's gridsHash and namesHash must equal the hashes of site/motifs.js: otherwise the
+// page refuses to start in every visitor's browser (site/chain.js init).
 // Then rebuild: python3 site/build.py
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -17,7 +20,7 @@ import { loadSite } from '../../site/tools/node-load.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const site = resolve(here, '../../site');
-const { KILIM_ABI: A, KILIM_RPC: R } = loadSite(['vendor/js-sha3-0.8.0/sha3.min.js', 'abi.js', 'rpc.js']);
+const { KILIM_ABI: A, KILIM_RPC: R, KILIM_MOTIFS: D } = loadSite(['vendor/js-sha3-0.8.0/sha3.min.js', 'abi.js', 'rpc.js', 'motifs.js']);
 const args = process.argv.slice(2);
 const value = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 function die(msg) { console.error(`site-config: ${msg}`); process.exit(1); }
@@ -78,12 +81,24 @@ const unit = await call(a, fn('MOTIF_PRICE() returns (uint256)'));
 if (unit !== 1_000_000_000_000_000n) die(`MOTIF_PRICE() is ${unit}, not 0.001 ETH`);
 const endsAt = await call(a, fn('endsAt() returns (uint64)'));
 if (endsAt !== 0n && !args.includes('--allow-started')) die('endsAt() is not 0: the auction already has bids (pass --allow-started to accept)');
+const startsAt = await call(a, fn('startsAt() returns (uint64)'));
+const now = BigInt((await rpc.request({ method: 'eth_getBlockByNumber', params: ['latest', false] })).timestamp);
+if (startsAt <= now && !args.includes('--allow-started')) {
+  die(`startsAt() is ${new Date(Number(startsAt) * 1000).toISOString()}, already past on this chain (pass --allow-started to accept)`);
+}
 const count = Number(await call(motifs, fn('MOTIF_COUNT() returns (uint256)')));
 if (count !== 1024) die(`motifs.MOTIF_COUNT() is ${count}; the site draws 1,024`);
+// The check chain.js makes at startup (FA-12, 11 October 2026): the site draws its own copy of the motifs.
+const local = D.hashes();
+const lc = (h) => String(h).toLowerCase();
+if (lc(await call(motifs, fn('gridsHash() returns (bytes32)'))) !== lc(local.gridsHash)
+    || lc(await call(motifs, fn('namesHash() returns (bytes32)'))) !== lc(local.namesHash)) {
+  die('motifs.gridsHash() or namesHash() differs from site/motifs.js: the collection stores other motifs than this site draws');
+}
 if (await call(oneOfOne, fn('minted() returns (bool)'))) die('the 1/1 is already minted');
 
 const facts = {
-  startsAt: new Date(Number(await call(a, fn('startsAt() returns (uint64)'))) * 1000).toISOString(),
+  startsAt: new Date(Number(startsAt) * 1000).toISOString(),
   duration: `${Number(await call(a, fn('duration() returns (uint64)')))} s`,
   extensionWindow: `${Number(await call(a, fn('extensionWindow() returns (uint64)')))} s`,
   incrementBps: Number(await call(a, fn('incrementBps() returns (uint16)'))),

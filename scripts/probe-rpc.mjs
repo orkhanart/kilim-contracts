@@ -112,7 +112,11 @@ export async function probe(url, { chainId = 1, timeoutMs = 25_000 } = {}) {
   return out;
 }
 
-/** What each measurement means for Kilim's tokens. */
+/**
+ * What each measurement means for Kilim's tokens. Gas only: the probe never fetches an answer of
+ * tokenURI's size (2.6 MB of JSON-RPC for the 1/1), so a node's response-size cap is not measured
+ * here; fetching the 1/1 through each provider is a separate check (FA-19, 11 October 2026).
+ */
 export function verdicts(p) {
   if (!p.chainOk) return ['unreachable or wrong chain'];
   const lines = [];
@@ -120,8 +124,8 @@ export function verdicts(p) {
     const byDefault = p.defaultCap !== null && p.defaultCap >= need.gas;
     const burned = p.burns.find((b) => b.gas >= need.gas && b.ok);
     const askedFor = p.asks.find((a) => a.gas >= need.gas && a.got !== undefined && a.got >= need.gas);
-    if (byDefault && burned) lines.push(`${need.name}: renders, even for callers that send no gas field`);
-    else if (burned || askedFor) lines.push(`${need.name}: renders only for callers that ask for ${m(need.gas)}+ gas; the default cap is ${p.defaultCap === null ? 'unknown' : m(p.defaultCap)}`);
+    if (byDefault && burned) lines.push(`${need.name}: gas suffices, even for callers that send no gas field`);
+    else if (burned || askedFor) lines.push(`${need.name}: gas suffices only for callers that ask for ${m(need.gas)}+ gas; the default cap is ${p.defaultCap === null ? 'unknown' : m(p.defaultCap)}`);
     else lines.push(`${need.name}: BLANK here (cannot run ${m(need.gas)} of gas)`);
   }
   return lines;
