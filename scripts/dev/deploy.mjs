@@ -23,7 +23,7 @@ export const LAUNCH = {
   reservePrice: 10n ** 16n,          // 0.01 ETH: the only reserve the constructor accepts
   motifCap: 1_000_000n,
   maxMotifsPerBid: 1_000_000n,
-  externalUrl: 'https://kilim.art', // the motif collection's; the 1/1's comes from the packed page
+  externalUrl: 'https://orkhan.art/kilim', // the motif collection's; the 1/1's comes from the packed page
   openDelay: 120n,                   // startsAt = latest block + 120 s
 };
 export const UNIT = 10n ** 15n;                  // MOTIF_PRICE: 0.001 ETH, one motif

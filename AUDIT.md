@@ -599,3 +599,16 @@ The full launch on Sepolia, two phases as on mainnet: [audit/sepolia-2026-10-11.
 - **Checked on the chain:** runtime bytecode equal to `out/` outside the immutables; all 45 chunks exact; `site-config` passed; the read back of checklists/2-deploy.md, 83 items, all pass; the display test's tokenURIs equal both goldens on two RPCs.
 - **Learned:** forge's browser wallet works only at `http://127.0.0.1:9545` and is too slow for 45 chunks by hand (send the store from a store wallet with a key forge can use); `DisplayTest.s.sol` needs `--tc DisplayTest` (checklist fixed).
 - **Next record:** the public test from orkhan.art/kilim/sepolia (registrations, bids, settlement, claims), then the independent audit before mainnet.
+
+### Two decisions after the multi-agent audit, 11 October 2026
+
+The pre-mainnet audit (21 agents: five reviewers, a skeptic on every finding rated medium or above, a synthesis) returned GO WITH FIXES. It found no way to lose or lock ETH or tokens. The artist decided its two open questions:
+
+- **The collection link:** `collection.externalUrl` is now `https://orkhan.art/kilim` in deploy/local.json, mainnet.json and the two examples, replacing the test value `https://kilim.art`. KilimMotifs stores it once and serves it forever as `external_link`.
+- **The motif trait:** `KilimMotifs.tokenURI` writes the motif number as a string (`{"trait_type":"Motif","value":"147"}`), so marketplaces offer it as a category. The packer's golden template (onchain/pack_motifs.py), its test and the site's chain test follow it.
+- **What changed:** only `expected.motifGolden` (now `0x442a19040668b9aff2f9e6b9bf064a1fc5f170e15d2a6ed67a701550cf08751e`). The chunks, their addresses, gridsHash, namesHash, the page hashes and the 1/1 golden are unchanged, so a mainnet store is the same 45 chunks. Tests: forge 270/270, site 97/97, packers 25/25, page 3/3, `pnpm -s deploy:dry` green.
+- **The Sepolia rehearsal** (deployed before these changes) serves the number as a JSON number and links `https://kilim.art`. Its record and the swarm test stand for everything else.
+- **The rest of the audit:**
+  - The runbook items are written into checklists 0 and 2: a creation still pending, never Cancel, the fork check repeated before the contracts, a clean checkout of the frozen tag.
+  - The site items went to the web session: six fixed, the quote cross-check kept by design (W-05).
+  - Still to decide: PRIZE_GAS headroom under Glamsterdam (the Sepolia settlement measures it), the bytecode pin in the script, V-13's wording.

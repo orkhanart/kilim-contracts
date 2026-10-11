@@ -212,9 +212,9 @@ contract KilimMotifs is ERC721, ReentrancyGuard {
                         _escapeJson(description),
                         '","image":"data:image/svg+xml;base64,',
                         Base64.encode(bytes(svg(motif))),
-                        '","attributes":[{"trait_type":"Motif","value":',
+                        '","attributes":[{"trait_type":"Motif","value":"',
                         number,
-                        '},{"trait_type":"Name","value":"',
+                        '"},{"trait_type":"Name","value":"',
                         label,
                         '"}]}'
                     )

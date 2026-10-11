@@ -18,7 +18,7 @@
   "collection": {
     "motifCap": 1000000,
     "description": "TODO: the collection description, exactly as packed (build-motifs/manifest.json description)",
-    "externalUrl": "https://kilim.art"
+    "externalUrl": "https://orkhan.art/kilim"
   },
   "oneOfOne": {
     "name": "The Unwoven Kilim",

@@ -554,7 +554,7 @@ contract KilimMotifsTest is TestBase {
             DESCRIPTION,
             '","image":"data:image/svg+xml;base64,',
             Base64.encode(bytes(expectedSvg)),
-            '","attributes":[{"trait_type":"Motif","value":300},{"trait_type":"Name","value":"',
+            '","attributes":[{"trait_type":"Motif","value":"300"},{"trait_type":"Name","value":"',
             standInName(motif),
             '"}]}'
         );

@@ -18,7 +18,7 @@
   "collection": {
     "motifCap": 1000000,
     "description": "One of the 1,024 Kilim motifs.",
-    "externalUrl": "https://kilim.art"
+    "externalUrl": "https://orkhan.art/kilim"
   },
   "oneOfOne": {
     "name": "The Unwoven Kilim",
@@ -31,7 +31,7 @@
     "prefixHash": "0xd59efff574dc7c2b7b084873bfc8514c5ff0260cc0f6cc55dd3723d0296888a4",
     "headHash": "0x69dd43c64deca3dd5cc1b7a9d6ee082e14054a2931591ba93e4280e1550a261a",
     "tailHash": "0x25b853dcdb5725d48dae54b6d7822e46d508e7f8de896693e7deaebe8228b794",
-    "motifGolden": "0x5a1d6c2f4ef8fc417999a6cb406c9ce166de5383138f85dcb73726b9e80e74ae",
+    "motifGolden": "0x442a19040668b9aff2f9e6b9bf064a1fc5f170e15d2a6ed67a701550cf08751e",
     "oneOfOneGolden": "0x69bca6eb9f6fe65278e4bfc808a57ac8bab7cc5ef2615bf2775c32475d678607",
     "motifSource": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
     "artwork": "0x55f33486c7e128626d9fe6328c0f3e10d284ef6c94938768a07eb75509d324a4",
