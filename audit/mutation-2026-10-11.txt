@@ -1,0 +1,367 @@
+Mutation testing of the current contracts (audit finding FA-18), October 11, 2026.
+Commit ecd34af5 (src/ at the time of the run; this record changes no source). forge 1.7.1, solc 0.8.37,
+FOUNDRY_PROFILE=default (fuzz 512 runs, invariants 128 x 64), the full suite: 259 tests in 25 suites.
+Method as on September 26: each mutant is one textual change, run against the full forge suite in a scratch
+copy of contracts/ and onchain/ (stores packed by pnpm -s stores), then restored. KILLED means at least one test
+failed (the run stops at the first failure; the test named is that one). SURVIVED means all 259 passed.
+NO-COMPILE would mean the change did not build; none did.
+Scope: src/auction/EnglishAuction.sol (constants and gas floors, constructor, register, registerFor, minimumBid,
+withdrawRefund, settle, withdrawProceeds, liabilities, _handleBid, _collectBid, _refundOutbid, payOutbidRefund,
+_isNewWinningBid, _pay, _validateRecipient); src/KilimAuction.sol (constructor, _bid, highestBidMotifs,
+rewardForBid, claimMotifs, _claim, unclaimedMotifRanges, _afterSettle, deliverPrize, claimPrize,
+_validateRecipient); src/KilimMotifs.sol (constructor checks with _chunkSize and _checkNames, mintMotifs, burn,
+burned, motifOf, _validateRecipient, _update); src/KilimOneOfOne.sol (constructor checks with _store and
+_chunkSize, mint, _update). Not mutated: the tokenURI, svg and contractURI encoders, grid and motifName reads,
+royaltyInfo and supportsInterface (the 1/1's encoders are covered by the differential fuzz tests in test/review).
+
+Result: 254 of 279 killed, 25 survived, 0 did not compile.
+  src/KilimAuction.sol: 73 of 78 killed
+  src/KilimMotifs.sol: 51 of 54 killed
+  src/KilimOneOfOne.sol: 14 of 18 killed
+  src/auction/EnglishAuction.sol: 116 of 129 killed
+Of the 25 survivors, 16 are equivalent: 12 change nothing a caller can see, 4 change only a revert reason
+at deployment or move a gas floor without changing the gas a call gets (two of these measured).
+9 are real gaps, all in the tests; none is a bug in src/. Non-equivalent kill rate 254 of 263 (96.6%).
+The gaps share two patterns: a check whose test also trips a neighbouring check with the same selector (A05/A06,
+M09, M14, O04, O07), and boundaries a test never sits on exactly (E21, E96, A61). No test was added in this
+round: the record is the deliverable; the tests that would kill each gap are named below.
+
+Each line: id, result, file:line, what the mutant does, the literal change, and for a kill the first failing test.
+
+E01: KILLED  src/auction/EnglishAuction.sol:18  MAX_BPS 10,000 -> 1,000  [`MAX_BPS = 10_000` -> `MAX_BPS = 1_000`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E02: KILLED  src/auction/EnglishAuction.sol:21  REFUND_GAS 150,000 -> 15,000  [`150_000` -> `15_000`]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E03: KILLED  src/auction/EnglishAuction.sol:21  REFUND_GAS 150,000 -> 1,500,000  [`150_000` -> `1_500_000`]  by testReturnBombFromTheOutbidWalletIsContained
+E04: KILLED  src/auction/EnglishAuction.sol:26  DEFERRED_REFUND_RESERVE 300,000 -> 30,000  [`300_000` -> `30_000`]  by testLeaderCannotMakeARivalsBidRunOutOfGas
+E05: KILLED  src/auction/EnglishAuction.sol:26  DEFERRED_REFUND_RESERVE 300,000 -> 3,000,000  [`300_000` -> `3_000_000`]  by testLeaderCannotMakeARivalsBidRunOutOfGas
+E06: KILLED  src/auction/EnglishAuction.sol:38  MOTIF_PRICE 0.001 -> 0.002 ether  [`0.001 ether` -> `0.002 ether`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E07: KILLED  src/auction/EnglishAuction.sol:40  REGISTRATION_BALANCE 0.01 -> 0.02 ether  [`0.01 ether` -> `0.02 ether`]  by setUp (a suite's fixture reverts)
+E08: KILLED  src/auction/EnglishAuction.sol:41  REGISTRATION_TARGET 100 -> 99  [`= 100;` -> `= 99;`]  by testHundredthSponsoredRegistrationOnlyUnlocks
+E09: KILLED  src/auction/EnglishAuction.sol:80  typehash field renamed  [`uint256 deadline)` -> `uint256 expiry)`]  by testRegistrationDigestIsTheStandardEip712Hash
+E10: KILLED  src/auction/EnglishAuction.sol:93  EIP-712 domain name changed  [`"Kilim Registration"` -> `"Kilim"`]  by testRegistrationDigestIsTheStandardEip712Hash
+E11: KILLED  src/auction/EnglishAuction.sol:98  drop treasury != 0  [`config.treasury == address(0) || ` -> ""]  by testConstructorRejectsInvalidConfiguration
+E12: KILLED  src/auction/EnglishAuction.sol:98  drop treasury != this  [` || config.treasury == address(this)` -> ""]  by testTreasuryCannotBeTheAuctionAndTheBoundsAreInclusive
+E13: KILLED  src/auction/EnglishAuction.sol:99  startsAt == now accepted  [`config.startsAt <= block.timestamp` -> `config.startsAt < block.timestamp`]  by testConstructorRejectsInvalidConfiguration
+E14: KILLED  src/auction/EnglishAuction.sol:99  drop startsAt in the future  [`|| config.startsAt <= block.timestamp ` -> ""]  by testConstructorRejectsInvalidConfiguration
+E15: KILLED  src/auction/EnglishAuction.sol:99  30-day duration rejected  [`config.duration > 30 days` -> `config.duration >= 30 days`]  by testTreasuryCannotBeTheAuctionAndTheBoundsAreInclusive
+E16: KILLED  src/auction/EnglishAuction.sol:99  drop 30-day duration cap  [` || config.duration > 30 days` -> ""]  by testFuzzInvalidAuctionConfiguration
+E17: KILLED  src/auction/EnglishAuction.sol:100  drop window != 0  [`|| config.extensionWindow == 0 ` -> ""]  by testFuzzInvalidAuctionConfiguration
+E18: KILLED  src/auction/EnglishAuction.sol:100  window == duration rejected  [`config.extensionWindow > config.duration` -> `config.extensionWindow >= config.duration`]  by testTreasuryCannotBeTheAuctionAndTheBoundsAreInclusive
+E19: KILLED  src/auction/EnglishAuction.sol:100  drop window <= duration  [` || config.extensionWindow > config.duration` -> ""]  by testFuzzInvalidAuctionConfiguration
+E20: KILLED  src/auction/EnglishAuction.sol:101  drop incrementBps != 0  [`|| config.incrementBps == 0 ` -> ""]  by testConstructorRejectsInvalidConfiguration
+E21: SURVIVED  src/auction/EnglishAuction.sol:101  incrementBps 10,000 rejected  [`config.incrementBps > MAX_BPS` -> `config.incrementBps >= MAX_BPS`]
+E22: KILLED  src/auction/EnglishAuction.sol:101  drop incrementBps <= 10,000  [` || config.incrementBps > MAX_BPS` -> ""]  by testFuzzInvalidAuctionConfiguration
+E23: KILLED  src/auction/EnglishAuction.sol:102  drop reserve == REGISTRATION_BALANCE  [`|| config.reservePrice != REGISTRATION_BALANCE` -> `|| false`]  by testConstructorRejectsInvalidConfiguration
+E24: KILLED  src/auction/EnglishAuction.sol:104  treasury not stored  [`treasury = config.treasury;` -> ""]  by testArtistWalletCannotBidAndHasNoRoleButRoyalties
+E25: KILLED  src/auction/EnglishAuction.sol:105  startsAt not stored  [`startsAt = config.startsAt;` -> ""]  by testAConfigThatNamesItsContentIsHeldToIt
+E26: KILLED  src/auction/EnglishAuction.sol:106  duration not stored  [`duration = config.duration;` -> ""]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E27: KILLED  src/auction/EnglishAuction.sol:107  extensionWindow not stored  [`extensionWindow = config.extensionWindow;` -> ""]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E28: KILLED  src/auction/EnglishAuction.sol:108  incrementBps not stored  [`incrementBps = config.incrementBps;` -> ""]  by testDeployedValuesMatchTheDecisions
+E29: KILLED  src/auction/EnglishAuction.sol:109  reservePrice not stored  [`reservePrice = config.reservePrice;` -> ""]  by testDeployedValuesMatchTheDecisions
+E30: SURVIVED  src/auction/EnglishAuction.sol:114  register without reentrancy guard  [` nonReentrant` -> ""]
+E31: SURVIVED  src/auction/EnglishAuction.sol:121  registerFor without reentrancy guard  [` nonReentrant` -> ""]
+E32: KILLED  src/auction/EnglishAuction.sol:122  signature expires at its deadline  [`block.timestamp > deadline` -> `block.timestamp >= deadline`]  by testSignatureIsGoodThroughItsDeadlineSecondAndNotAfter
+E33: KILLED  src/auction/EnglishAuction.sol:122  drop signature expiry  [`if (block.timestamp > deadline)` -> `if (false)`]  by testExpiryAndBalanceAreCheckedAtExecution
+E34: SURVIVED  src/auction/EnglishAuction.sol:124  drop wallet != 0 in registerFor  [`wallet == address(0)` -> `false`]
+E35: KILLED  src/auction/EnglishAuction.sol:125  signature check inverted  [`|| !SignatureChecker` -> `|| SignatureChecker`]  by testADelegatedEoaCannotUseTheSponsoredSignatureButRegistersDirectly
+E36: KILLED  src/auction/EnglishAuction.sol:125  drop signature check  [`|| !SignatureChecker.isValidSignatureNowCalldata(` -> `|| false && !SignatureChecker.isValidSignatureNowCalldata(`]  by testADelegatedEoaCannotUseTheSponsoredSignatureButRegistersDirectly
+E37: KILLED  src/auction/EnglishAuction.sol:126  signature checked against deadline 0  [`registrationDigest(wallet, deadline)` -> `registrationDigest(wallet, 0)`]  by testDirectAndSponsoredRegistrationShareReplayGuard
+E38: KILLED  src/auction/EnglishAuction.sol:133  deadline left out of the digest  [`REGISTER_TYPEHASH, wallet, deadline` -> `REGISTER_TYPEHASH, wallet, uint256(0)`]  by testSignatureCannotChangeWalletOrDeadline
+E39: KILLED  src/auction/EnglishAuction.sol:133  typehash left out of the digest  [`REGISTER_TYPEHASH, wallet, deadline` -> `bytes32(0), wallet, deadline`]  by testRegistrationDigestIsTheStandardEip712Hash
+E40: KILLED  src/auction/EnglishAuction.sol:137  registration at startsAt rejected  [`block.timestamp < startsAt` -> `block.timestamp <= startsAt`]  by setUp (a suite's fixture reverts)
+E41: KILLED  src/auction/EnglishAuction.sol:137  registration before startsAt  [`block.timestamp < startsAt || ` -> ""]  by testRegistrationIsClosedBeforeStartsAt
+E42: KILLED  src/auction/EnglishAuction.sol:137  101st registration accepted  [`registrationCount >= REGISTRATION_TARGET` -> `registrationCount > REGISTRATION_TARGET`]  by testHundredthOnlyUnlocksAndFurtherRegistrationReverts
+E43: KILLED  src/auction/EnglishAuction.sol:137  drop registration cap  [` || registrationCount >= REGISTRATION_TARGET` -> ""]  by testHundredthOnlyUnlocksAndFurtherRegistrationReverts
+E44: KILLED  src/auction/EnglishAuction.sol:140  treasury may register  [`if (wallet == treasury)` -> `if (false)`]  by testTreasuryCannotRegister
+E45: KILLED  src/auction/EnglishAuction.sol:141  double registration  [`if (registered[wallet])` -> `if (false)`]  by testDirectAndSponsoredRegistrationShareReplayGuard
+E46: KILLED  src/auction/EnglishAuction.sol:142  exact balance rejected  [`wallet.balance < REGISTRATION_BALANCE` -> `wallet.balance <= REGISTRATION_BALANCE`]  by setUp (a suite's fixture reverts)
+E47: KILLED  src/auction/EnglishAuction.sol:142  drop balance check  [`if (wallet.balance < REGISTRATION_BALANCE)` -> `if (false)`]  by testExpiryAndBalanceAreCheckedAtExecution
+E48: KILLED  src/auction/EnglishAuction.sol:143  registered flag not set  [`registered[wallet] = true;` -> ""]  by testADelegatedEoaCannotUseTheSponsoredSignatureButRegistersDirectly
+E49: KILLED  src/auction/EnglishAuction.sol:144  count not advanced (event still +1)  [`++registrationCount` -> `registrationCount + 1`]  by setUp (a suite's fixture reverts)
+E50: KILLED  src/auction/EnglishAuction.sol:144  event reports the old count  [`++registrationCount` -> `registrationCount++`]  by testRegistrationStartAndSettlementEvents
+E51: KILLED  src/auction/EnglishAuction.sol:148  opening minimum is one unit  [`return reservePrice;` -> `return MOTIF_PRICE;`]  by testMinimumBidLadder
+E52: SURVIVED  src/auction/EnglishAuction.sol:149  increment rounds down  [`Math.Rounding.Ceil` -> `Math.Rounding.Floor`]
+E53: SURVIVED  src/auction/EnglishAuction.sol:150  minimum one wei short  [`highestBid + increment` -> `highestBid + increment - 1`]
+E54: KILLED  src/auction/EnglishAuction.sol:151  minimum not rounded to a whole unit  [`Math.ceilDiv(next, MOTIF_PRICE) * MOTIF_PRICE` -> `next`]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E55: KILLED  src/auction/EnglishAuction.sol:151  minimum rounded down to a unit  [`Math.ceilDiv(next, MOTIF_PRICE)` -> `(next / MOTIF_PRICE)`]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E56: KILLED  src/auction/EnglishAuction.sol:155  withdrawRefund without reentrancy guard  [` nonReentrant` -> ""]  by testPrizeCallbackCannotWithdrawARefund
+E57: KILLED  src/auction/EnglishAuction.sol:156  withdrawRefund recipient unchecked  [`_validateRecipient(to);` -> ""]  by testInvalidRecipientsDoNotDestroyClaims
+E58: KILLED  src/auction/EnglishAuction.sol:158  zero refund withdrawal allowed  [`if (amount == 0)` -> `if (false)`]  by testCannotStealAnotherBiddersRefund
+E59: KILLED  src/auction/EnglishAuction.sol:159  refund not zeroed  [`refunds[msg.sender] = 0;` -> ""]  by testBlockedOutbidRecipientCannotStopNextBid
+E60: KILLED  src/auction/EnglishAuction.sol:160  refundLiability not reduced  [`refundLiability -= amount;` -> ""]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+E61: KILLED  src/auction/EnglishAuction.sol:161  refund paid to caller, not to `to`  [`_pay(to, amount);` -> `_pay(msg.sender, amount);`]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+E62: KILLED  src/auction/EnglishAuction.sol:162  RefundWithdrawn not emitted  [`emit RefundWithdrawn(msg.sender, to, amount);` -> ""]  by testRejectedRefundPreservesEntitlement
+E63: KILLED  src/auction/EnglishAuction.sol:167  settle without reentrancy guard  [` nonReentrant` -> ""]  by testPrizeCallbackCannotWithdrawARefund
+E64: KILLED  src/auction/EnglishAuction.sol:168  settle twice  [`if (settled)` -> `if (false)`]  by testSettlementTimingAndIdempotence
+E65: KILLED  src/auction/EnglishAuction.sol:169  settle with no bids  [`if (highestBidder == address(0))` -> `if (false)`]  by testNoBidsNeverEndsAndNeverSettles
+E66: KILLED  src/auction/EnglishAuction.sol:170  settle at endsAt rejected  [`block.timestamp < endsAt` -> `block.timestamp <= endsAt`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+E67: KILLED  src/auction/EnglishAuction.sol:170  settle before the close  [`if (block.timestamp < endsAt)` -> `if (false)`]  by testFiftyLastWindowBidsEachMoveTheCloseByExactlyTheWindow
+E68: KILLED  src/auction/EnglishAuction.sol:171  settled flag not set  [`settled = true;` -> ""]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+E69: KILLED  src/auction/EnglishAuction.sol:172  proceeds not recorded  [`proceedsDue = highestBid;` -> ""]  by testEthRefundProceedsAndManualClaims
+E70: KILLED  src/auction/EnglishAuction.sol:173  AuctionSettled not emitted  [`emit AuctionSettled(highestBidder, highestBid);` -> ""]  by testRegistrationStartAndSettlementEvents
+E71: KILLED  src/auction/EnglishAuction.sol:174  settle skips the prize hook  [`_afterSettle();` -> ""]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+E72: KILLED  src/auction/EnglishAuction.sol:181  withdrawProceeds without reentrancy guard  [` nonReentrant` -> ""]  by testProceedsRecipientCannotReenter
+E73: KILLED  src/auction/EnglishAuction.sol:182  anyone withdraws proceeds  [`if (msg.sender != treasury)` -> `if (false)`]  by testOnlyTreasuryCanWithdrawOnlyAfterSettlement
+E74: KILLED  src/auction/EnglishAuction.sol:183  proceeds before settlement  [`if (!settled)` -> `if (false)`]  by testOnlyTreasuryCanWithdrawOnlyAfterSettlement
+E75: KILLED  src/auction/EnglishAuction.sol:184  proceeds recipient unchecked  [`_validateRecipient(to);` -> ""]  by testProceedsCannotGoToAnInvalidRecipient
+E76: KILLED  src/auction/EnglishAuction.sol:186  zero proceeds withdrawal allowed  [`if (amount == 0)` -> `if (false)`]  by testRepeatedProceedsWithdrawalAndFailedPayment
+E77: KILLED  src/auction/EnglishAuction.sol:187  proceeds not zeroed  [`proceedsDue = 0;` -> ""]  by testEthRefundProceedsAndManualClaims
+E78: KILLED  src/auction/EnglishAuction.sol:188  proceeds paid to treasury, not to `to`  [`_pay(to, amount);` -> `_pay(treasury, amount);`]  by invariantClosingAndPrizeAreBounded
+E79: KILLED  src/auction/EnglishAuction.sol:189  ProceedsWithdrawn not emitted  [`emit ProceedsWithdrawn(to, amount);` -> ""]  by testRepeatedProceedsWithdrawalAndFailedPayment
+E80: KILLED  src/auction/EnglishAuction.sol:194  liabilities ignore the standing bid  [`(settled ? proceedsDue : highestBid)` -> `proceedsDue`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E81: KILLED  src/auction/EnglishAuction.sol:194  liabilities ignore deferred refunds  [`refundLiability + ` -> ""]  by testLeaderCannotMakeARivalsBidRunOutOfGas
+E82: KILLED  src/auction/EnglishAuction.sol:203  treasury may bid  [`if (msg.sender == treasury)` -> `if (false)`]  by testTreasuryCannotActAndTokenContractsCannotReceive
+E83: KILLED  src/auction/EnglishAuction.sol:204  bid before 100 registrations  [`if (registrationCount != REGISTRATION_TARGET)` -> `if (false)`]  by testCannotBypassThreshold
+E84: SURVIVED  src/auction/EnglishAuction.sol:204  registration gate != -> <  [`registrationCount != REGISTRATION_TARGET` -> `registrationCount < REGISTRATION_TARGET`]
+E85: SURVIVED  src/auction/EnglishAuction.sol:206  started read from highestBid  [`highestBidder != address(0)` -> `highestBid != 0`]
+E86: KILLED  src/auction/EnglishAuction.sol:206  clock always started  [`highestBidder != address(0)` -> `true`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E87: KILLED  src/auction/EnglishAuction.sol:209  bid accepted at endsAt  [`block.timestamp >= endsAt` -> `block.timestamp > endsAt`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E88: KILLED  src/auction/EnglishAuction.sol:209  close checked before the clock starts  [`started && ` -> ""]  by testCannotBypassThreshold
+E89: KILLED  src/auction/EnglishAuction.sol:209  bid after the close  [`if (started && block.timestamp >= endsAt)` -> `if (false)`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E90: KILLED  src/auction/EnglishAuction.sol:211  drop uint128 bound  [`amount > type(uint128).max || ` -> ""]  by testOversizedBidRejectedBeforeUpstreamMultiplication
+E91: KILLED  src/auction/EnglishAuction.sol:211  uint128 bound -> uint64  [`type(uint128).max` -> `type(uint64).max`]  by testFuzzBidAccounting
+E92: KILLED  src/auction/EnglishAuction.sol:211  bid predicate inverted  [`|| !_isNewWinningBid(` -> `|| _isNewWinningBid(`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E93: KILLED  src/auction/EnglishAuction.sol:211  opening bid ignores the reserve  [`_isNewWinningBid(reservePrice,` -> `_isNewWinningBid(0,`]  by testOpeningBidMustMeetTheReserve
+E94: KILLED  src/auction/EnglishAuction.sol:211  bids ignore the increment  [`highestBid, amount, incrementBps)` -> `highestBid, amount, 0)`]  by testFuzzMinimumBidIsTheSmallestAcceptedWholeUnit
+E95: KILLED  src/auction/EnglishAuction.sol:214  drop whole-unit check  [`if (amount % MOTIF_PRICE != 0)` -> `if (false)`]  by testRejectsFractionalUnitBid
+E96: SURVIVED  src/auction/EnglishAuction.sol:214  whole unit 0.0001 ether  [`amount % MOTIF_PRICE` -> `amount % (MOTIF_PRICE / 10)`]
+E97: KILLED  src/auction/EnglishAuction.sol:216  outbid bidder not returned (no refund)  [`outbid = highestBidder;` -> ""]  by testEthRefundProceedsAndManualClaims
+E98: KILLED  src/auction/EnglishAuction.sol:217  refund the new bid's amount  [`outbidAmount = highestBid;` -> `outbidAmount = amount;`]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E99: KILLED  src/auction/EnglishAuction.sol:218  highestBidder not updated  [`highestBidder = msg.sender;` -> ""]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E100: KILLED  src/auction/EnglishAuction.sol:219  highestBid not updated  [`highestBid = amount;` -> ""]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+E101: KILLED  src/auction/EnglishAuction.sol:220  first-bid branch inverted  [`if (!started)` -> `if (started)`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E102: KILLED  src/auction/EnglishAuction.sol:222  first bid sets a window, not the duration  [`uint64(block.timestamp) + duration` -> `uint64(block.timestamp) + extensionWindow`]  by setUp (a suite's fixture reverts)
+E103: KILLED  src/auction/EnglishAuction.sol:222  clock anchored at startsAt  [`uint64(block.timestamp) + duration` -> `startsAt + duration`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E104: KILLED  src/auction/EnglishAuction.sol:223  AuctionStarted not emitted  [`emit AuctionStarted(msg.sender, endsAt);` -> ""]  by testRegistrationStartAndSettlementEvents
+E105: KILLED  src/auction/EnglishAuction.sol:226  extension added to endsAt  [`uint64(block.timestamp) + extensionWindow` -> `endsAt + extensionWindow`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E106: SURVIVED  src/auction/EnglishAuction.sol:227  extension rewrite on equal  [`extended > endsAt` -> `extended >= endsAt`]
+E107: KILLED  src/auction/EnglishAuction.sol:227  extension may shorten the close  [`if (extended > endsAt) ` -> ""]  by testBidEventReportsReservedIds
+E108: KILLED  src/auction/EnglishAuction.sol:227  no extension  [`endsAt = extended;` -> `{}`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+E109: KILLED  src/auction/EnglishAuction.sol:233  overpayment accepted  [`msg.value != amount` -> `msg.value < amount`]  by testSlippageAndWrongValueDoNotStartUnlockedAuction
+E110: KILLED  src/auction/EnglishAuction.sol:233  payment unchecked  [`if (msg.value != amount)` -> `if (false)`]  by testCannotBypassThreshold
+E111: KILLED  src/auction/EnglishAuction.sol:239  first bid runs the refund path for address(0)  [`if (bidder == address(0)) return;` -> ""]  by testFirstBidNeedsNoRefundGas
+E112: KILLED  src/auction/EnglishAuction.sol:243  drop refund gas floor  [`if (gasleft() < REFUND_GAS + REFUND_GAS / 63 + DEFERRED_REFUND_RESERVE)` -> `if (false)`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E113: SURVIVED  src/auction/EnglishAuction.sol:243  refund gas floor ignores the 1/64 held back  [` + REFUND_GAS / 63` -> ""]
+E114: KILLED  src/auction/EnglishAuction.sol:243  refund gas floor without the deferred reserve  [` + DEFERRED_REFUND_RESERVE` -> ""]  by testLeaderCannotMakeARivalsBidRunOutOfGas
+E115: SURVIVED  src/auction/EnglishAuction.sol:243  refund gas floor < -> <=  [`gasleft() <` -> `gasleft() <=`]
+E116: KILLED  src/auction/EnglishAuction.sol:244  refund forwards all gas  [`{gas: REFUND_GAS}` -> ""]  by testLeaderCannotMakeARivalsBidRunOutOfGas
+E117: KILLED  src/auction/EnglishAuction.sol:245  RefundPaid not emitted  [`emit RefundPaid(bidder, amount);` -> ""]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+E118: KILLED  src/auction/EnglishAuction.sol:247  deferred refund overwrites  [`refunds[bidder] += amount;` -> `refunds[bidder] = amount;`]  by invariantClosingAndPrizeAreBounded
+E119: KILLED  src/auction/EnglishAuction.sol:247  deferred refund not recorded  [`refunds[bidder] += amount;` -> ""]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+E120: KILLED  src/auction/EnglishAuction.sol:248  refundLiability not increased  [`refundLiability += amount;` -> ""]  by testBlockedOutbidRecipientCannotStopNextBid
+E121: KILLED  src/auction/EnglishAuction.sol:249  RefundDeferred not emitted  [`emit RefundDeferred(bidder, amount);` -> ""]  by testRejectedRefundPreservesEntitlement
+E122: KILLED  src/auction/EnglishAuction.sol:256  anyone calls payOutbidRefund  [`if (msg.sender != address(this))` -> `if (false)`]  by testOnlyTheAuctionCanPayARefund
+E123: KILLED  src/auction/EnglishAuction.sol:268  opening bid must exceed the reserve  [`_incomingBidAmount >= _minimumBidAmount` -> `_incomingBidAmount > _minimumBidAmount`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E124: SURVIVED  src/auction/EnglishAuction.sol:271  equal bid passes first clause  [`_incomingBidAmount > _currentWinningBidAmount` -> `_incomingBidAmount >= _currentWinningBidAmount`]
+E125: KILLED  src/auction/EnglishAuction.sol:273  increment must be exceeded  [`>= _bidBufferBps` -> `> _bidBufferBps`]  by testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes
+E126: KILLED  src/auction/EnglishAuction.sol:272  predicate scale 1,000  [`* MAX_BPS)` -> `* 1000)`]  by testEthRefundProceedsAndManualClaims
+E127: KILLED  src/auction/EnglishAuction.sol:283  failed payment ignored  [`if (!paid) revert EthTransferFailed();` -> ""]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+E128: KILLED  src/auction/EnglishAuction.sol:287  zero recipient allowed  [`to == address(0) || ` -> ""]  by testProceedsCannotGoToAnInvalidRecipient
+E129: KILLED  src/auction/EnglishAuction.sol:287  auction as recipient allowed  [` || to == address(this)` -> ""]  by testProceedsCannotGoToAnInvalidRecipient
+A01: KILLED  src/KilimAuction.sol:51  PRIZE_GAS 500,000 -> 50,000  [`500_000` -> `50_000`]  by testAColdWinnerNeedingMostOfTheCapIsDeliveredAtAnyGasLimit
+A02: KILLED  src/KilimAuction.sol:51  PRIZE_GAS 500,000 -> 5,000,000  [`500_000` -> `5_000_000`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A03: KILLED  src/KilimAuction.sol:78  drop motifs code check  [`config.motifs.code.length == 0 || ` -> ""]  by testFuzzInvalidAuctionConfiguration
+A04: KILLED  src/KilimAuction.sol:78  drop 1/1 code check  [` || config.oneOfOne.code.length == 0` -> ""]  by testFuzzInvalidAuctionConfiguration
+A05: SURVIVED  src/KilimAuction.sol:84  drop motifs minter binding  [`motifs_.minter() != address(this) || ` -> ""]
+A06: SURVIVED  src/KilimAuction.sol:84  drop 1/1 minter binding  [` || oneOfOne_.minter() != address(this)` -> ""]
+A07: KILLED  src/KilimAuction.sol:85  drop 1/1 -> motifs link  [`|| address(oneOfOne_.motifs()) != config.motifs` -> `|| false`]  by testTheAuctionRefusesAOneOfOneBoundElsewhere
+A08: KILLED  src/KilimAuction.sol:87  treasury may be the motif collection  [`config.treasury == config.motifs || ` -> ""]  by testTreasuryCannotBeATokenContract
+A09: KILLED  src/KilimAuction.sol:87  treasury may be the 1/1  [` || config.treasury == config.oneOfOne` -> ""]  by testTreasuryCannotBeATokenContract
+A10: KILLED  src/KilimAuction.sol:92  maxMotifsPerBid 0 allowed  [`config.maxMotifsPerBid == 0 || ` -> ""]  by testFuzzInvalidAuctionConfiguration
+A11: KILLED  src/KilimAuction.sol:92  maxMotifsPerBid == cap rejected  [`config.maxMotifsPerBid > cap` -> `config.maxMotifsPerBid >= cap`]  by setUp (a suite's fixture reverts)
+A12: KILLED  src/KilimAuction.sol:92  maxMotifsPerBid above cap allowed  [` || config.maxMotifsPerBid > cap` -> ""]  by testFuzzInvalidAuctionConfiguration
+A13: KILLED  src/KilimAuction.sol:95  motifCap one short  [`motifCap = cap;` -> `motifCap = cap - 1;`]  by testDeployedValuesMatchTheDecisions
+A14: KILLED  src/KilimAuction.sol:96  maxMotifsPerBid ignored  [`maxMotifsPerBid = config.maxMotifsPerBid;` -> `maxMotifsPerBid = cap;`]  by testPerBidRewardCap
+A15: KILLED  src/KilimAuction.sol:110  bid without reentrancy guard  [` nonReentrant` -> ""]  by testClaimCallbackCannotReenterBid
+A16: KILLED  src/KilimAuction.sol:118  slippage strict  [`reward < minimumReward` -> `reward <= minimumReward`]  by testCannotBypassThreshold
+A17: KILLED  src/KilimAuction.sol:118  drop reward slippage check  [`if (reward < minimumReward)` -> `if (false)`]  by testSlippageAndWrongValueDoNotStartUnlockedAuction
+A18: KILLED  src/KilimAuction.sol:121  first motif id off by one  [`1 + motifsAllocated` -> `motifsAllocated`]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+A19: KILLED  src/KilimAuction.sol:121  firstMotifId set with zero reward  [`if (reward != 0) firstMotifId` -> `firstMotifId`]  by testExhaustedRewardsReserveNoIds
+A20: KILLED  src/KilimAuction.sol:122  expectedFirstMotifId 0 no longer wildcard  [`expectedFirstMotifId != 0 && ` -> ""]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+A21: KILLED  src/KilimAuction.sol:122  drop range check  [`if (expectedFirstMotifId != 0 && firstMotifId != expectedFirstMotifId)` -> `if (false)`]  by testExpectedFirstMotifIdRejectsExhaustedRewards
+A22: KILLED  src/KilimAuction.sol:126  empty credit range pushed for zero reward  [`if (reward != 0) {` -> `if (true) {`]  by testExhaustedRewardsReserveNoIds
+A23: KILLED  src/KilimAuction.sol:127  range starts one late  [`uint128(firstMotifId)` -> `uint128(firstMotifId + 1)`]  by testAnyBidderMayClaimMotifsToTheTreasury
+A24: KILLED  src/KilimAuction.sol:127  range one short  [`uint128(reward)` -> `uint128(reward - 1)`]  by testEthRefundProceedsAndManualClaims
+A25: KILLED  src/KilimAuction.sol:128  credits overwrite  [`motifCredits[msg.sender] += reward;` -> `motifCredits[msg.sender] = reward;`]  by testClaimRollsBackWhenTheSecondRangeIsRejected
+A26: KILLED  src/KilimAuction.sol:129  allocation counter not advanced  [`motifsAllocated += reward;` -> ""]  by testClaimRollsBackWhenTheSecondRangeIsRejected
+A27: KILLED  src/KilimAuction.sol:132  highestBidMotifs first id not written  [`_highestBidFirstMotifId = uint128(firstMotifId);` -> ""]  by invariantHighestBidMotifsAreAllocatedIds
+A28: KILLED  src/KilimAuction.sol:133  highestBidMotifs count not written  [`_highestBidMotifCount = uint128(reward);` -> ""]  by invariantHighestBidMotifsAreAllocatedIds
+A29: KILLED  src/KilimAuction.sol:133  highestBidMotifs count uncapped  [`uint128(reward)` -> `uint128(amount / MOTIF_PRICE)`]  by testHighestBidMotifsAreTheWinningBidsOwnIds
+A30: KILLED  src/KilimAuction.sol:134  payment unchecked  [`_collectBid(amount);` -> ""]  by testCannotBypassThreshold
+A31: KILLED  src/KilimAuction.sol:135  outbid bidder not refunded  [`_refundOutbid(outbid, outbidAmount);` -> ""]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+A32: KILLED  src/KilimAuction.sol:135  refund the new amount  [`_refundOutbid(outbid, outbidAmount);` -> `_refundOutbid(outbid, amount);`]  by testAReceiverNeedingMostOfTheRefundCapIsStillPaid
+A33: KILLED  src/KilimAuction.sol:136  BidPlaced endsAt 0  [`reward, firstMotifId, endsAt` -> `reward, firstMotifId, uint64(0)`]  by testBidEventReportsReservedIds
+A34: KILLED  src/KilimAuction.sol:136  BidPlaced reward uncapped  [`amount, reward, firstMotifId` -> `amount, amount / MOTIF_PRICE, firstMotifId`]  by testExhaustedRewardsReserveNoIds
+A35: KILLED  src/KilimAuction.sol:136  BidPlaced firstMotifId after allocation  [`reward, firstMotifId, endsAt` -> `reward, 1 + motifsAllocated, endsAt`]  by testBidEventReportsReservedIds
+A36: KILLED  src/KilimAuction.sol:145  highestBidMotifs swapped  [`(_highestBidFirstMotifId, _highestBidMotifCount)` -> `(_highestBidMotifCount, _highestBidFirstMotifId)`]  by testHighestBidMotifsAreTheWinningBidsOwnIds
+A37: KILLED  src/KilimAuction.sol:150  drop per-bid cap  [`Math.min(Math.min(amount / MOTIF_PRICE, maxMotifsPerBid), motifCap - motifsAllocated)` -> `Math.min(amount / MOTIF_PRICE, motifCap - motifsAllocated)`]  by testPerBidRewardCap
+A38: KILLED  src/KilimAuction.sol:150  drop pool cap  [`Math.min(Math.min(amount / MOTIF_PRICE, maxMotifsPerBid), motifCap - motifsAllocated)` -> `Math.min(amount / MOTIF_PRICE, maxMotifsPerBid)`]  by testExhaustedRewardsReserveNoIds
+A39: KILLED  src/KilimAuction.sol:150  pool cap against claimed count  [`motifCap - motifsAllocated` -> `motifCap - motifsClaimed`]  by testExhaustedRewardsReserveNoIds
+A40: KILLED  src/KilimAuction.sol:150  one motif per 0.01 ether  [`amount / MOTIF_PRICE` -> `amount / REGISTRATION_BALANCE`]  by testClockStartsAtFirstBidAndLateBidsExtendByTenMinutes
+A41: KILLED  src/KilimAuction.sol:157  claimMotifs without reentrancy guard  [` nonReentrant` -> ""]  by testAWinnerThatRefusesTheTokenClaimsItElsewhereAndCannotReenter
+A42: KILLED  src/KilimAuction.sol:158  claimMotifs relies on the collection's recipient check  [`_validateRecipient(to);` -> ""]  by testTreasuryCannotActAndTokenContractsCannotReceive
+A43: KILLED  src/KilimAuction.sol:159  zero-quantity claim allowed  [`quantity == 0 || ` -> ""]  by testInvalidClaimQuantities
+A44: KILLED  src/KilimAuction.sol:159  drop claim batch cap  [` || quantity > motifs.MAX_MINT_BATCH()` -> ""]  by testClaimAboveBatchCapAcrossRangesRejected
+A45: KILLED  src/KilimAuction.sol:159  claim of all credits rejected  [`quantity > motifCredits[msg.sender]` -> `quantity >= motifCredits[msg.sender]`]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+A46: KILLED  src/KilimAuction.sol:159  drop credit check (relies on underflow)  [` || quantity > motifCredits[msg.sender]` -> ""]  by testTreasuryCannotActAndTokenContractsCannotReceive
+A47: KILLED  src/KilimAuction.sol:168  credits not spent  [`motifCredits[bidder] -= quantity;` -> ""]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+A48: KILLED  src/KilimAuction.sol:169  claimed counter not advanced  [`motifsClaimed += quantity;` -> ""]  by testClaimRecipientCannotReenterTheAuctionOrTheMinter
+A49: KILLED  src/KilimAuction.sol:178  take whole range  [`Math.min(left, range.remaining)` -> `range.remaining`]  by testOneUnitIsOneMotifWithNoPerBidCap
+A50: KILLED  src/KilimAuction.sol:182  range start not advanced  [`range.nextId += uint128(take);` -> ""]  by testClaimsSpanBidRangesOldestFirst
+A51: KILLED  src/KilimAuction.sol:183  range remaining not reduced  [`range.remaining -= uint128(take);` -> ""]  by testClaimsSpanBidRangesOldestFirst
+A52: KILLED  src/KilimAuction.sol:184  cursor advances on partial range  [`if (range.remaining == 0) ++cursor;` -> `++cursor;`]  by testOneUnitIsOneMotifWithNoPerBidCap
+A53: KILLED  src/KilimAuction.sol:184  cursor never advances  [`if (range.remaining == 0) ++cursor;` -> ""]  by testClaimRollsBackWhenTheSecondRangeIsRejected
+A54: KILLED  src/KilimAuction.sol:187  cursor not persisted  [`_nextCreditRange[bidder] = cursor;` -> ""]  by testClaimsSpanBidRangesOldestFirst
+A55: KILLED  src/KilimAuction.sol:190  MotifsMinted names the recipient as bidder  [`mintMotifs(to, bidder,` -> `mintMotifs(to, to,`]  by testMultiRangeClaimEvents
+A56: KILLED  src/KilimAuction.sol:192  claim event reports last chunk  [`quantity, firstIds[0]` -> `quantity, firstIds[chunks - 1]`]  by testMultiRangeClaimEvents
+A57: KILLED  src/KilimAuction.sol:192  MotifsClaimed not emitted  [`emit MotifsClaimed(bidder, to, quantity, firstIds[0]);` -> ""]  by testMultiRangeClaimEvents
+A58: KILLED  src/KilimAuction.sol:201  unclaimed ranges ignore cursor  [`ranges[cursor + i]` -> `ranges[i]`]  by testClaimsSpanBidRangesOldestFirst
+A59: KILLED  src/KilimAuction.sol:210  drop settle gas floor  [`if (gasleft() < PRIZE_GAS + PRIZE_GAS / 63 + 50_000)` -> `if (false)`]  by testAWinnerNeedingMostOfThePrizeCapIsDeliveredAtAnyGasLimit
+A60: SURVIVED  src/KilimAuction.sol:210  settle gas floor ignores the 1/64 held back  [` + PRIZE_GAS / 63` -> ""]
+A61: SURVIVED  src/KilimAuction.sol:210  settle gas floor without the 50,000 after the call  [` + 50_000` -> ""]
+A62: KILLED  src/KilimAuction.sol:211  prize delivery forwards all gas  [`{gas: PRIZE_GAS}` -> ""]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A63: KILLED  src/KilimAuction.sol:213  PrizeDeliveryFailed not emitted  [`emit PrizeDeliveryFailed(highestBidder);` -> ""]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A64: KILLED  src/KilimAuction.sol:219  anyone calls deliverPrize  [`if (msg.sender != address(this))` -> `if (false)`]  by testNothingCanBeEnteredFromTheRefundCallback
+A65: KILLED  src/KilimAuction.sol:221  deliverPrize leaves prizeClaimed false  [`prizeClaimed = true;` -> ""]  by testAColdWinnerNeedingMostOfTheCapIsDeliveredAtAnyGasLimit
+A66: KILLED  src/KilimAuction.sol:222  prize to tx.origin  [`oneOfOne.mint(winner);` -> `oneOfOne.mint(tx.origin);`]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+A67: KILLED  src/KilimAuction.sol:223  PrizeClaimed not emitted on delivery  [`emit PrizeClaimed(winner, winner);` -> ""]  by testWinnerClaimsExactlyOnePrizeToChosenRecipient
+A68: KILLED  src/KilimAuction.sol:230  claimPrize without reentrancy guard  [` nonReentrant` -> ""]  by testAWinnerThatRefusesTheTokenClaimsItElsewhereAndCannotReenter
+A69: KILLED  src/KilimAuction.sol:231  claimPrize before settlement  [`if (!settled)` -> `if (false)`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A70: KILLED  src/KilimAuction.sol:233  anyone claims the prize  [`if (msg.sender != winner)` -> `if (false)`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A71: KILLED  src/KilimAuction.sol:234  drop prizeClaimed check (1/1 still one-shot)  [`if (prizeClaimed)` -> `if (false)`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A72: SURVIVED  src/KilimAuction.sol:235  claimPrize relies on the 1/1's recipient check  [`_validateRecipient(to);` -> ""]
+A73: KILLED  src/KilimAuction.sol:236  claimPrize leaves prizeClaimed false  [`prizeClaimed = true;` -> ""]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A74: KILLED  src/KilimAuction.sol:237  claimPrize ignores `to`  [`oneOfOne.mint(to);` -> `oneOfOne.mint(winner);`]  by testAWalletThatGainsCodeAfterBiddingCannotBlockBidsOrSettlement
+A75: KILLED  src/KilimAuction.sol:238  PrizeClaimed not emitted on claim  [`emit PrizeClaimed(winner, to);` -> ""]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+A76: KILLED  src/KilimAuction.sol:242  drop base recipient check  [`super._validateRecipient(to);` -> ""]  by testProceedsCannotGoToAnInvalidRecipient
+A77: KILLED  src/KilimAuction.sol:243  motif collection accepted as recipient  [`to == address(motifs) || ` -> ""]  by testProceedsCannotGoToAnInvalidRecipient
+A78: KILLED  src/KilimAuction.sol:243  1/1 contract accepted as recipient  [` || to == address(oneOfOne)` -> ""]  by testTreasuryCannotActAndTokenContractsCannotReceive
+M01: KILLED  src/KilimMotifs.sol:68  zero minter allowed  [`minter_ == address(0) || ` -> ""]  by testFuzzInvalidConfiguration
+M02: KILLED  src/KilimMotifs.sol:68  zero royalty receiver allowed  [` || royaltyReceiver_ == address(0)` -> ""]  by testFuzzInvalidConfiguration
+M03: KILLED  src/KilimMotifs.sol:68  zero cap allowed  [` || motifCap_ == 0` -> ""]  by testFuzzInvalidConfiguration
+M04: KILLED  src/KilimMotifs.sol:69  drop uint32 cap bound  [`|| motifCap_ > type(uint32).max` -> `|| false`]  by testFuzzInvalidConfiguration
+M05: KILLED  src/KilimMotifs.sol:69  cap bound uint32 -> uint16  [`type(uint32).max` -> `type(uint16).max`]  by testBurnedBitmapHighBitsStayTaken
+M06: KILLED  src/KilimMotifs.sol:70  drop chunk-count check  [`|| gridChunks_.length != (MOTIF_COUNT + GRIDS_PER_CHUNK - 1) / GRIDS_PER_CHUNK` -> `|| false`]  by testOnlyTheTwoChunkLayoutIsAccepted
+M07: KILLED  src/KilimMotifs.sol:77  last chunk must be full too  [`i + 1 < gridChunks_.length && ` -> ""]  by setUp (a suite's fixture reverts)
+M08: KILLED  src/KilimMotifs.sol:77  drop full-chunk check  [`if (i + 1 < gridChunks_.length && size != GRIDS_PER_CHUNK * 32)` -> `if (false)`]  by testFuzzInvalidConfiguration
+M09: SURVIVED  src/KilimMotifs.sol:81  drop grid total check  [`total != MOTIF_COUNT * 32 || ` -> ""]
+M10: KILLED  src/KilimMotifs.sol:81  drop grids hash check  [` || keccak256(_grids()) != gridsHash_` -> ""]  by testFuzzInvalidConfiguration
+M11: KILLED  src/KilimMotifs.sol:84  drop names hash check  [`if (keccak256(names) != namesHash_)` -> `if (false)`]  by testFuzzInvalidConfiguration
+M12: KILLED  src/KilimMotifs.sol:85  names offsets unchecked  [`_checkNames(names);` -> ""]  by testFuzzInvalidConfiguration
+M13: KILLED  src/KilimMotifs.sol:316  empty chunk accepted  [`size < 2 || ` -> ""]  by testAChunkWithoutCodeIsRefused
+M14: SURVIVED  src/KilimMotifs.sol:316  chunk without 0x00 lead accepted  [` || lead != 0` -> ""]
+M15: SURVIVED  src/KilimMotifs.sol:329  short names chunk accepted (panics instead)  [`if (names.length < NAME_OFFSET_TABLE)` -> `if (false)`]
+M16: KILLED  src/KilimMotifs.sol:333  equal offsets (empty names) rejected  [`offset < previous` -> `offset <= previous`]  by setUp (a suite's fixture reverts)
+M17: KILLED  src/KilimMotifs.sol:333  decreasing offsets accepted  [`if (offset < previous)` -> `if (false)`]  by testFuzzInvalidConfiguration
+M18: KILLED  src/KilimMotifs.sol:336  names end unchecked  [`if (NAME_OFFSET_TABLE + previous != names.length)` -> `if (false)`]  by testFuzzInvalidConfiguration
+M19: KILLED  src/KilimMotifs.sol:89  deployment chain id fixed to 1  [`deploymentChainId = block.chainid;` -> `deploymentChainId = 1;`]  by testAConfigThatNamesItsContentIsHeldToIt
+M20: KILLED  src/KilimMotifs.sol:108  anyone mints  [`onlyMinter` -> ""]  by testArtistWalletCannotBidAndHasNoRoleButRoyalties
+M21: KILLED  src/KilimMotifs.sol:109  mintMotifs without reentrancy guard  [`nonReentrant` -> ""]  by testMintIsGuardedAgainstReentry
+M22: KILLED  src/KilimMotifs.sol:111  mint recipient unchecked  [`_validateRecipient(to);` -> ""]  by testBadMintRecipientsAndBidderRejectedBeforeTheQuantity
+M23: KILLED  src/KilimMotifs.sol:112  zero bidder allowed  [`if (bidder == address(0))` -> `if (false)`]  by testBadMintRecipientsAndBidderRejectedBeforeTheQuantity
+M24: KILLED  src/KilimMotifs.sol:113  zero quantity allowed  [`quantity == 0 || ` -> ""]  by testMintBounds
+M25: KILLED  src/KilimMotifs.sol:113  batch of 64 rejected  [`quantity > MAX_MINT_BATCH` -> `quantity >= MAX_MINT_BATCH`]  by testOneUnitIsOneMotifWithNoPerBidCap
+M26: KILLED  src/KilimMotifs.sol:113  drop batch cap  [` || quantity > MAX_MINT_BATCH` -> ""]  by testMintBounds
+M27: KILLED  src/KilimMotifs.sol:115  drop quantity <= cap (underflow guard)  [`quantity > motifCap || ` -> ""]  by testMintBounds
+M28: KILLED  src/KilimMotifs.sol:115  drop firstId lower bound (panics instead)  [`firstId == 0 || ` -> ""]  by testMintBounds
+M29: KILLED  src/KilimMotifs.sol:115  last range rejected  [`firstId - 1 > motifCap - quantity` -> `firstId - 1 >= motifCap - quantity`]  by testBurnedBitmapHighBitsStayTaken
+M30: KILLED  src/KilimMotifs.sol:115  ids above the cap accepted  [` || firstId - 1 > motifCap - quantity` -> ""]  by testSupplyCapCannotBeBypassedByBurning
+M31: KILLED  src/KilimMotifs.sol:118  motifsMinted not advanced  [`motifsMinted += quantity;` -> ""]  by setUp (a suite's fixture reverts)
+M32: KILLED  src/KilimMotifs.sol:121  re-mint guard relies on ERC721  [`_ownerOf(id) != address(0) || ` -> ""]  by testBurnedIdsStayTakenAndCannotBeBurnedTwice
+M33: KILLED  src/KilimMotifs.sol:121  burned id can be minted again  [` || burned(id)` -> ""]  by testBurnedBitmapHighBitsStayTaken
+M34: KILLED  src/KilimMotifs.sol:122  mint skips onERC721Received  [`_safeMint(to, id);` -> `_mint(to, id);`]  by testClaimRecipientCannotReenterTheAuctionOrTheMinter
+M35: KILLED  src/KilimMotifs.sol:124  MotifsMinted not emitted  [`emit MotifsMinted(to, bidder, firstId, quantity);` -> ""]  by testMultiRangeClaimEvents
+M36: KILLED  src/KilimMotifs.sol:124  MotifsMinted recipient/bidder swapped  [`to, bidder, firstId, quantity` -> `bidder, to, firstId, quantity`]  by testMultiRangeClaimEvents
+M37: KILLED  src/KilimMotifs.sol:130  anyone burns  [`if (ownerOf(id) != msg.sender)` -> `if (false)`]  by testBurnIsOwnerOnlyAndApprovalsDoNotCount
+M38: KILLED  src/KilimMotifs.sol:131  burn not recorded  [`_burned[id >> 8] |= 1 << (id & 0xff);` -> ""]  by testBurnedBitmapHighBitsStayTaken
+M39: KILLED  src/KilimMotifs.sol:131  burn bitmap lane truncated  [`1 << (id & 0xff)` -> `1 << (id & 0x7f)`]  by testBurnedBitmapHighBitsStayTaken
+M40: KILLED  src/KilimMotifs.sol:132  motifsBurned not advanced  [`++motifsBurned;` -> ""]  by testReceiverMayBurnOrMoveTheJustMintedTokenInsideTheMintCallback
+M41: KILLED  src/KilimMotifs.sol:133  token not burned  [`_burn(id);` -> ""]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+M42: KILLED  src/KilimMotifs.sol:138  burned() reads the wrong word  [`_burned[id >> 8]` -> `_burned[id >> 9]`]  by testBurnedBitmapHighBitsStayTaken
+M43: KILLED  src/KilimMotifs.sol:147  motifOf(0) allowed  [`id == 0 || ` -> ""]  by testMotifOfCoversTheIdRangeOnly
+M44: KILLED  src/KilimMotifs.sol:147  motifOf(cap) rejected  [`id > motifCap` -> `id >= motifCap`]  by testMotifOfCoversTheIdRangeOnly
+M45: KILLED  src/KilimMotifs.sol:147  motifOf above the cap allowed  [` || id > motifCap` -> ""]  by testMotifOfCoversTheIdRangeOnly
+M46: KILLED  src/KilimMotifs.sol:148  motifOf uses the live chain id  [`abi.encode(deploymentChainId,` -> `abi.encode(block.chainid,`]  by testMotifsDoNotMoveWhenTheChainIdChanges
+M47: KILLED  src/KilimMotifs.sol:148  motif numbers 0..1023  [`% MOTIF_COUNT + 1` -> `% MOTIF_COUNT`]  by testMotifIdsAndMotifsAreFixedAtBidTime
+M48: KILLED  src/KilimMotifs.sol:148  motifOf seeded by the minter  [`address(this), id` -> `minter, id`]  by testMotifsDoNotMoveWhenTheChainIdChanges
+M49: KILLED  src/KilimMotifs.sol:148  motifOf id shifted  [`address(this), id` -> `address(this), id + 1`]  by testMotifsDoNotMoveWhenTheChainIdChanges
+M50: KILLED  src/KilimMotifs.sol:375  mint to zero (ERC721 still guards)  [`to == address(0) || ` -> ""]  by testBadMintRecipientsAndBidderRejectedBeforeTheQuantity
+M51: KILLED  src/KilimMotifs.sol:375  mint to the collection (_update still guards)  [` || to == address(this)` -> ""]  by testBadMintRecipientsAndBidderRejectedBeforeTheQuantity
+M52: KILLED  src/KilimMotifs.sol:375  mint to the minter (_update still guards)  [` || to == minter` -> ""]  by testBadMintRecipientsAndBidderRejectedBeforeTheQuantity
+M53: KILLED  src/KilimMotifs.sol:379  transfer to the collection allowed  [`to == address(this) || ` -> ""]  by testTreasuryCannotActAndTokenContractsCannotReceive
+M54: KILLED  src/KilimMotifs.sol:379  transfer to the auction allowed  [` || to == minter` -> ""]  by testTreasuryCannotActAndTokenContractsCannotReceive
+O01: KILLED  src/KilimOneOfOne.sol:68  zero minter allowed  [`minter_ == address(0) || ` -> ""]  by testFuzzInvalidConfiguration
+O02: KILLED  src/KilimOneOfOne.sol:68  zero royalty receiver allowed  [` || royaltyReceiver_ == address(0)` -> ""]  by testFuzzInvalidConfiguration
+O03: KILLED  src/KilimOneOfOne.sol:68  motifs without code allowed  [` || address(motifs_).code.length == 0` -> ""]  by testFuzzInvalidConfiguration
+O04: SURVIVED  src/KilimOneOfOne.sol:369  empty section accepted  [`if (chunks.length == 0)` -> `if (false)`]
+O05: KILLED  src/KilimOneOfOne.sol:385  section hash unchecked  [`if (keccak256(all) != hash)` -> `if (false)`]  by testFuzzInvalidConfiguration
+O06: KILLED  src/KilimOneOfOne.sol:396  empty chunk accepted  [`size < 2 || ` -> ""]  by testFuzzInvalidConfiguration
+O07: SURVIVED  src/KilimOneOfOne.sol:396  chunk without 0x00 lead accepted  [` || lead != 0` -> ""]
+O08: KILLED  src/KilimOneOfOne.sol:91  anyone mints the 1/1  [`if (msg.sender != minter)` -> `if (false)`]  by testArtistWalletCannotBidAndHasNoRoleButRoyalties
+O09: KILLED  src/KilimOneOfOne.sol:92  mint to zero (ERC721 still guards)  [`to == address(0) || ` -> ""]  by testOnlyTheMinterMintsOnceToAValidRecipient
+O10: SURVIVED  src/KilimOneOfOne.sol:92  mint to the 1/1 contract (_update still guards)  [` || to == address(this)` -> ""]
+O11: SURVIVED  src/KilimOneOfOne.sol:92  mint to the auction (_update still guards)  [` || to == minter` -> ""]
+O12: KILLED  src/KilimOneOfOne.sol:93  re-mint guard relies on ERC721  [`if (minted)` -> `if (false)`]  by testOnlyTheMinterMintsOnceToAValidRecipient
+O13: KILLED  src/KilimOneOfOne.sol:94  minted flag not set  [`minted = true;` -> ""]  by testOnlyTheMinterMintsOnceToAValidRecipient
+O14: KILLED  src/KilimOneOfOne.sol:95  mint skips onERC721Received  [`_safeMint(to, TOKEN_ID);` -> `_mint(to, TOKEN_ID);`]  by testAWinnerThatNeedsMoreGasClaimsThePrizeItselfAndNobodyElseCan
+O15: KILLED  src/KilimOneOfOne.sol:95  1/1 minted as id 2  [`_safeMint(to, TOKEN_ID);` -> `_safeMint(to, 2);`]  by testRefundedMotifsAreClaimedBurnedAndTransferredThenAllClaimsSettle
+O16: KILLED  src/KilimOneOfOne.sol:437  transfer to the 1/1 contract allowed  [`to == address(this) || ` -> ""]  by testNoTransferReachesTheContractTheMinterOrTheMotifCollection
+O17: KILLED  src/KilimOneOfOne.sol:437  transfer to the auction allowed  [` || to == minter` -> ""]  by testNoTransferReachesTheContractTheMinterOrTheMotifCollection
+O18: KILLED  src/KilimOneOfOne.sol:437  transfer to the motif collection allowed  [` || to == address(motifs)` -> ""]  by testNoTransferReachesTheContractTheMinterOrTheMotifCollection
+
+Survivors
+
+E30  src/auction/EnglishAuction.sol:114  register without reentrancy guard
+     EQUIVALENT: _register makes no external call (wallet.balance is the BALANCE opcode), so there is nothing to re-enter from.
+E31  src/auction/EnglishAuction.sol:121  registerFor without reentrancy guard
+     EQUIVALENT: the only call out is SignatureChecker's ERC-1271 check, a STATICCALL (OpenZeppelin 5.6.1 SignatureChecker.sol:112): the wallet cannot write state or re-enter a writing function.
+E34  src/auction/EnglishAuction.sol:124  drop wallet != 0 in registerFor
+     EQUIVALENT: address(0) has no code, so SignatureChecker takes the ECDSA branch, and tryRecover returns InvalidSignature whenever the recovered signer is zero (ECDSA.sol:191). A zero wallet is refused with the same error either way; testSignatureCannotChangeWalletOrDeadline still passes for that reason.
+E52  src/auction/EnglishAuction.sol:149  increment rounds down
+     EQUIVALENT: highestBid is a whole number of units, k * 10^15 wei, so highestBid * incrementBps / 10,000 = k * incrementBps * 10^11 with no remainder: Ceil and Floor give the same increment.
+E53  src/auction/EnglishAuction.sol:150  minimum one wei short
+     EQUIVALENT: next = highestBid + increment is a multiple of 10^11 wei (see E52), so next mod 10^15 is never 1 and ceilDiv(next - 1, MOTIF_PRICE) == ceilDiv(next, MOTIF_PRICE).
+E84  src/auction/EnglishAuction.sol:204  registration gate != -> <
+     EQUIVALENT: registrationCount never exceeds REGISTRATION_TARGET: _register refuses at >= target. != and < agree on every reachable count.
+E85  src/auction/EnglishAuction.sol:206  started read from highestBid
+     EQUIVALENT: highestBid and highestBidder are written together, every accepted bid is at least the reserve (0.01 ether, never 0), and msg.sender is never address(0).
+E106  src/auction/EnglishAuction.sol:227  extension rewrite on equal
+     EQUIVALENT: on equality the mutant writes the value endsAt already holds; only the gas of a no-op SSTORE differs.
+E124  src/auction/EnglishAuction.sol:271  equal bid passes first clause
+     EQUIVALENT: for an equal bid the second clause is (0 * MAX_BPS) / current >= incrementBps, false because the constructor keeps incrementBps >= 1.
+A72  src/KilimAuction.sol:235  claimPrize relies on the 1/1's recipient check
+     EQUIVALENT: KilimOneOfOne.mint refuses 0, the 1/1 contract and its minter (this auction, which the constructor checks) with the same InvalidRecipient() selector, and the 1/1's _update refuses the motif collection with it too. Same four addresses, same revert data. The same holds as A23 in the 26 September run.
+O10  src/KilimOneOfOne.sol:92  mint to the 1/1 contract (_update still guards)
+     EQUIVALENT: _update refuses the 1/1 contract with the same InvalidRecipient() selector. The only difference: once minted, the error would be AlreadyMinted instead; it reverts either way, and the auction checks prizeClaimed before calling.
+O11  src/KilimOneOfOne.sol:92  mint to the auction (_update still guards)
+     EQUIVALENT: as O10, for the minter: _update refuses it with the same selector.
+E113  src/auction/EnglishAuction.sol:243  refund gas floor ignores the 1/64 held back
+     EQUIVALENT IN EFFECT: measured: at the smallest gas limit that lets a rival's bid through, the outbid leader's receive() starts with 140,492 gas, with and without the mutant, the same as with 2,000,000. The 300,000 reserve covers the 1/64 held back; the floor moves 2,517 gas and nothing the refund gets changes.
+E115  src/auction/EnglishAuction.sol:243  refund gas floor < -> <=
+     EQUIVALENT IN EFFECT: moves the refund floor by exactly one gas.
+A60  src/KilimAuction.sol:210  settle gas floor ignores the 1/64 held back
+     EQUIVALENT IN EFFECT: measured: at the smallest gas limit that settles, the winner's onERC721Received starts with 392,264 gas, with and without the mutant, the same as with 2,000,000. The 50,000 term already covers the 1/64 held back (7,936 gas).
+M15  src/KilimMotifs.sol:329  short names chunk accepted (panics instead)
+     EQUIVALENT IN EFFECT: the deployment reverts either way (Panic 0x32 from the out-of-bounds read instead of InvalidConfiguration). It is reachable only with a names hash that matches the short chunk, since the hash check runs first.
+E21  src/auction/EnglishAuction.sol:101  incrementBps 10,000 rejected
+     REAL GAP: property: incrementBps may be anything from 1 to 10,000. testFuzzInvalidAuctionConfiguration refuses 10,001 but no test accepts exactly 10,000. Test: construct with incrementBps = 10,000 and expect success. Risk: low; the launch value is 1,000 and the mutant fails closed (the deploy would revert).
+E96  src/auction/EnglishAuction.sol:214  whole unit 0.0001 ether
+     REAL GAP: property: every accepted bid is a whole number of 0.001 ether units, so each unit earns one motif and no wei is bid for nothing. testRejectsFractionalUnitBid sends 25 units + 1 wei, which any finer unit also rejects. Test: a fuzzed remainder r in 1..MOTIF_PRICE-1 (in particular MOTIF_PRICE / 2) above minimumBid() reverts NonWholeUnitBid. Risk: low; the check is right today, the test does not pin the unit.
+A05  src/KilimAuction.sol:84  drop motifs minter binding
+     REAL GAP: property: the auction refuses a motif collection that names another minter. testAuctionAddressIsPredictedAndCheckedByTheTokens moves both tokens' minter at once, so each clause covers for the other (A06 survives the same way). Test: tokens where only the motif collection names a wrong minter must revert InvalidConfiguration. Risk: low, because the deploy script predicts both addresses from one nonce; but if it happened, bids would be taken and no motif could ever be claimed (mintMotifs reverts Unauthorized). FA-18 predicted this survivor.
+A06  src/KilimAuction.sol:84  drop 1/1 minter binding
+     REAL GAP: as A05 for the 1/1: test with only the 1/1 naming a wrong minter. Risk if it happened: settlement pays the treasury, deliverPrize fails, claimPrize reverts Unauthorized for ever; the winner pays and never gets the 1/1.
+A61  src/KilimAuction.sol:210  settle gas floor without the 50,000 after the call
+     REAL GAP: property (F-02, the comment at KilimAuction.sol:208): whenever settle() succeeds, the delivery got the full PRIZE_GAS. Measured: at the smallest gas limit that settles, the winner's onERC721Received starts with 391,944 gas under the mutant against 392,264 normally, 320 gas short of its allowance. testLowGasSettleCannotSkipThePrize steps the gas limit by 4,000 and uses a receiver that needs far less, so it cannot see this. Test: find the smallest gas limit that settles (binary search, as GasFloors._estimate does for bids) and assert the receiver saw the same gas as under a generous limit. Risk: very low; only a receiver needing within about 320 gas of the allowance is affected, and its winner can still use claimPrize.
+M09  src/KilimMotifs.sol:81  drop grid total check
+     REAL GAP: property: the two grid chunks hold exactly 32,768 bytes. Every test that breaks the layout also breaks the hash, and the hash check refuses with the same selector. Without the total check a short last chunk (missing grids read as zeros) or a long one (extra bytes never shown) passes with a gridsHash over what _grids() returns. Test: chunks of 24,544 + 8,192 - 32 bytes with that hash must revert InvalidConfiguration. Risk: very low; deployer input, and the deploy config pins the packer's hash of the real 32,768 bytes.
+M14  src/KilimMotifs.sol:316  chunk without 0x00 lead accepted
+     REAL GAP: property: every chunk is an SSTORE2 data contract, code 0x00 || data. No test gives a chunk with a nonzero first byte and a hash that matches its data (the 1/1's fuzz case 8 uses the motif contract, whose hash fails first). Test: vm.etch a chunk as 0x01 || data, pass keccak256(data), expect InvalidConfiguration. Risk: very low; the data read is the same, only the chunk could be callable code.
+O04  src/KilimOneOfOne.sol:369  empty section accepted
+     REAL GAP: property: each page section has at least one chunk. testFuzzInvalidConfiguration case 6 empties the prefix but keeps its old hash, so the hash check refuses it. Test: prefixChunks empty with prefixHash = keccak256("") must revert InvalidConfiguration. Risk: very low; deployer input pinned by the deploy config.
+O07  src/KilimOneOfOne.sol:396  chunk without 0x00 lead accepted
+     REAL GAP: as M14, in the 1/1's _chunkSize: test a 0x01 || data chunk with a matching section hash.
+
+Gas measurements (E113, A60, A61): a scratch test, not in the repo, finds by binary search the smallest gas limit
+with which the call succeeds and records gasleft() on entry to the receiver (the outbid leader's receive() for
+the refund, the winner's onERC721Received for the prize), then repeats under a 2,000,000 limit. Smallest limits:
+bid 521,009 (518,492 under E113); settle 583,100 (575,030 under A60, 533,025 under A61).
