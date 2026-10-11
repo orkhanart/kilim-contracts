@@ -379,15 +379,16 @@ Confirmed by three verifiers each; none is in a contract. They are listed here s
 
 | ID | Severity | Finding |
 | --- | --- | --- |
-| W-01 | Medium | Startup never asks the two token contracts who their minter is, so a config naming a rogue auction that answers `motifs()` and `oneOfOne()` with the real addresses passes, and bids would go to it. Fix in `site/chain.js`: read `minter()` on both and require the configured auction. `test/review/RogueAuction.sol` and `SiteMinterBinding.t.sol` reproduce it. |
+| W-01 | Medium | **Fixed 10 October** (site review, [audit/site-security-review-2026-10-10.md](audit/site-security-review-2026-10-10.md)). Startup never asked the two token contracts who their minter is, so a config naming a rogue auction that answers `motifs()` and `oneOfOne()` with the real addresses passed, and bids would go to it. `site/chain.js` `init()` now reads `minter()` on both and refuses anything but the configured auction. `site/test/site-review.test.mjs` deploys `test/review/RogueAuction.sol` and shows the page stop. |
 | W-02 | Medium | No public build can produce a bidding page: `site/build.py` still refuses a live chain ("Native ETH migration is pending"), and the live branch composes the read-only page. Would be fixed under pressure on deploy day. |
-| W-03 | Low | `guardWrite()` lets `settle`, `withdrawRefund`, `claimPrize` and `register` be sent while startup has not verified the contracts yet (loss: gas). |
+| W-03 | Low | **Fixed 10 October.** `guardWrite()` let `settle`, `withdrawRefund`, `claimPrize` and `register` be sent while startup had not verified the contracts yet (loss: gas). It now refuses every write until the immutables are read (`Startup`, "Still checking the contracts"); tested with a dead read node. |
 | W-04 | Low | A `deployBlock` that is too late silently hides bids and holdings; the page never checks its book against the totals it reads. |
-| W-05 | Low | The amount the page pre-fills, quotes and simulates comes from one read RPC; the wallet's own view is never consulted before signing. |
-| W-06 | Low | The mainnet config names one RPC URL, so the transport's failover never engages. |
+| W-05 | Low | **Fixed 10 October.** The amount the page pre-fills, quotes and simulates came from one read RPC; the wallet's own view was never consulted before signing. `bid()` now re-reads `minimumBid()` and `rewardForBid()` through the wallet's provider right before the prompt and refuses on any disagreement (`Mismatch`; a higher minimum is a `BidTooLow` with a requote). Tested with a read node that inflates the minimum and one that overstates the reward. |
+| W-06 | Low | **Fixed 10 October.** The mainnet and Sepolia configs name a second URL (`eth.drpc.org`, `sepolia.drpc.org`, both probed in `audit/rpc-gas-caps-*.txt`), so the transport's failover engages. |
 | W-07 | Low | `site/tools/pack_motifs.py` reads and writes `motifs.js` in the locale's encoding. |
 | W-08 | Info | The root README still describes the removed site. |
 | W-09 | — | New since the round: the site has no button for `deliverPrizeToWinner()` (V-15) and its ABI table does not list it. Not needed for a wallet that can claim. |
+| W-10 | Low | **New in the site review of 10 October, fixed the same day.** The Afterglow page signed whatever string the room API handed it (`personal_sign`); a compromised proxy could obtain a login signature for another site. `site/afterglow-access.js` now checks the message is this origin's entry message for the connected wallet, chain and challenge id before the wallet is asked. |
 
 #### Accepted, with the reason
 
