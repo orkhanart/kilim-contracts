@@ -49,7 +49,13 @@ Send the store wallet's ETH **from an exchange or another wallet, never from ork
 
 forge never sees the key. Choose for each wallet, since the store wallet and orkhanart.eth may sign differently, and put it in place of `<SIGN>` in that wallet's commands:
 - **`--ledger`** if the account is on a Ledger. Open the Ethereum app, turn on blind signing, and close Ledger Live. If the account is not the Ledger's first, add `--mnemonic-indexes <n>`. You confirm each transaction on the device.
-- **`--browser`** for a MetaMask account. forge opens a page at `localhost:9545`. Connect the right account there and confirm each transaction in MetaMask. Do not edit the gas, and reject any smart-account offer. This path has not been tried with this script yet. If MetaMask refuses a transaction, stop and ask.
+- **`--browser`** for a MetaMask account. forge opens a page at `localhost:9545`. Connect the right account there and confirm each transaction in MetaMask. Do not edit the gas, and reject any smart-account offer. If MetaMask refuses a transaction, stop and ask. Tried on Sepolia on 11 October ([audit/sepolia-2026-10-11.txt](../audit/sepolia-2026-10-11.txt)):
+  - Open exactly `http://127.0.0.1:9545` in Chrome, where MetaMask is installed; `localhost` or another port fails.
+  - Pick MetaMask in the page's wallet list, and set MetaMask's network before Connect.
+  - Connect within 5 minutes of starting the command.
+  - If the next transaction does not appear, reload the page or open MetaMask from the toolbar.
+  - Never press Cancel on a deploy transaction. Cancel is a replacement at the same nonce, and it voids the published addresses.
+- **`--keystore <file> --password-file <file>`** for the store wallet. 45 confirmations by hand are too many. Use a throwaway wallet whose encrypted keystore forge reads; its field must be the lowercase `crypto`, which ethers v6 writes as `Crypto`. Fund it with only what the store needs.
 
 ## 5. Rehearse on Sepolia
 
@@ -115,7 +121,11 @@ KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/Dep
 
 ## 10. The mainnet contracts
 
-Run the command from step 9 with `--broadcast --slow --timeout 600 <SIGN>` added. If `startsAt` is now less than 24 hours away, move it later first and announce the new date.
+Right before it, do two things:
+- Repeat the header check of step 7. If mainnet forked to Glamsterdam after the store went up, KilimMotifs runs out of gas storing its code, and the published addresses are void.
+- Run from a clean checkout of the frozen tag, not a working tree other sessions share. The script compiles what `src/` holds.
+
+Then run the command from step 9 with `--broadcast --slow --timeout 600 <SIGN>` added. If `startsAt` is now less than 24 hours away, move it later first and announce the new date.
 - **You should see:** the settings with no flag, three transactions, and the three published addresses.
 - If anything goes wrong mid-way, do not improvise. [2-deploy.md](2-deploy.md), "Send", covers each case.
 
