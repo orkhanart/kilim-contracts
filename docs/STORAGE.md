@@ -31,7 +31,7 @@ A chunk's runtime code is `0x00` followed by the data (the leading `STOP` keeps 
 
 | Section | Contents | Stored as | Today |
 | --- | --- | --- | --- |
-| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/png;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 188,421 bytes, 8 chunks (the still, 141,183 bytes as a file) |
+| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/webp;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 147,610 bytes, 7 chunks (the still: the opening frame, 1536 × 2048, lossless WebP of 110,572 bytes; `image/png` if the still is a PNG) |
 | HEAD | The loader up to and including `const GRIDS='` | raw bytes | 197 bytes, 1 chunk |
 | TAIL | The rest of the loader, from the `;` after the closing quote, holding `base64(gzip(artwork))` | **already base64** | 816,856 bytes, 34 chunks |
 
@@ -92,7 +92,7 @@ The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` i
 | --- | --- |
 | the two grid chunks (24,544 and 8,224 bytes) | 7,544,982 together |
 | the names chunk | 3,266,603 |
-| the 8 prefix chunks (the still) and the head chunk | 44,655,799 and 96,731 |
+| the 7 prefix chunks (the still, WebP, 11 October) and the head chunk | 34,939,616 and 96,731 |
 | each full chunk (24,575 bytes) | at most 5,992,449; the 34 tail chunks 196.6M in all |
 | `KilimMotifs` | 3,210,743 |
 | `KilimOneOfOne` | 6,750,528 |
@@ -127,7 +127,7 @@ Nothing can change after deployment: the hashes are immutable, and a different m
 
 0. **Both at once.** `pnpm -s stores [--config deploy/<file>.json]` runs steps 1 and 2 with the texts of the config (default `deploy/local.json`), from the artist's page, its release copy `mint/artwork.html` (refused unless it is the page, byte for byte) and `mint/still.png`, and rewrites the fixture stores the deploy tests read. The two steps below are what it runs.
 1. **Motifs.** `python3 ../onchain/pack_motifs.py <page> ../onchain/build-motifs --description "<collection description>" --external-url "<collection link>"` reads the `<script>const DATA=…</script>` block of `research/motifs/curate/living-language-v3/index.html` and writes `onchain/build-motifs/` (`grids.bin`, `names.bin`, `chunks/`, `manifest.json`). It refuses a page without exactly 1,024 motifs numbered 1..1,024, a name that is not printable ASCII, or rows that are not 16 strings of 16 `0`/`1`; it reports, and records in the manifest, motifs that are drawn identically (three pairs today: 147/590, 246/483, 482/613). Then `python3 site/tools/pack_motifs.py` rewrites `site/motifs.js` through the same packer, so the site draws the bytes the chain stores.
-2. **Page.** `pnpm -s pack:page <artwork.html> <still.png> ../onchain/build-page --grids ../onchain/build-motifs/grids.bin --name "The Unwoven Kilim" --description "<text>" [--external-url <url>]`. The artwork must start with a doctype and read `KILIM_GRIDS`; the still must be a PNG. The outputs are `prefix.bin`, `head.bin`, `tail.bin`, `chunks/`, `animation.html` (the decoded page, to open locally) and `manifest.json`.
+2. **Page.** `pnpm -s pack:page <artwork.html> <still.webp> ../onchain/build-page --grids ../onchain/build-motifs/grids.bin --name "The Unwoven Kilim" --description "<text>" [--external-url <url>]`. The artwork must start with a doctype and read `KILIM_GRIDS`; the still must be a PNG or a WebP, and the packer writes the media type it reads from the file's bytes (the launch uses `mint/still.webp`, lossless). The outputs are `prefix.bin`, `head.bin`, `tail.bin`, `chunks/`, `animation.html` (the decoded page, to open locally) and `manifest.json`.
 3. **Config.** Put the same descriptions, name and external URLs into `deploy/*.json`, and the output of `pnpm -s expected` as its `expected` block; the script refuses a config whose texts or hashes differ from the manifests'.
 4. **Check.** `pnpm -s test:pack` (the packers' invariants on synthetic pages), `pnpm -s test:page` (the exact `animation_url` the contract would return, opened in headless Chrome: the artwork must start), `pnpm -s test:contracts`, then `pnpm -s deploy:dry`, which first checks that both stores are what the inputs give (`check:stores`: a stale store is refused), then deploys the new store in forge's memory, compares both tokenURIs with the new goldens and prints the gas of every transaction and of both reads. Both packers take `--check` with the same arguments to confirm that an existing out directory is what the inputs produce.
 5. **Publish** the chunk addresses and the `expected` block before deploy day ([../checklists/1-pre-deploy.md](../checklists/1-pre-deploy.md)).

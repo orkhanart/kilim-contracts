@@ -5,7 +5,7 @@
 //   pnpm -s stores          write both (and the small fixture stores the deploy tests read)
 //   pnpm -s check:stores    fail unless both are exactly what the inputs and the config give
 //   options: --config <deploy json> (default deploy/local.json), --page-source <html>,
-//            --artwork <html>, --still <png>
+//            --artwork <html>, --still <png|webp>
 //
 // The release copy (mint/artwork.html) must be the page the motifs are read from, byte for byte: one
 // file is the artwork, and its hash is what gets published.
@@ -26,7 +26,7 @@ const opt = (name, fallback) => {
 const config = JSON.parse(readFileSync(opt('--config', resolve(CONTRACTS, 'deploy/local.json')), 'utf8'));
 const pageSource = opt('--page-source', resolve(V3, 'index.html'));
 const artwork = opt('--artwork', resolve(V3, 'mint/artwork.html'));
-const still = opt('--still', resolve(V3, 'mint/still.png'));
+const still = opt('--still', resolve(V3, 'mint/still.webp'));
 const motifStore = resolve(CONTRACTS, config.motifStore);
 const pageStore = resolve(CONTRACTS, config.pageStore);
 const sha = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');

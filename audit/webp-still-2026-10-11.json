@@ -1,0 +1,563 @@
+{
+ "date": "2026-10-11",
+ "question": "Can the 1/1 token image be the lossless WebP (data:image/webp;base64) instead of the PNG?",
+ "judge": {
+  "recommendation": "webp-with-condition",
+  "confidence": "high",
+  "reason": "Use the lossless WebP.\n\nThe deciding evidence was observed on mainnet, not inferred. OpenSea already shows on-chain data:image/webp;base64 lossless images on live Ethereum tokens:\n- Tozzi Duck Machine 0x0cd9c257... tokens 200 and 201 (400x400).\n- ShitPlunger 0x01cecf7a... token 1, an ERC-1155 at 1536x1536. This is the same width and encoding as our 1536x2048 still.\n\nThe precedent sweep and its adversarial re-check both confirmed this. For every token, the file name on i2c.seadn.io is the MD5 of the decoded on-chain WebP bytes, and the served thumbnail matches the on-chain pixels within about 0.7 to 3 out of 255 per channel. Other observations:\n- Rarible serves the original WebP bytes byte for byte.\n- MetaMask's NFT API hands wallets OpenSea's copy.\n- DeBank, which feeds Rabby, re-hosts these tokens as PNG.\n- The repo's own still.webp was checked to be a plain lossless file (VP8L, no alpha, no extra metadata chunks). Chrome 154 and system WebKit decode it to exactly the PNG's pixels, as does Apple's image decoder.\n\nOpenSea's CDN also sends JPEG to clients that do not accept WebP. So even the old browsers without WebP (about 0.4% of usage, mostly iOS below 14, IE11 and Safari on macOS before Big Sur) still get a thumbnail on OpenSea.\n\nAgainst WebP, in order of weight:\n1. Gallery.so. Its published reference backend has no case for a WebP data URI, so the still would probably not show. The token would still display through the HTML animation_url, and whether this matches production or the site still indexes was not verified.\n2. Alchemy is mixed. One of three WebP precedents decoded; two fell back to the collection image, even after a refresh request. The data URI itself is kept in originalUrl.\n3. No precedent is anywhere near our size. The largest WebP seen was 10.5 KB, against 110,572 bytes inside a tokenURI of about 1.2 MB.\n\nRisk 3 does not depend on the format. The 1.1 to 1.3 MB tokenURI, the ';utf8,' prefix and the '+' handling apply to PNG too, and PNG makes them slightly worse (377 KB of base64 against 147 KB).\n\nPNG is not free either. It breaks the 8M-gas contract-creation policy unless it is shrunk, which changes the artwork anyway, and it costs about 54M more gas to store.\n\nThe only shown case where WebP does worse than PNG is Gallery.so's still preview, a minor venue where the artwork still renders. That does not outweigh direct evidence that the main marketplace shows this exact encoding.\n\nThe condition protects against the one thing no evidence covers: our exact roughly 1.2 MB tokenURI. Run that test before mainnet whichever format is chosen. Under the \"unknown when inferred\" rule, Blur, Etherscan, the closed-source wallets and iOS stay unknown. None has any evidence of rejecting WebP, and all of them render with WebP-capable decoders.",
+  "condition": "Before mainnet, deploy the real 1/1 contract to Sepolia with the final tokenURI: the 'data:application/json;utf8,' JSON of about 1.2 MB, carrying the real still.webp and the real animation_url. This needs no private data, and nothing is sent to a third party except through the indexers' normal reading of the chain. Then check:\n(a) Read tokenURI(1) back from the chain with a read-only eth_call through two public RPCs. Confirm it comes back complete, contains no '%' or '#', and that the image decodes to the PNG pixels.\n(b) Alchemy getNFTMetadata through the eth-sepolia demo key. raw.error should be null, image.originalUrl should equal the on-chain data URI with every '+' intact, and image.cachedUrl or thumbnailUrl should show the still rather than a fallback. Check animation_url's '+' characters too.\n(c) testnets.opensea.io: the item page should show the still and the HTML. Check that the i2c.seadn.io file name equals the MD5 of the WebP bytes.\n(d) Optionally, MetaMask with the NFT added by hand on Sepolia.\n\nIf (c) fails, deploy a PNG variant on Sepolia before reverting. Only if the PNG passes where WebP fails is the problem the format; if both fail, the problem is size or encoding. In that case fix the tokenURI shape, not the image format.\n\nRepo housekeeping when switching:\n- contracts/docs/STORAGE.md line 130 still says \"the still must be a PNG\".\n- contracts/scripts/stores.mjs line 29 still defaults to mint/still.png.\n- The pack_page.py working copy already detects WebP from the file's bytes.",
+  "risks": [
+   "The size is untested on every platform. No indexer or marketplace has been seen ingesting a data-URI tokenURI of about 1.1 to 1.3 MB; the largest observed was 325 KB (CryptoCoaster, on Alchemy). The largest observed WebP data-URI image is 10.5 KB, against our 110,572 bytes. This risk is the same for PNG (worse, at 377 KB of base64), and the Sepolia test covers it.",
+   "Alchemy is inconsistent with WebP data URIs. ShitPlunger (lossless WebP, 1536px) decoded to AVIF and PNG, but Tozzi Duck 200 and 201 still show the collection GIF even after refreshCache=true. Alchemy-backed apps could show a fallback or a tiny thumbnail; image.originalUrl keeps the data URI. Its cache has also shrunk non-PNG data rasters, for example a 256px BMP stored as a 120px AVIF.",
+   "Alchemy's '+'-to-space corruption. When a raw JSON tokenURI contains '%', Alchemy applies unquote_plus to every field, which breaks the base64 in both the image and the animation_url. pack_page.py refuses '%' and '#', so the 1/1 should be safe. That rests on two data points, and the ';utf8,' prefix combined with base64 '+' is untested. The risk is the same for either format.",
+   "Gallery.so: its reference backend (open-sourced 2026-04-13) has no case for data:image/webp, so the still would probably not show. The data:text/html animation is handled, so the token likely still displays. This is the only target where PNG is shown to work and WebP not, and production behaviour and site liveness are unverified.",
+   "Blur, Etherscan's NFT view, Coinbase Wallet / Base app, Zerion, Trust Wallet, Phantom, MetaMask Portfolio and Rainbow's backend were never observed with a data:image/webp token. Blur's image CDN decodes lossless WebP from a URL and its ingester stored a BMP data URI, but the full path is inferred. The others are closed or blocked behind bot checks.",
+   "Direct rendering in browsers or apps without WebP: iOS below 14, Safari on macOS 10.15 or older, IE11, Chrome 22 and older, Android 4.0 to 4.1. That is about 0.4% of global usage per caniuse. It matters only where an app puts the raw data URI in an <img>; OpenSea's CDN negotiates JPEG for such clients, and DeBank serves PNG.",
+   "Counter-example (weak): LikeCoin issue #27, in a 2025-05-12 comment, says an ipfs:// WebP showed 'content not available yet' on testnets.opensea.io. It involved IPFS on a testnet with an unknown WebP variant, and the mainnet observations above contradict it. Still, an OpenSea testnet failure in the Sepolia check should be cross-checked against a PNG variant before drawing conclusions.",
+   "Fidelity: OpenSea re-encodes to lossy WebP or JPEG thumbnails and DeBank to downscaled PNG, so viewers see a lossy copy, not the lossless pixels. Inferred: this is the same for PNG, so it is not a cost of WebP.",
+   "The repo docs and defaults still assume PNG (STORAGE.md line 130, stores.mjs line 29). If they are not updated, a deploy script could store still.png while the gas budget assumes WebP, or the reverse."
+  ],
+  "table": [
+   {
+    "target": "OpenSea (UI + i2c.seadn.io CDN + API)",
+    "status": "yes (observed)",
+    "note": "On mainnet, Tozzi Duck 200/201 (lossless WebP, 400px) and ShitPlunger 1 (lossless WebP, 1536px) are shown, with each CDN file name equal to the MD5 of the on-chain bytes. Served as lossy WebP, or as JPEG to clients without WebP. No docs name WebP ('most image formats'). Not seen at 110 KB or inside a 1.2 MB tokenURI."
+   },
+   {
+    "target": "Blur",
+    "status": "likely (inferred from observed parts)",
+    "note": "Ingester stored the Brotchain data:image/bmp in its original format. Its Cloudimage CDN decodes lossless WebP from a URL into PNG. No WebP data-URI token was seen on Blur."
+   },
+   {
+    "target": "Rarible",
+    "status": "yes (observed, small image)",
+    "note": "Tozzi Duck 200: api.rarible.org/content/embedded/<sha256> serves the on-chain lossless WebP byte for byte, and the browser decodes it. Only a 760 B image was checked. Its media proxy refuses data URIs of about 5 KB and up when passed in the URL path; that is the ad-hoc proxy, not ingestion."
+   },
+   {
+    "target": "Magic Eden (ETH)",
+    "status": "n/a (EVM market closed March 2026)",
+    "note": "The EVM API answers 'no healthy upstream'. Its image CDN still decodes lossless WebP from a URL. Ledger's redirector still links to it."
+   },
+   {
+    "target": "Foundation",
+    "status": "n/a (offline since 27 April 2026)",
+    "note": "Platform closed."
+   },
+   {
+    "target": "Zora",
+    "status": "n/a",
+    "note": "No longer shows external ERC-721s (the Brotchain page is a 404). Its coins SDK rejects image/webp for its own uploads only."
+   },
+   {
+    "target": "Manifold gallery",
+    "status": "n/a / unknown",
+    "note": "The 1/1 does not use Manifold Creator Core, so it probably will not be listed. Image pipeline undocumented."
+   },
+   {
+    "target": "Gallery.so",
+    "status": "unlikely for the still; the token probably still shows via HTML",
+    "note": "Reference backend code has base64 cases for png, jpeg, gif, bmp and svg but not webp. The data:text/html animation_url is handled. PNG would work here. Production behaviour and liveness unverified."
+   },
+   {
+    "target": "LooksRare",
+    "status": "n/a (Error 500 / offline)",
+    "note": "Not functioning."
+   },
+   {
+    "target": "Etherscan NFT view",
+    "status": "unknown",
+    "note": "Blocked by a Cloudflare bot check; the static.looksnice.org proxy fails for control tokens too. If it renders the data URI in an <img>, every current browser decodes lossless WebP (inferred)."
+   },
+   {
+    "target": "Alchemy NFT API (parse + cache)",
+    "status": "mixed / unknown",
+    "note": "Parsing data: tokenURIs works up to 325 KB (observed). WebP cache: ShitPlunger decoded; Tozzi Ducks fall back to the collection GIF even after refresh. originalUrl keeps the data URI. '+' corruption when '%' is present (the 1/1 has no '%'). Sepolia demo key test decides it."
+   },
+   {
+    "target": "Reservoir",
+    "status": "n/a (shut down 2025-10-15)",
+    "note": "Domain is NXDOMAIN. Old code passed data URIs through without a MIME check."
+   },
+   {
+    "target": "SimpleHash (and Coinbase through it)",
+    "status": "n/a (shut down 2025-03-27)",
+    "note": "API redirects to itself. Coinbase's current provider is unknown."
+   },
+   {
+    "target": "Moralis",
+    "status": "unknown (WebP format documented as supported)",
+    "note": "Current docs list WEBP among preview formats; nothing on data: or base64 images."
+   },
+   {
+    "target": "MetaMask extension",
+    "status": "yes via OpenSea copy (observed); raw data URI path inferred",
+    "note": "nft.api.cx.metamask.io returns the i2c.seadn.io .webp for Tozzi Duck. The API image takes precedence over the on-chain one. No content security policy rule blocks data: images; plain <img>."
+   },
+   {
+    "target": "MetaMask mobile",
+    "status": "yes via OpenSea copy (observed API); rendering inferred",
+    "note": "expo-image 57.0.5 with libwebp 1.6.0 on iOS and Glide's data: loader on Android; no MIME filter in the source."
+   },
+   {
+    "target": "MetaMask Portfolio",
+    "status": "unknown (leaning likely)",
+    "note": "Closed source; indexer not verified. Web <img>."
+   },
+   {
+    "target": "Rainbow",
+    "status": "unknown (leaning likely)",
+    "note": "No WebP filter in the source; imgix accepts WebP. Backend needs a key; upstream unknown since SimpleHash closed."
+   },
+   {
+    "target": "Rabby (extension)",
+    "status": "yes (observed)",
+    "note": "DeBank API returns PNG copies (512px and 256px) of the on-chain lossless WebP Tozzi Ducks; antd <img> in Chromium."
+   },
+   {
+    "target": "Rabby mobile",
+    "status": "likely",
+    "note": "Same DeBank API, observed returning PNGs; the app itself was not checked."
+   },
+   {
+    "target": "Coinbase Wallet / Base app",
+    "status": "unknown",
+    "note": "Closed source; indexer unknown. Runtimes decode WebP."
+   },
+   {
+    "target": "Zerion",
+    "status": "unknown",
+    "note": "Serves its own hosted preview URLs with a MIME type; ingestion of WebP data URIs not observed."
+   },
+   {
+    "target": "Trust Wallet",
+    "status": "unknown",
+    "note": "Closed source and undocumented. Operating-system decoders handle lossless WebP on iOS 14+ and Android 4.2.1+."
+   },
+   {
+    "target": "Phantom (ETH)",
+    "status": "unknown",
+    "note": "Absorbed SimpleHash's pipeline; nothing observed."
+   },
+   {
+    "target": "Ledger Live",
+    "status": "n/a (NFT gallery removed Sept 2025)",
+    "note": "Only a redirect to OpenSea or Magic Eden remains, so it inherits OpenSea's 'yes'."
+   },
+   {
+    "target": "Chrome / Chromium / Edge / Android WebView",
+    "status": "yes (observed)",
+    "note": "Chrome 154: <img>, the tokenURI parse, canvas and fetch all give the exact PNG pixels (0 bytes differ). Lossless support since Chrome 23."
+   },
+   {
+    "target": "Safari macOS / WKWebView / Apple ImageIO",
+    "status": "yes (observed on macOS 26.6.2)",
+    "note": "WKWebView test shows 0 bytes differing from the PNG; sips gives pixel-identical output. Safari 14+ needs macOS 11 or later."
+   },
+   {
+    "target": "Safari iOS / iPadOS",
+    "status": "likely (documented 14+, not run)",
+    "note": "Same WebKit/ImageIO family; caniuse lists ios_saf from 14.0. iOS below 14 is about 0.17% of usage."
+   },
+   {
+    "target": "Firefox",
+    "status": "yes (documented, not run)",
+    "note": "caniuse lists 'y' from 65."
+   },
+   {
+    "target": "Legacy decoders (IE11, Chrome 22 and older, Android 4.0-4.1, Safari on macOS 10.15 or older)",
+    "status": "no (documented)",
+    "note": "About 0.4% of global usage. Matters only where the raw data URI is rendered directly; OpenSea's CDN negotiates JPEG for these clients."
+   }
+  ]
+ },
+ "sweeps": [
+  {
+   "key": "marketplaces",
+   "summary": "Marketplace sweep, 2026-10-11. No marketplace documents WebP data URIs one way or the other. OpenSea's docs say \"OpenSea supports most image formats, including SVG\". Foundation, Zora and Manifold list no WebP for creator uploads, and Zora's coins SDK actively rejects image/webp.\n\nThe firm evidence comes from tests:\n(1) A live Ethereum mainnet on-chain raster precedent. Brotchain 0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d returns a non-base64 'data:application/json,{...}' tokenURI whose image is 'data:image/bmp;base64,...' (confirmed with eth_call). OpenSea stores it as .bmp on i2c.seadn.io and serves it decoded as AVIF. Blur stores it as BMP (Cloudimage trace shows o<200:BMP>) and displays it as JPEG. So both decode generic data:image/* rasters and keep the format named in the data URI.\n(2) Lossless VP8L decoding:\n- OpenSea's CDN turned a VP8L original (raw2.seadn.io/currency_logos/TUSD.webp, served through i2c.seadn.io with ?format=png) into a PNG. It also turned a lossy VP8 NFT-platform asset into a PNG.\n- Blur's images.blur.io (Scaleflex Cloudimage) turned Google's VP8L sample (gstatic 1_webp_ll.webp) into a 100x75 PNG.\n- Rarible's media proxy (media.raribleuserdata.com/image/<base64 of source>) accepted a 'data:image/webp;base64' VP8L URI. It returned the exact 34 bytes as image/webp, so the viewer's browser does the decoding.\n\nNet: OpenSea, Blur and Rarible are very likely to show a lossless WebP still correctly. Nobody has observed an actual data:image/webp NFT on these sites: a search for one on mainnet found none, and I did not deploy anything.\n\nTwo negatives:\n- Gallery.so's open-source backend (gallery-so/gallery-backend, released 2026-04-13) has explicit cases for base64 PNG, JPEG, GIF, BMP and SVG data URIs but not WebP. 'data:image/webp;base64' falls to URITypeUnknown, and the raw URI string is then sniffed as text, so the still probably would not show there. The data:text/html animation is handled.\n- Moralis says \"currently WEBP and SVG are not supported\" for its NFT previews. Moralis is outside this sweep but relevant.\n\nSeveral targets are gone or do not apply:\n- Foundation is offline. Its homepage reads \"Foundation is offline\", dated 27 April 2026, and help.foundation.app no longer resolves.\n- Magic Eden closed its EVM marketplace in March 2026 (secondary reports; its evm-public API answered \"no healthy upstream\"). Its image CDN does decode VP8L.\n- LooksRare collection pages return Error 500.\n- Zora shows no external ERC-721s (/collect/eth:<Brotchain>/1 is PAGE NOT FOUND), and its coins SDK rejects webp.\n- Manifold gallery: the contract does not use Manifold Creator Core, so it probably will not be listed there.\n\nSide note for the orchestrator: OpenSea's metadata-storage doc lists only 'data:application/json;base64,' for tokenURI. Its contract-level example does use 'data:application/json;utf8,'. Brotchain's non-base64 'data:application/json,' tokenURI is indexed and displayed on OpenSea and Blur.\n\nScratch files: /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/mkt-sweep/ (rpc.py, wp.py, g-token.go, g-rpc.go, gallery-media.go, os-*.md).",
+   "verdicts": [
+    {
+     "target": "OpenSea (marketplace UI + i.seadn.io/i2c.seadn.io CDN)",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "DOCUMENTED: https://docs.opensea.io/docs/media-and-traits.md, image field: \"OpenSea supports most image formats, including SVG, which OpenSea caches as PNG.\" The page says nothing about WebP. https://docs.opensea.io/docs/metadata-storage.md lists the Data URI form only as `data:application/json;base64,...`. https://docs.opensea.io/docs/contract-level-metadata.md shows `data:application/json;utf8,` for contractURI. Creator FAQ https://support.opensea.io/en/articles/8867028-creator-faq: \"We currently support JPG, PNG, GIF, and SVG files for Drops\". That is a Studio upload limit, not ingestion. OBSERVED: (a) eth_call tokenURI(1) on Brotchain 0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d (Ethereum mainnet, via publicnode) returns `data:application/json,{...\"image\":\"data:image/bmp;base64,Qk02...` (89,102 chars). The opensea.io/collection/brotchain HTML lists imageUrl https://i2c.seadn.io/ethereum/0xd31fc.../3ca218db2a06079dc62e8988e5c4ea24.bmp, and that URL serves an AVIF image. So OpenSea decodes on-chain raster data URIs generically and keeps the format from the MIME. (b) https://i2c.seadn.io/currency_logos/TUSD.webp?format=png&w=50 returned a valid PNG. Its original on raw2.seadn.io is VP8L (lossless), so OpenSea's image service decodes lossless WebP. (c) A lossy VP8 original on i2c.seadn.io/stablechain/... with ?format=png also returned a PNG. INFERRED: a data:image/webp;base64 VP8L still will be ingested and shown. No data:image/webp NFT was found on OpenSea to confirm it end to end."
+    },
+    {
+     "target": "Blur",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "No Blur documentation on formats exists. OBSERVED: blur.io/eth/collection/brotchain, loaded in the browser pane, shows the BMP data-URI image (images.blur.io/_blur-prod/0xd31fc.../70038-230309fae98c6a97?w=128, naturalWidth 128). Response headers include x-cloudimg-traceid and x-hexa-flowtrace `AnR_F(webp_na)o<200:BMP>...`, so Blur stores the decoded data-URI bytes in their original format and Scaleflex Cloudimage transcodes them. Requesting https://images.blur.io/https://www.gstatic.com/webp/gallery3/1_webp_ll.webp?w=100 (a VP8L lossless sample) returned a 100x75 PNG with trace `o<200:WEBP>`, so Blur's CDN decodes lossless WebP. DOCUMENTED (Cloudimage): https://docs.cloudimage.io/transformations/input-formats lists WebP among supported origin formats (per search summary). INFERRED: a WebP data-URI still would be stored as WebP and shown."
+    },
+    {
+     "target": "Rarible",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "DOCUMENTED (third-party only, weak): creator upload formats are \"PNG, GIF, WEBP, MP4 and MP3\" (bitpinas.com guide, size-charts.com). Rarible's API now requires a key (`Api Key is required`), so the item meta could not be read. OBSERVED: og.rarible.com serves images through https://media.raribleuserdata.com/image/<base64(source)>?width=... . Passing base64('data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==') returned HTTP 200, content-type image/webp, exactly 34 bytes, a 1x1 VP8L. Passing the gstatic VP8L sample returned the original 81,836-byte VP8L untouched, even with format=png. So the proxy accepts WebP data URIs and passes WebP straight through; the viewer's browser decodes it, and all current browsers decode VP8L. The Brotchain item grid did not finish loading in the browser pane, so no on-chain example could be checked."
+    },
+    {
+     "target": "Magic Eden (Ethereum)",
+     "supports_webp_data_uri": "unknown",
+     "basis": "observed",
+     "evidence": "Secondary reports say Magic Eden closed its EVM and Bitcoin NFT markets around 9 March 2026: https://invezz.com/uk/news/2026/02/27/magic-eden-shuts-bitcoin-and-evm-nft-markets-to-refocus-on-solana/ . OBSERVED: api-mainnet.magiceden.dev/v4/evm-public/... answered `no healthy upstream`, and the v3 rtp ethereum endpoints answered `Not Found.`. The magiceden.io ETH collection page sat behind a Cloudflare bot check, which I did not bypass. The image CDN still works: https://img-cdn.magiceden.dev/rs:fill:200:200:0:0/plain/https://www.gstatic.com/webp/gallery3/1_webp_ll.webp@png returned a 200x200 PNG from a VP8L source. It refuses data: URIs as a source (`Source image is unreachable`). Probably no longer relevant for an ETH 1/1."
+    },
+    {
+     "target": "Foundation",
+     "supports_webp_data_uri": "no",
+     "basis": "observed",
+     "evidence": "OBSERVED: the https://www.foundation.app/ homepage reads \"Foundation is offline April 27, 2026 ... we have made the decision not to resume operations.\" help.foundation.app no longer resolves (getaddrinfo ENOTFOUND). Before it closed, its help articles (per search summaries) listed JPG, JPEG, PNG, SVG, GIF and, for imports, TIFF, WEBM and others, never WebP. Not applicable: the platform is closed."
+    },
+    {
+     "target": "Zora",
+     "supports_webp_data_uri": "unlikely",
+     "basis": "observed",
+     "evidence": "OBSERVED: https://zora.co/collect/eth:0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d/1 renders \"PAGE NOT FOUND\". Zora now shows only its own coins/posts and no external ERC-721s, so it would not display this contract at all. DOCUMENTED IN CODE: ourzora/zora-protocol packages/coins-sdk/src/uploader/metadata.ts has validateImageMimeType allowing only png/jpeg/jpg/gif/svg+xml. Its test metadata.test.ts lists \"image/webp\" under invalid types: \"Image must be a PNG, JPEG, JPG, GIF or SVG\". The older legacy/protocol-sdk/src/ipfs/mimeTypes.ts isImage() does include \"image/webp\". Not applicable to an external 1/1."
+    },
+    {
+     "target": "Manifold gallery",
+     "supports_webp_data_uri": "unknown",
+     "basis": "inferred",
+     "evidence": "Manifold's docs export (https://docs.manifold.xyz/llms-full.txt, 182 KB) has no 'webp', 'data:image' or file-type list. The old supported-file-types URL is a 404. The client SDK changelog says media.image is an \"optimized preview (image_preview || thumbnail)\", so Manifold makes its own previews with an undocumented pipeline. A GitHub search for \"image/webp\" in the manifoldxyz org found nothing. The 1/1 contract (contracts/src/KilimOneOfOne.sol) does not use Manifold Creator Core, so it probably would not appear in Manifold's gallery at all."
+    },
+    {
+     "target": "Gallery.so",
+     "supports_webp_data_uri": "unlikely",
+     "basis": "documented",
+     "evidence": "DOCUMENTED IN CODE: gallery-so/gallery-backend, \"Initial open source release\" dated 2026-04-13. In service/persist/token.go, TokenURI.Type() has explicit cases for data:image/svg+xml, bmp, png, jpeg and gif base64 URIs (URITypeBase64PNG etc.), and none for image/webp. 'data:image/webp;base64,...' falls to URITypeUnknown, and ToMediaType() returns MediaTypeUnknown. In service/media/media.go, PredictMediaType checks a file extension after the last '.'; base64 contains no '.', so it falls back to URI type and gets Unknown. In service/rpc/rpc.go, GetDataFromURIAsReader's default branch passes the raw URI string (`bytes.NewBuffer([]byte(turi))`) instead of decoding it, so sniffing sees text. For comparison, the PNG branch decodes and re-encodes, and webp only appears in the URL-extension map. The 'data:text/html' animation_url would be handled (URITypeBase64HTML). gallery.so still serves its site. INFERRED: the still would likely be missing or broken on Gallery while the HTML animation may render."
+    },
+    {
+     "target": "LooksRare",
+     "supports_webp_data_uri": "unknown",
+     "basis": "observed",
+     "evidence": "OBSERVED: https://looksrare.org/collections/0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d in the browser pane shows \"Error 500 - Internal Server Error ... LooksBroken\" with footer \"© 2025 LooksRare\". curl gets a Cloudflare 403. blockspot.io reports looksrare.org offline since 2026-07-27. I found no format documentation, and a GitHub code search of the LooksRare org for webp returned nothing. Effectively not working for NFT display."
+    }
+   ],
+   "check": {
+    "holds": false,
+    "corrections": [
+     "Rarible: downgrade from 'likely' to 'unknown'. The proxy test only works for tiny URIs. I reran it: the 34-byte VP8L data URI does come back as HTTP 200 image/webp with the same 34 bytes. But a synthetic lossless WebP data URI of only about 5 KB (URL path about 5,020 chars) got HTTP 414 on two tries, as did ones of about 19 KB and about 53 KB. About 105 KB and about 213 KB (the real still's size class: 110,572 bytes means a URL of about 196 KB) failed with curl error 55. One early ~53 KB request returned 200 once and then 414 on retry. So media.raribleuserdata.com/image/<base64(data URI)> cannot carry the real still. How Rarible ingests and shows a real-size on-chain image (WebP or PNG) was not observed, and the creator-upload format list is third-party only.",
+     "OpenSea: the parts were re-checked and hold. raw2.seadn.io/currency_logos/TUSD.webp is RIFF/WEBP/VP8L (712 bytes), and i2c.seadn.io/...TUSD.webp?format=png&w=50 returns a 25x25 PNG. The Brotchain i2c.seadn.io .bmp URL serves image/avif (2,771 bytes). The end-to-end claim (a data:image/webp still in tokenURI gets ingested and shown) is still inferred. Relabel basis as 'inferred from observed components'. Under the default-to-unknown rule it would be 'unknown'. Treat it as a test-before-deploy item, not established. The precedent is also weak on size: Brotchain's whole tokenURI is about 89 KB, and ours is 1.1-1.3 MB. That gap is not specific to WebP, but the precedent shows nothing about ingesting a tokenURI that large.",
+     "Blur: re-checked and holds. images.blur.io/https://www.gstatic.com/webp/gallery3/1_webp_ll.webp?w=100 returns a 100x75 PNG with x-hexa-flowtrace 'An.R_F(webp_na)o<200:WEBP>...'. The CDN decodes VP8L when given a URL. The claim that Blur's ingester stores data-URI bytes and keeps the declared format rests on one BMP example, so the end-to-end verdict is inferred too. Same relabel as OpenSea: 'likely' only as an inference, 'unknown' under the strict rule.",
+     "Gallery.so: the code reading holds. I re-fetched service/persist/token.go from gallery-so/gallery-backend (repo created and last pushed 2026-04-13). TokenURI.Type() has base64 cases for svg+xml, bmp, png, jpeg, gif, wav and mpeg and none for webp, so 'data:image/webp;base64,...' falls to URITypeUnknown. rpc.go line 389's default branch does bytes.NewBuffer([]byte(turi)). media.go maps 'webp' only as a URL extension. Three caveats the sweep missed. (a) The README calls the repo 'published as reference', so it may not match production, and whether gallery.so is still indexing was not verified: its homepage is a JS shell whose only text is 'Gallery'. (b) In tokenprocessing/pipeline.go, if the image fails but the base64 data:text/html animation succeeds and requireImg is false, the token still gets media from the animation. So the token would probably still display through the HTML, with only the still missing. (c) The basis should be 'documented in code (reference release), production unverified', not 'documented'.",
+     "The sweep never set the PNG baseline against WebP. Gallery.so would handle data:image/png (URITypeBase64PNG), so Gallery is the one target where WebP is shown to do worse than the current PNG. The Rarible proxy limit and the 1.1-1.3 MB tokenURI ingest question hit PNG equally (the PNG is worse: about 377 KB base64).",
+     "Foundation (offline), Zora (no external ERC-721 pages), Magic Eden EVM (closed) and LooksRare (Error 500) are fine as 'not applicable' or 'unknown'. I did not re-fetch them because they do not change the decision.",
+     "A further search found no documented or observed mainnet NFT whose image is data:image/webp;base64, and no report contradicting OpenSea or Blur WebP support. Absence of a precedent remains the main gap."
+    ],
+    "reason": "I spot-checked the four most consequential verdicts (OpenSea, Blur, Rarible, Gallery.so) with fresh fetches. Scratch files are in /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/mkt-adv/. The OpenSea and Blur CDN results reproduced exactly: both decode lossless VP8L, and OpenSea serves the Brotchain BMP data-URI image as AVIF. Their end-to-end verdicts are still inferences, though, because no data:image/webp NFT has been seen on either site. The Rarible verdict does not hold: its proxy refuses data-URI paths from about 5 KB up (HTTP 414, then connection failure), so the 34-byte test says nothing about a 110 KB still. The Gallery.so negative is confirmed in the reference source. But it is softened: production may differ, the site's liveness was not verified, and the token would still render through its HTML animation_url. For privacy I tested only with synthetic noise WebPs and never sent the unreleased still to any third-party service. Net: the sweep's 'likely' for OpenSea and Blur is a reasonable inference but should be labeled as inferred (or 'unknown' under the strict rule), Rarible should be 'unknown', and Gallery.so 'unlikely' (still image only) stands with caveats."
+   }
+  },
+  {
+   "key": "indexers",
+   "summary": "Sweep of indexers and NFT APIs, done 2026-10-11. Scratch files are in /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/idx-sweep/. Nothing in the repo was changed. I could not find any live mainnet token whose image is a data:image/webp URI, so none of the targets was observed rendering this exact format. The verdicts below rest on four things: how each pipeline handles other data: rasters (PNG and BMP, observed), what the image CDNs say they accept (WebP input is documented), and source code where it exists. The repo's still.webp header was confirmed as RIFF/WEBP/VP8L.\n\nMain results:\n(1) Alchemy's 30,000-byte limit. The exact text, in the \"Contract returned a broken token URI\" section of https://www.alchemy.com/docs/reference/nft-api-faq, is \"This can also happen if the content length of the response is larger than 30 000 bytes.\" It sits under a heading about a tokenUri that \"does not respond to the web request\", so it covers HTTP fetches. It did not apply to data: URIs in practice: Alchemy fully parsed on-chain data: tokenURIs of 59,349 bytes (Terraforms), 89,102 bytes (Brotchain) and 325,521 bytes (CryptoCoaster). A tokenURI of 1.1 to 1.3 MB is untested.\n(2) Alchemy stored an on-chain data:image/png byte for byte. On Polygon, the contract 0xB4D3973637369692981C7C40f7a733a04b2D0E9c (token 2) gave cachedUrl content-type image/png at 2,834 bytes, identical to the on-chain bytes. Thumbnails there come from Cloudflare Images (nft2-cdn.alchemy.com/cdn-cgi/image/...), and older entries use Cloudinary. Cloudflare's docs list WebP as an input format.\n(3) A raw-JSON tokenURI can have its \"+\" characters turned into spaces by Alchemy, and this is not specific to WebP. CryptoCoaster's raw tokenURI ('data:application/json,{...}') contains 376 '%' characters. In Alchemy's raw.metadata.image and image.originalUrl, every '+' became a space ('data:image/svg xml;base64,...' with 16 spaces), so the base64 no longer decodes. Its cachedUrl was still correct. Brotchain's raw tokenURI has no '%', and all 10,132 '+' characters came through intact. The 1/1's packer already refuses '%' and '#' (onchain/pack_page.py data_url_text), so the output should be pure JSON plus base64 and fall on the safe side. The 1/1's ';utf8,' form is untested on Alchemy.\n(4) OpenSea's pipeline decodes on-chain data: raster images whatever their MIME type. Brotchain's data:image/bmp is stored as ...75fda75a0b3f7f33eeaffa71ddedfe36.bmp on i2c.seadn.io and served as AVIF or JPEG. OpenSea's media docs say \"most image formats\" and never name WebP or data URIs.\n(5) Reservoir and SimpleHash are both shut down. Reservoir: sunset announced for 2025-10-15, and api.reservoir.tools now returns NXDOMAIN. SimpleHash: Alchemy's migration blog says it sunset on 2025-03-27, and its API now returns a 301 that points back to itself. Coinbase Wallet therefore no longer goes through SimpleHash, and I found no public source naming its current provider.\n(6) Moralis lists WEBP among supported preview formats. QuickNode documents no media processing at all. Etherscan's NFT page could not be checked: it sits behind a Cloudflare bot check, which I did not try to get past.\n\nLossless versus lossy: every pipeline above decodes or transcodes through standard image stacks (Cloudflare Images, Cloudinary, OpenSea's CDN), and libwebp has decoded VP8L since 2012. I found no evidence that any of these treats lossless WebP differently from lossy, but that part is inferred, not observed. One real gap is untested: a tokenURI of about 1.2 MB with a data:image/webp of about 147 KB of base64 on any of these indexers. A Sepolia test deploy queried through Alchemy's public 'demo' key (eth-sepolia) would settle the Alchemy and OpenSea part without any mainnet risk.",
+   "verdicts": [
+    {
+     "target": "Alchemy NFT API: parsing a data: tokenURI and the 30,000-byte limit",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "Documented, https://www.alchemy.com/docs/reference/nft-api-faq (raw .md fetched), section 'Contract returned a broken token URI, do not retry': \"This occurs when the `tokenUri` associated with the NFT does not respond to the web request...\" followed by \"This can also happen if the content length of the response is larger than 30 000 bytes.\" The context is an HTTP fetch. Observed with Alchemy's public 'demo' key, GET eth-mainnet.g.alchemy.com/nft/v3/demo/getNFTMetadata: (a) Terraforms 0x4E1f41613c9084FdB9E34E11fAE9412427480e56 #1: the tokenURI is data:application/json;base64, 59,349 bytes, and raw.metadata was fully parsed with raw.error null. (b) Brotchain 0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d #1: raw 'data:application/json,' tokenURI of 89,102 bytes, parsed. (c) CryptoCoaster 0xce9ca012fa55a8b1e540df35f6c77203812df523 #1: raw 'data:application/json,' tokenURI of 325,521 bytes, parsed, raw.error null. In all three, the data: tokenURI was well over 30,000 bytes and the limit did not apply. Untested: about 1.1 to 1.3 MB, and the ';utf8,' parameter. A quirk, observed: CryptoCoaster's JSON contains 376 '%' characters, and Alchemy percent-decoded it with '+' turned into a space. Its raw.metadata.image and image.originalUrl read 'data:image/svg xml;base64,...', with 16 spaces where the chain has 16 '+' characters, so Python's strict base64 decode fails. Brotchain (0 '%') kept all 10,132 '+' characters. The 1/1 packer (onchain/pack_page.py data_url_text) refuses '%' and '#', so the 1/1 should take the safe path; that last step is inferred. Nothing about WebP specifically is documented, and no data:image/webp token was found to test."
+    },
+    {
+     "target": "Alchemy media cache (image.cachedUrl / thumbnailUrl / pngUrl, contentType)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Observed: Polygon 0xB4D3973637369692981C7C40f7a733a04b2D0E9c #2 has image 'data:image/png;base64,...' (600x600). cachedUrl https://nft2-cdn.alchemy.com/matic-mainnet/9894c3cc4010fb64b308b560246c68d0 returned image/png, 2,834 bytes, byte-identical to the on-chain PNG (cmp). thumbnailUrl is a Cloudflare Images transform (nft2-cdn.alchemy.com/cdn-cgi/image/width=250,height=250,fit=scale-down/...) that returned a JPEG. pngUrl equals cachedUrl for a raster source, so for a WebP source pngUrl would probably serve WebP bytes, not PNG (inferred). Data: SVGs (Terraforms, CryptoCoaster, Checks) were cached exactly, with contentType image/svg+xml; older entries use res.cloudinary.com/alchemyapi thumbnailv2/convert-png. One oddity: Brotchain's data:image/bmp (256x256) was cached as a 120x120 AVIF of 1,119 bytes, so non-PNG rasters may be transcoded or downscaled in the cache. Documented: Cloudflare's limits page (developers.cloudflare.com/images/get-started/limits/, as summarized by search) lists input formats 'PNG, JPEG, GIF, WebP (including animations), SVG, AVIF*, HEIC'. The FAQ says \"Most types of images (SVGs, PNGs, JPEGs, etc.) are supported\" and does not name WebP. A data:image/webp source was not observed. Lossless VP8L goes through libwebp-based stacks (inferred: no problem)."
+    },
+    {
+     "target": "Reservoir (API and open-source indexer)",
+     "supports_webp_data_uri": "no",
+     "basis": "observed",
+     "evidence": "The service is gone. Per crypto.news / cryptonews.net (search results), Reservoir announced on 2025-04-24 that it would sunset its NFT API on 2025-10-15. Observed: `host api.reservoir.tools` returns NXDOMAIN, and the reservoirprotocol GitHub org now lists only 'unrelated-test-shadowing' (the indexer repo was removed). Code, observed in the copy github.com/alihassan18/reservoir-indexer (commit ee894f0c, 2023-12-04), packages/indexer/src/metadata/providers/onchain-metadata-provider.ts getTokenMetadataFromURI: 'data:application/json;base64,' is base64-decoded; otherwise `else if (uri.startsWith(\"data:application/json\")) { uri = uri.substring(uri.indexOf(\",\") + 1); return [JSON.parse(uri), null]; }`. That is raw JSON with no percent-decoding, so ';utf8,' would parse. parseToken sets imageUrl = normalizeLink(metadata.image), which passes a data: URI through unchanged with no MIME check. Resizing went through a closed, signed proxy (utils/assets.ts signImage, config.imageResizingBaseUrl). The 'no' only reflects that the service no longer exists; the old code would not have rejected WebP."
+    },
+    {
+     "target": "SimpleHash (and Coinbase / Coinbase Wallet through it)",
+     "supports_webp_data_uri": "no",
+     "basis": "documented",
+     "evidence": "The service is gone. Alchemy, https://www.alchemy.com/blog/migrating-nft-data-from-simplehash-to-alchemy.md: \"SimpleHash is sunsetting its services on March 27, 2025\". The Block (2025-02-26): Phantom acquired SimpleHash. Observed: GET https://api.simplehash.com/api/v0/nfts/ethereum/... returns 301 with Location pointing to the same URL (a dead redirect loop). Coinbase Wallet therefore no longer uses SimpleHash. I found no public source naming its current NFT data provider; Reservoir, which crypto.news also reported as a Coinbase/MetaMask provider, is shut down too. The wallet sweep has to judge Coinbase Wallet directly."
+    },
+    {
+     "target": "Moralis NFT API",
+     "supports_webp_data_uri": "likely",
+     "basis": "documented",
+     "evidence": "https://docs.moralis.com/web3-data-api/evm/nft-image-previews and https://docs.moralis.com/data-api/data-features/data-enrichment/nft-metadata/image-previews-cdn.md: \"Moralis currently supports common static image formats, including:\" JPG / JPEG, PNG, GIF, TIFF, WEBP, SVG; 'Not yet supported': only \"Video (planned)\". Search results mention an older docs page that called WEBP and SVG unsupported; the current page says they are supported. No size limits stated. Moralis docs say nothing about data: URIs, base64 images or on-chain metadata, and a 2022 forum reply said base64 images are left 'up to the developer to display'. Not observed: the API needs a key. Lossless or lossy is not mentioned."
+    },
+    {
+     "target": "QuickNode NFT API (qn_fetchNFTs, Token and NFT API v2 bundle)",
+     "supports_webp_data_uri": "unknown",
+     "basis": "documented",
+     "evidence": "https://www.quicknode.com/docs/ethereum/qn_fetchNFTs: imageUrl is described only as \"The URL where the image for this NFT can be seen\". Also: \"for a contract to be fully indexed, it must be verified on Etherscan.\" No media caching, format list, data: URI handling or size limits are documented. It most likely passes the image string through unchanged, in which case display depends on the client (inferred). Not observed: needs a key or add-on."
+    },
+    {
+     "target": "Etherscan NFT viewer (etherscan.io/nft/...)",
+     "supports_webp_data_uri": "unknown",
+     "basis": "observed",
+     "evidence": "Not testable here. curl got HTTP 403, and the in-app browser stayed on Cloudflare's 'Performing security verification' page, which I did not try to get past. No official Etherscan documentation on NFT media formats or data: URIs was found; forum threads only describe slow or manual metadata refresh. If Etherscan puts the data: URI straight into an <img>, the viewer's browser decides, and every current browser decodes VP8L (inferred)."
+    },
+    {
+     "target": "OpenSea metadata ingestion, API and CDN (i2c.seadn.io; legacy i.seadn.io)",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "Documented: https://docs.opensea.io/docs/media-and-traits says \"OpenSea supports most image formats, including SVG, which OpenSea caches as PNG.\" and \"OpenSea supports externally hosted media up to 300 MB.\" WebP and data-URI images are not mentioned. https://docs.opensea.io/docs/metadata-storage supports data-URI tokenURIs (\"Return raw JSON for new implementations because it avoids encoding one URI inside another.\"). Observed: the opensea.io item page for Brotchain #1, whose image is an on-chain data:image/bmp;base64 inside a raw 'data:application/json,' tokenURI, has imageUrl https://i2c.seadn.io/ethereum/0xd31fc221d2b0e0321c43e9f6824b26ebfff01d7d/fda75a0b3f7f33eeaffa71ddedfe36/75fda75a0b3f7f33eeaffa71ddedfe36.bmp. So OpenSea decoded the data: raster and kept the MIME type as the file extension. The CDN serves it as image/avif (3,595 B) with Accept */* or avif/webp, and as JPEG with Accept image/png. Terraforms' banner on i2c.seadn.io was likewise served as AVIF or PNG depending on Accept. So the CDN transcodes whatever it ingests. A data:image/webp source was not observed. i.seadn.io (an old raw .webp URL) did not respond. The OpenSea API and its validate-metadata endpoint need a key and were not used."
+    }
+   ],
+   "check": {
+    "holds": true,
+    "corrections": [
+     "Alchemy '+'-to-space quirk is broader than the sweep says. Observed by re-running getNFTMetadata (demo key) on CryptoCoaster #1 and comparing it with the on-chain tokenURI from eth_call: Alchemy's raw.metadata equals urllib.parse.unquote_plus() of every on-chain field. That covers both image (16 '+' lost) and animation_url (5,227 '+' lost, and 317,680 chars shrank to 316,928 because %XX sequences were decoded). So the live-artwork field gets corrupted too, not only the image. The trigger ('%' somewhere in the tokenURI) rests on only two data points: CryptoCoaster has 376 '%' and was corrupted; Brotchain has 0 '%' and kept all 10,132 '+'. The 1/1's own form, ';utf8,' with base64 '+' and no '%', is still untested. Observed separately: Alchemy does parse a ';utf8,' prefix (CyberBrokers 0x8928...ca85 #1, 873 B, raw.error null), but that token carries no base64 or '+'. Repo check (read-only): onchain/pack_page.py refuses '%' and '#' in name, description and external_url. Everything else in token_uri() is base64 plus a fixed prefix, so the 1/1 tokenURI contains no '%'.",
+     "Alchemy media cache: downgrade 'likely' to 'unknown'. Observed again: Brotchain's on-chain 256x256 data:image/bmp sits in cachedUrl as a 120x120 AVIF (1,119 B; ispe box 120x120). Its pngUrl is a Cloudinary convert-png at 120x120, not the cachedUrl. So non-PNG data: rasters can be transcoded and heavily downscaled. The sweep's inference that 'for a WebP source pngUrl would serve WebP bytes' is not supported, and a 1536x2048 WebP could end up as a small thumbnail-grade cache. image.originalUrl keeps the data: URI. Whether it survives for the 1/1 depends on the '+' issue above.",
+     "OpenSea: the observation reproduces. The i2c.seadn.io .bmp URL serves image/avif (3,595 B) for Accept */* and for avif/webp. With Accept: image/png the body is a 256x256 JPEG, but the Content-Type header says 'image/bmp' (mislabelled, minor). Because the WebP verdict is inferred by analogy from a BMP data: raster, it should be 'unknown (leaning likely)', not 'likely'.",
+     "Moralis: the WEBP format support is confirmed in the current docs (WebFetch of docs.moralis.com/web3-data-api/evm/nft-image-previews lists JPG/JPEG, PNG, GIF, TIFF, WEBP, SVG). But the docs say nothing about data: or base64 images, and the sweep itself cites a forum reply leaving base64 to the developer. For a data:image/webp the verdict should be 'unknown', not 'likely'.",
+     "Reservoir and SimpleHash should be labelled 'n/a (service defunct)' rather than 'no'. 'no' reads as a format incompatibility. Re-observed: api.reservoir.tools returns NXDOMAIN, and SimpleHash returns a 301 that points to itself.",
+     "Alchemy NFT API parsing: the FAQ quote is verbatim and the context is right. Data: tokenURIs above 30 kB parse (re-observed at 89,102 B and 325,521 B). Keep 'likely' for parsing the JSON and passing the image string through, but 1.1-1.3 MB and ';utf8,' with '+' are untested. A Sepolia deploy queried through eth-sepolia demo would settle both."
+    ],
+    "reason": "I re-checked the sweep's most important claims and they hold. Scratch files are in /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/idx-adv/.\n\nWhat reproduced:\n- The Alchemy FAQ 30,000-byte text is verbatim and sits in an HTTP-fetch context.\n- Alchemy parsed data: tokenURIs of 89 kB and 325 kB.\n- The CryptoCoaster '+' corruption.\n- OpenSea ingests a data:image/bmp and its CDN transcodes it.\n- Moralis lists WEBP.\n- Reservoir and SimpleHash are dead.\n\nWhat I found that the sweep missed or overstated:\n- **Alchemy corrupts the whole tokenURI, not just the image.** It applies unquote_plus to every field, so the animation_url (the live artwork) is broken too.\n- **Alchemy's cache shrinks non-PNG rasters.** It turned a 256x256 BMP into a 120x120 AVIF, so a WebP still could be cached far below its real size.\n- **Several verdicts rest on analogy.** OpenSea, Moralis and the Alchemy cache are judged from other formats, not from a data:image/webp, so they should read 'unknown'.\n\nOn the 1/1 itself: pack_page.py refuses '%' and '#', so its tokenURI contains no '%'. It should fall on Brotchain's safe side, but that rests on two data points and is inferred.\n\nI found no live mainnet token with a data:image/webp image and no documented size limit that contradicts the sweep. A Sepolia test deploy queried through Alchemy is still the decisive check for Alchemy. OpenSea's testnet support was not checked."
+   }
+  },
+  {
+   "key": "wallets",
+   "summary": "Wallets sweep, 2026-10-11. In every open-source wallet I checked, nothing filters out WebP or a data: image. That covers MetaMask extension, MetaMask mobile, the MetaMask core NftController, Rainbow, Rabby and Ledger Live. I found no MIME allow-list and no svg/png-only filter. The only data: checks I found are a phishing check in MetaMask core that looks only at http(s) URLs, Rabby's http(s)-only rule for video/audio, and Rainbow skipping CDN signing for data: URIs.\n\n**Where wallets get the image.** Most of them do not decode the on-chain data URI themselves. They show a copy hosted by an indexer:\n- MetaMask's NFT API (nft.api.cx.metamask.io) now returns OpenSea CDN URLs. It was Reservoir-shaped before.\n- Rabby uses DeBank (api.rabby.io / static.debank.com).\n- Rainbow uses its own key-gated GraphQL backend (arc), which keeps SimpleHash's field names, and resizes through imgix or its own image CDN.\n- Ledger Live removed its NFT gallery in September 2025 (PRs #11746, #11787, #11841). It now sends users to OpenSea or Magic Eden.\n\n**Reference token (observed).** Tozzi Duck Machine, 0x0cd9c257f7565476f5d374ef27854abdd5916bad, token 200, is a live mainnet ERC-721. Its tokenURI image is data:image/webp;base64 and the file is lossless (VP8L, 760 bytes). It is far smaller than the Kilim still; the format matches, the size does not.\n- The MetaMask NFT API returns an i2c.seadn.io/…/<hash>.webp URL for tokens 200–203.\n- That OpenSea CDN serves lossy WebP (VP8) when the Accept header is */* or includes image/webp. It serves JPEG when Accept is only png/jpeg, with or without ?width=250 or ?width=1000.\n- Rabby's API returns DeBank-hosted PNGs for tokens 201 and 202: a 512×512 'content' image and a 256×256 thumbnail.\n\nSo the two indexers I could observe both read a lossless WebP data URI and re-encode it into formats every client handles. Users will mostly see a lossy or resized copy, not the exact lossless pixels.\n\n**Where wallets render the data: URI directly:**\n- MetaMask extension: plain <img src>. The extension's MV3 content security policy has no img-src or default-src limit.\n- MetaMask mobile: expo-image 57.0.5, which uses Glide's data: loader on Android and SDWebImage with libwebp 1.6.0 on iOS.\n- Rainbow: a data: URI is not sent to the CDN and goes to the plain React Native Image. URLs ending in .webp go to react-native-fast-image, which has the WebP coder and libwebp 1.5.0.\n- Rabby: an antd <img>.\n\nAll of these decode lossless WebP. Chromium and Firefox handle it. Android decodes lossless WebP from 4.2.1. iOS needs version 14 or later (Safari 14: \"Added WebP image support.\"). I also ran macOS 26.6.2's built-in image decoder (ImageIO, via sips) on still.webp: the output is pixel-identical to still.png (same SHA-256 of the RGB pixels). iOS uses the same decoder framework family, but I did not run an iOS device or simulator.\n\n**Remaining risks:**\n- Devices older than iOS 14 / macOS 11 with an app that has no bundled libwebp. Safari 14 on macOS Catalina is the inferred case.\n- Coinbase Wallet / Base app, Zerion, Trust Wallet and Phantom are closed source and their indexers need API keys, so those verdicts are inferred, not observed.\n- The 1.1–1.3 MB tokenURI may stress indexers. The Tozzi token is tiny, so it says nothing about size.\n- MetaMask's on-chain fallback for manually added NFTs calls fetch() on the raw 'data:application/json;utf8,' string. Any '#' in the JSON text would cut the string off there; '%' may be URL-decoded and break the JSON. This does not affect the format choice, but someone should check the final JSON for these characters.\n\nScratch files (Tozzi tokenURI, decoded WebP, pixel-compare script, sparse clones) are in /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/wallets-webp/.",
+   "verdicts": [
+    {
+     "target": "MetaMask extension (NFT tab / NFT details)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Source read: github.com/MetaMask/metamask-extension (shallow clone, Oct 2026).\n\n**Image source.** ui/components/app/assets/nfts/nft-grid/nft-grid.tsx builds src as `imageOriginal ?? image`, with imageFromTokenURI as a fallback. ui/helpers/utils/util.js getAssetImageURL only rewrites ipfs:// and returns other strings unchanged. ui/helpers/utils/nfts.ts getNftImage has no MIME check.\n\n**Render.** ui/components/multichain/nft-item/nft-item.tsx renders `<Box as=\"img\" src={src}>`. It is gated only by the 'Display NFT media' setting (openSeaEnabled) for non-IPFS sources. The MV3 content security policy (app/manifest/v3/chrome.json) is \"script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; frame-ancestors ...; font-src 'self';\", with no img-src or default-src, so data: images are allowed.\n\n**Metadata (MetaMask/core packages/assets-controllers/src/NftController.ts).** Auto-detected NFTs come from NFT_API_BASE_URL/tokens. The on-chain fallback #getNftInformationFromTokenURI calls handleFetch(tokenURI) and keeps object.image verbatim. #bulkSanitizeNftMetadata only checks fields that start with 'http'.\n\n**Observed.** `curl -H 'Version: 1' https://nft.api.cx.metamask.io/tokens?chainIds=1&tokens=0x0cd9c257f7565476f5d374ef27854abdd5916bad:200` returned image 'https://i2c.seadn.io/ethereum/0x0cd9…/fc1d1e929d27aa8e915f456dd30f2e3a.webp' for Tozzi Duck 200. That token's on-chain image is data:image/webp;base64 with a VP8L header (decoded from eth_call tokenURI(200)). Fetching that seadn URL returned 'content-type: image/webp' (VP8 lossy) for Accept */* and image/jpeg for Accept 'image/png,image/jpeg'.\n\n**Conclusion.** Auto-detected NFTs show OpenSea's re-encoded copy. Manually added NFTs, on the tokenURI path, show the raw data:image/webp in a Chromium or Firefox <img>; both decode VP8L. Side risk, inferred: the fallback fetch() of a raw 'data:application/json;utf8,' URI breaks if the JSON contains '#'."
+    },
+    {
+     "target": "MetaMask mobile (iOS/Android)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Source read: github.com/MetaMask/metamask-mobile.\n\n**Image source.** app/components/UI/CollectibleMedia/CollectibleMedia.tsx uses `getNftImage(image) || imageOriginal`, with no MIME filtering, and renders `<RemoteImage source={{uri: sourceUri}}>` when displayNftMedia is on. In app/components/Base/RemoteImage/index.tsx, getFormattedIpfsUrl throws for non-ipfs strings ('this method should not be used with non ipfs urls'). The throw is caught, so a data: URI passes through unchanged to expo-image `<Image source={{uri}}>`.\n\n**Libraries.** package.json has \"expo-image\": \"~57.0.5\". ios/Podfile.lock has ExpoImage 57.0.5, SDWebImage 5.21.7, SDWebImageWebPCoder 0.14.6 and libwebp 1.6.0.\n\n**expo-image source.** packages/expo-image/android/.../dataurls/Base64ModelLoader.kt does `handles(model) = model.startsWith(\"data:\")`. ios/Coders/WebPCoder.swift wraps SDImageAWebPCoder (Apple ImageIO) or SDImageWebPCoder (libwebp). The expo docs (docs.expo.dev/versions/latest/sdk/image) mark WebP ✓ on Android, iOS and Web.\n\n**OS support.** Android docs (developer.android.com/media/platform/supported-formats) list the WebP decoder as \"Lossless: Android 4.2.1+\". I observed macOS 26.6.2 ImageIO decode still.webp pixel-identically to still.png; iOS 14+ uses the same framework family, but I did not test an iOS device.\n\n**Conclusion.** The same NFT API means detected NFTs show the OpenSea CDN copy, which is fine."
+    },
+    {
+     "target": "MetaMask Portfolio (portfolio.metamask.io)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Closed source. The support article (support.metamask.io/manage-crypto/nfts/an-nft-is-missing-marked-suspicious-or-not-displaying-correctly-in-metamask-portfolio/) says Portfolio 'works by leveraging data indexing services' and 'If the image metadata ... is not in a supported format, it won't be displayed in the dapp'. It names no formats.\n\nIt is a web app (browser <img>). If it uses the same MetaMask NFT API, which I observed returning i2c.seadn.io URLs for the on-chain VP8L Tozzi Duck, it receives a re-encoded WebP or JPEG. I did not verify which indexer Portfolio actually uses."
+    },
+    {
+     "target": "Rainbow (mobile, RN 0.81.6)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Source read: github.com/rainbow-me/rainbow.\n\n**Image source.** NFTs come from Rainbow's own GraphQL backend (src/graphql/config.js: 'https://arc-graphql.rainbow.me/graphql', with an x-api-key header, so I could not query it). It uses SimpleHash-shaped fields (src/resources/nfts/simplehash/utils.ts: previews.image_small_url, image_url, image_properties.mime_type). SimpleHash itself was shut down 2025-03-27 after Phantom bought it (theblock.co/post/343523), so the upstream provider is unknown.\n\n**Resizing.** src/utils/handleNFTImages.ts signs URLs through imgix with a width. It forces fm=png only for SVG, GIF or a missing MIME type, so WebP is not filtered. imgix lists WebP as an accepted input (docs.imgix.com/references/supported-file-formats; imgix.com/blog/announcing-support-for-webp-and-svg).\n\n**Raw data: URI path.** src/handlers/imgix.ts isPossibleToSignUri needs a host, so a data: URI is returned unsigned. src/components/images/imageType.ts then reports 'unknown', and src/components/RainbowImage.tsx falls back to react-native Image. A URL ending in .webp is sent to react-native-fast-image. ios/Podfile.lock has RNFastImage 8.5.11, SDWebImage 5.18.12, SDWebImageWebPCoder 0.14.6 and libwebp 1.5.0.\n\n**Conclusion.** No WebP rejection anywhere. Plain RN Image decodes WebP with platform decoders on iOS 14+ and Android 4.2.1+. Caveat: RN docs (react-native-website docs/image.md) still say 'GIF and WebP are not supported by default on Android' and 'webp ... supported on iOS only when bundled'. These notes predate the platform decoders, but that path is untested."
+    },
+    {
+     "target": "Rabby (browser extension)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Source read: github.com/RabbyHub/Rabby.\n\n**Render.** src/ui/views/Dashboard/components/NFT/NFTAvatar.tsx renders antd `<Image src={content}>` for content_type 'image' or 'image_url'. It has no MIME or scheme check for images; the http(s)-only isValidHttpUrl check applies only to video/audio. Data comes from the DeBank/Rabby OpenAPI (@rabby-wallet/rabby-api 0.9.68).\n\n**Observed.** `curl https://api.rabby.io/v1/user/nft_list?id=<public owner from ownerOf>&chain_id=eth&is_all=true` returned, for Tozzi Duck 201 and 202 (on-chain data:image/webp VP8L), content_type 'image_url', content 'https://static.debank.com/image/eth_nft/local_url/…/….png' and thumbnail_url '…/thumbnail_url/….png'. Fetching those returned 'content-type: image/png', 512×512 and 256×256 PNGs.\n\n**Conclusion.** DeBank ingests the lossless WebP data URI and re-hosts it as PNG. The extension renders it in Chromium."
+    },
+    {
+     "target": "Rabby mobile",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "The repo github.com/RabbyHub/rabby-mobile exists (not cloned). It uses the same DeBank/Rabby API, which I observed returning PNG copies (static.debank.com/…png) for on-chain VP8L WebP tokens, so the app receives PNGs regardless of the on-chain format."
+    },
+    {
+     "target": "Coinbase Wallet / Base app (extension + mobile)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Closed source and no public keyless API. Dealroom lists Coinbase as a former SimpleHash client, but SimpleHash shut down on 2025-03-27 (theblock.co/post/343523; Goldsky migration blog), so the current indexer is unknown.\n\nRendering is in WebP-capable runtimes: the extension uses Chromium <img>, and mobile platform decoders handle WebP on iOS 14+ and Android 4.2.1+. I found no evidence of a WebP block, but nothing was verified."
+    },
+    {
+     "target": "Zerion (web, extension, mobile)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Closed source, and the API needs a key. The Zerion API reference (developers.zerion.io/api-reference/nfts/get-single-nft-by-id.md) defines nft content.preview / content.detail as ContentLink {url, content_type: 'MIME content type', example 'image/png'}. So Zerion serves its own hosted preview and detail URLs with a MIME type and does not pass the on-chain data URI to clients. Whether its pipeline ingests WebP data URIs was not observed. Its clients (web and extension in Chromium, native mobile) all have WebP decoders."
+    },
+    {
+     "target": "Trust Wallet",
+     "supports_webp_data_uri": "unknown",
+     "basis": "inferred",
+     "evidence": "Closed source. I found no public documentation of its NFT metadata or indexer pipeline; web search returned only community troubleshooting threads. Its native iOS and Android apps sit on OS decoders that handle lossless WebP (Android 'Lossless: Android 4.2.1+' per developer.android.com/media/platform/supported-formats; iOS 14+). Whether its indexer accepts data:image/webp is unknown."
+    },
+    {
+     "target": "Ledger Live (desktop + mobile)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Source read: github.com/LedgerHQ/ledger-live (tree at 46bd13aa, 2026-10-09). The NFT gallery code has been removed; the commit search shows 'feat: remove NFTs from LLD codebase' (2025-09-18), 'feat: remove NFTs UI related code' (2025-09-12) and 'Merge pull request #11841 … chore/remove-nfts-libs'.\n\nWhat remains is apps/*/src/mvvm/features/NftEntryPoint/config.ts, which links to 'https://opensea.io' and 'https://magiceden.io' through '/platform/nft-viewer-redirector'. It is behind the llNftEntryPoint flag (default enabled:false).\n\nSo Ledger Live does not render NFT images itself any more. Display depends on OpenSea or Magic Eden inside a webview. OpenSea was observed to serve the VP8L on-chain WebP as image/webp or JPEG."
+    },
+    {
+     "target": "Phantom (Ethereum)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Closed source. Phantom bought SimpleHash in February 2025 and folded its NFT/media pipeline in-house: The Block (theblock.co/post/343523) says SimpleHash's technology would be integrated into Phantom's platform. SimpleHash produced hosted previews for on-chain media, so the client most likely shows a hosted copy rather than decoding the data URI. Nothing was observed, and no API is available without a key."
+    },
+    {
+     "target": "OpenSea image CDN as wallet upstream (i2c.seadn.io; used by the MetaMask NFT API)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "For Tozzi Duck 200 (on-chain image data:image/webp;base64,UklGR…, a VP8L chunk of 760 bytes), the MetaMask NFT API returned 'https://i2c.seadn.io/ethereum/0x0cd9c257…/fc1d1e929d27aa8e915f456dd30f2e3a.webp' plus ?width=250 and ?width=1000 variants.\n\nWith curl -D:\n- Accept '*/*' or 'image/avif,image/webp,*/*' gave HTTP/2 200, content-type image/webp, magic 'RIFF…WEBPVP8 ' (lossy).\n- Accept 'image/png,image/jpeg' gave content-type image/jpeg.\n\nSo OpenSea ingests a lossless WebP data URI and negotiates WebP or JPEG for clients. What users see is a lossy or resized copy, not the lossless original."
+    },
+    {
+     "target": "Native decoders behind the wallets (Apple ImageIO / iOS, Android)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "**Apple (observed).** sips on macOS 26.6.2 read still.webp ('RIFF…WEBPVP8L', 1536×2048, format webp) and converted it to PNG. Re-decoding that PNG gave RGB SHA-256 6dc07a35…259dc, identical to still.png. That shows Apple ImageIO decodes this exact VP8L file losslessly; iOS 14+ uses the same framework family, but I did not run an iOS device or simulator.\n\n**Apple (documented).** Safari 14 release notes: \"Added WebP image support.\" (developer.apple.com/documentation/safari-release-notes/safari-14-release-notes). That means iOS 14 / macOS 11 and later; older OS versions without a bundled libwebp would fail.\n\n**Android (documented).** developer.android.com/media/platform/supported-formats lists the WebP decoder as 'Android 4.0+ / Lossless: Android 4.2.1+ / Transparency: Android 4.2.1+'."
+    }
+   ],
+   "check": {
+    "holds": true,
+    "corrections": [
+     "Ledger Live verdict 'yes / observed' is a category error. Ledger Live no longer renders NFT images: only NftEntryPoint remains in apps/ledger-live-desktop and apps/ledger-live-mobile, and no gallery or media components are left in the 46bd13a tree. Change it to 'not applicable (no in-app NFT rendering)'. What a Ledger user sees depends on the OpenSea or Magic Eden webview, and those belong in the marketplace sweep.",
+     "MetaMask extension/mobile, the 'manually added NFTs show the raw data:image/webp' claim: MetaMask/core NftController.ts (around lines 797-812) merges `image: nftApiMetadata?.image ?? blockchainMetadata?.image`. On mainnet with Display NFT media on, the NFT API (OpenSea CDN) image wins even for manually added NFTs. The raw data URI is used only when the API has no image, for example if OpenSea failed to index the 1.1-1.3 MB JSON. With the toggle off, the on-chain path returns image:null, so a placeholder shows instead (#getNftInformationFromTokenURI, around lines 663-672).",
+     "The 'Direct data: rendering' parts of the MetaMask extension, MetaMask mobile, Rainbow and Rabby verdicts are source-read inference, not observed. No wallet build was run and no data URI was rendered in one. Only the indexer path (MetaMask NFT API to i2c.seadn.io, and the Rabby API to static.debank.com) was observed. I re-ran both and they reproduce exactly.",
+     "The reference-token caveat understates the differences. Tozzi Duck 200's tokenURI is 'data:application/json;base64,...' (re-fetched via eth_call on publicnode), not the raw 'data:application/json;utf8,{...}' the Kilim uses, and its WebP is 760 bytes, not 110 KB inside a ~1.2 MB string. The observed indexer results show only that the WebP-in-data-URI format is ingested. They do not show that a utf8 JSON data URI of this size gets through OpenSea, DeBank or the MetaMask fallback.",
+     "'Users will mostly see a lossy or resized copy' is not caused by the format choice. OpenSea and DeBank re-encode whatever they ingest, and would very likely do the same to the PNG (inferred; an on-chain PNG token's CDN output was not tested). Do not present it as a cost of WebP.",
+     "Following the 'default to unknown when inferred' rule, these should go from 'likely' to 'unknown': MetaMask Portfolio (indexer not verified), Rainbow (arc backend key-gated, upstream unknown), Rabby mobile (same API, but the app was not checked), Coinbase Wallet/Base, Zerion and Phantom. Rabby mobile is the strongest of these, because its API was observed returning PNG copies of on-chain VP8L tokens.",
+     "MetaMask extension CSP: I confirmed that app/manifest/v3/chrome.json extension_pages has no img-src or default-src (fetched from GitHub main). The Firefox manifest was not checked (fetch returned nothing), so 'Firefox <img>' for the extension is inferred.",
+     "Missed risk, unverified: if MetaMask or any client takes the on-chain fallback, it needs a public or provider RPC to return a ~1.2 MB eth_call result. Provider response-size or gas caps were not tested. This does not depend on PNG vs WebP, and the smaller WebP slightly reduces it."
+    ],
+    "reason": "I re-ran the sweep's three most consequential observations myself, saving to scratchpad/wallets-adv/, and all three reproduce. (1) The MetaMask NFT API (nft.api.cx.metamask.io/tokens, Version: 1) returns image https://i2c.seadn.io/ethereum/0x0cd9…/fc1d1e929d27aa8e915f456dd30f2e3a.webp plus ?width=250 and ?width=1000 variants for Tozzi Duck 200. (2) That seadn URL returns content-type image/webp with a 'RIFF…WEBPVP8 ' (lossy) header for Accept */* and for Accept image/avif,image/webp,*/*, and image/jpeg (FFD8) for Accept image/png,image/jpeg. (3) The Rabby API nft_list for ownerOf(201) returns content_type image_url with a static.debank.com …png URL; fetching it gives content-type image/png at 512×512, and none of the 345 listed NFTs keeps a data: content. Separately, eth_call tokenURI(200) on ethereum-rpc.publicnode.com confirms the on-chain image is data:image/webp;base64 with a 760-byte 'RIFF…WEBPVP8L' (lossless) payload. One difference the sweep missed: the outer JSON is base64-encoded, not utf8. I also confirmed three source claims: the MetaMask extension MV3 CSP, the MetaMask mobile RemoteImage passing non-ipfs URIs unchanged to expo-image (catch sets resolvedIpfsUrl=false and uri falls back to source.uri), and the removal of Ledger's NFT gallery. In MetaMask core I found that the API image takes precedence over the on-chain image, which narrows the sweep's 'manually added' claim. I found no evidence of any wallet rejecting WebP or data: images. The overall conclusion holds: lossless WebP in a data URI is ingested by the two indexers that could be observed and is decodable by every wallet runtime examined. But the direct-render verdicts are inferred from source code, Ledger Live is mislabelled, and the closed-source wallets should be 'unknown'. The sweep's main open risk is the 1.1-1.3 MB utf8 tokenURI, which neither the format evidence nor the reference token addresses."
+   }
+  },
+  {
+   "key": "precedent",
+   "summary": "On-chain precedent sweep for 'data:image/webp;base64' in tokenURI \"image\".\n\nI found and checked three live contracts with read-only eth_call. The script is call.py in /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/webp-precedent/ and the decoded images are in out/.\n\n1. The Amazing Tozzi Duck Machine. ERC-721 on Ethereum mainnet, 0x0cd9c257f7565476f5d374ef27854abdd5916bad. tokenURI(200) and tokenURI(201) return base64 JSON with \"image\":\"data:image/webp;base64,...\". The bytes are RIFF/WEBP with a VP8L chunk, so the image is LOSSLESS, 400x400, 760 B and 362 B. Token 200 has the attribute Creator = Matt Furie. Token ids 0-199 revert.\n2. ShitPlunger. ERC-1155 on Ethereum mainnet, 0x01cecf7a8F0095fa622Ff03D714fD2244548Da35. uri(1) returns a LOSSLESS (VP8L) image at 1536x1536, 10,482 B. This is the closest to our case (1536x2048 VP8L), but about 10 times smaller in bytes.\n3. Geoplets. ERC-721 on Base, 0x999ac3b6571fefb770ea3a836e82cc45cd1e653f. tokenURI(20086) and tokenURI(22420) return LOSSY (VP8) WebP at 512x512. A second Geoplets address listed in the repo README, 0x9e10..40E0, reverts.\n\nArt Blocks' public abx toolkit (github.com/ArtBlocks/abx) also writes on-chain images with a declared type for PNG, JPEG, GIF, WebP and AVIF, and has a test asserting '\"image\":\"data:image/webp;base64,'. That shows tooling support, not a test of how marketplaces display it.\n\nHow it displays:\n\n**OpenSea (observed, positive).** The public item pages for Tozzi Duck 200 and 201, ShitPlunger 1 and Geoplet 20086 all carry an \"imageUrl\" on i2c.seadn.io. In every case the CDN filename is exactly the MD5 of the decoded on-chain WebP bytes:\n- Duck 200: fc1d1e92..., matches.\n- Duck 201: 3a2e4064..., matches.\n- Plunger: fedc189b..., matches.\n- Geoplet: 88c32fbf..., matches.\n\nSo OpenSea fetched, decoded and processed the data-URI WebP. The CDN serves content-type image/webp, but re-encoded as LOSSY VP8 thumbnails: duck 400 px, about 9 KB; plunger downscaled from 1536 to 500 px. Viewed side by side, the duck 200 thumbnail matches the on-chain pixels.\n\n**Rarible (observed, positive).** The og:image is media.raribleuserdata.com proxying api.rarible.org/content/embedded/<sha256>. The sha256 equals the on-chain WebP bytes. It serves image/webp byte-for-byte, still VP8L. The Rarible page for the ERC-1155 plunger returns 404, and the duck 201 page title is stale.\n\n**Alchemy NFT API, demo key, no refresh (observed, mixed).** ShitPlunger 1 (last updated 2025-12-07) decoded correctly: cached AVIF and a 500 px PNG that shows the plunger. Duck 200 and 201 (last updated May 2025) instead show a 2,059,620 B GIF. Its MD5, 42cfac34..., is the OpenSea collection image of Tozzi Ducks, so Alchemy fell back to the collection image for those tokens. I infer that Alchemy may have added data-URI WebP support between those dates, or failed on those tokens for another reason. originalUrl correctly holds the WebP data URI in both cases.\n\n**Etherscan, Magic Eden, Blockscout (not determined).** All three return a Cloudflare 403 or challenge to curl. A WebFetch of Etherscan's NFT page shows a placeholder (empty-token.png) and an image from static.looksnice.org. That proxy returns S3 AccessDenied for these tokens and also for a BAYC control, so nothing can be concluded from it.\n\n**Counter-example (documented, weak).** In LikeCoin issue #27 (2025-01-31), the team states \"webp does not work in image field\" on testnets.opensea.io (Sepolia, IPFS-hosted webp; 'content not available yet'). They planned to convert webp to gif and later closed it as \"Rare case.\" I could not fetch the file to check whether it was animated or extended WebP, because the IPFS gateways returned 429/404. It also involved IPFS and testnets rather than an on-chain data URI, and our mainnet observations contradict it. I found no project documented as switching an on-chain data-URI image from WebP to PNG.\n\n**Caveats.** Every verified precedent is a small image, 10.5 KB at most, against our 110,572 B. None is a 1/1 with an HTML animation_url. Display in wallets (MetaMask, Rainbow and others) and on Zora, Foundation and Manifold was not covered by this sweep.",
+   "verdicts": [
+    {
+     "target": "OpenSea (web item page + i2c.seadn.io CDN), Ethereum mainnet, LOSSLESS VP8L",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Read-only eth_call: Tozzi Duck Machine 0x0cd9c257f7565476f5d374ef27854abdd5916bad tokenURI(200/201) and ShitPlunger 0x01cecf7a8F0095fa622Ff03D714fD2244548Da35 uri(1) both return data:image/webp;base64 with a VP8L chunk (400x400 and 1536x1536). The public pages https://opensea.io/item/ethereum/0x0cd9c257f7565476f5d374ef27854abdd5916bad/200, /201 and https://opensea.io/item/ethereum/0x01cecf7a8f0095fa622ff03d714fd2244548da35/1 contain imageUrl https://i2c.seadn.io/ethereum/<contract>/<md5>.webp, and each <md5> equals the MD5 of the decoded on-chain bytes (fc1d1e929d27aa8e915f456dd30f2e3a, 3a2e4064833b05fcb8927958d8db2c34, fedc189bc156c1b2f66802bb3e0bb26a). The CDN returns HTTP 200 image/webp, but as LOSSY VP8 (duck 400px, 9026 B; plunger resized to 500px, 5986 B). Rendered, the duck thumbnail matches the on-chain pixels. og:image is a 1200x630 opengraph-image PNG card."
+    },
+    {
+     "target": "OpenSea on Base (L2), LOSSY VP8 data URI",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Geoplets 0x999ac3b6571fefb770ea3a836e82cc45cd1e653f tokenURI(20086) on Base returns data:image/webp;base64 with a VP8 (lossy) chunk, 512x512, 6552 B. The page https://opensea.io/item/base/0x999ac3b6571fefb770ea3a836e82cc45cd1e653f/20086 has imageUrl https://i2c.seadn.io/base/0x999ac3b6.../88c32fbf422f8667b62d22d4f0ab5296.webp, which equals the MD5 of the on-chain bytes."
+    },
+    {
+     "target": "Rarible",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "https://rarible.com/token/0x0cd9c257f7565476f5d374ef27854abdd5916bad:200 has og:image media.raribleuserdata.com/image/<b64 of https://api.rarible.org/content/embedded/624c14d7...91c1>. 624c14d7... is the sha256 of the on-chain WebP. Both the embedded URL and the media proxy return 200 image/webp, byte-identical VP8L 400x400 (760 B). Token 201 is the same (sha256 77c366e1..., identical bytes), but the page title is stale ('Tozzi Duck 201' vs on-chain name 'Monsieur Quackers'). The ERC-1155 ShitPlunger page returns 404 on Rarible, which is not format-related as far as I can tell."
+    },
+    {
+     "target": "Alchemy NFT API",
+     "supports_webp_data_uri": "likely",
+     "basis": "observed",
+     "evidence": "Queried https://eth-mainnet.g.alchemy.com/nft/v3/demo/getNFTMetadata without refresh. ShitPlunger 1 (timeLastUpdated 2025-12-07): image.cachedUrl is image/avif 3598 B and pngUrl is a 500x500 PNG, visually the correct plunger, so the LOSSLESS 1536px WebP was decoded. Tozzi Duck 200 and 201 (timeLastUpdated May 2025): cachedUrl is contentType 'gif', 2,059,620 B, MD5 42cfac340b11be7f1380ceabab813b7a. That is the Tozzi Ducks collection image (the same MD5 appears as the collection imageUrl on OpenSea), not the token's WebP, so Alchemy fell back to the collection image. originalUrl holds the WebP data URI in all cases. The result is mixed; possibly support was added between May and Dec 2025 (inferred)."
+    },
+    {
+     "target": "Etherscan NFT view",
+     "supports_webp_data_uri": "unknown",
+     "basis": "observed",
+     "evidence": "curl to https://etherscan.io/nft/0x0cd9c257f7565476f5d374ef27854abdd5916bad/200 returns 403 Cloudflare 'Just a moment...' (bot-blocked). A WebFetch summary of the page listed a placeholder https://etherscan.io/images/main/empty-token.png (alt 'Tozzi Ducks') and an image src https://static.looksnice.org/0x0cd9C257.../200. That URL returns S3 AccessDenied (403 XML) for both ducks, the plunger, and a BAYC #1 control, so nothing can be concluded."
+    },
+    {
+     "target": "Magic Eden (ETH)",
+     "supports_webp_data_uri": "unknown",
+     "basis": "observed",
+     "evidence": "https://magiceden.io/item-details/ethereum/0x0cd9c257f7565476f5d374ef27854abdd5916bad/200 returns 403 Cloudflare challenge to both curl and WebFetch. https://api-mainnet.magiceden.dev/v3/rtp/ethereum/tokens/v7?tokens=... returned 'Not Found.'"
+    },
+    {
+     "target": "Counter-example: OpenSea testnets, IPFS-hosted webp (LikeCoin)",
+     "supports_webp_data_uri": "unlikely",
+     "basis": "documented",
+     "evidence": "https://github.com/likecoin/likecoin-op/issues/27 (2025-01-31, closed): \"webp does not work in image field. We can only put it in animation_url\". Their table shows 'content not available yet' on testnets.opensea.io/assets/sepolia/0x9c746861f90e8908975035c6593c27e6cef644d4/0 for an ipfs:// webp. The plan was to convert webp to gif, later closed as 'Rare case.' The file's WebP variant (lossy, lossless or animated) could not be checked because the IPFS gateways returned 429/404. This was IPFS on a testnet, not an on-chain data URI, and it conflicts with the mainnet observations above."
+    },
+    {
+     "target": "Art Blocks abx toolkit (tooling precedent)",
+     "supports_webp_data_uri": "yes",
+     "basis": "documented",
+     "evidence": "https://github.com/ArtBlocks/abx site/content/docs/protocol/onchain-storage.mdx: '--onchain-image writes abx_image_type from the file extension for PNG, JPEG, GIF, WebP, and AVIF files'. contracts/test/AbxMetadataRenderer.t.sol asserts '\"image\":\"data:image/webp;base64,'. This shows the toolkit emits it; it does not test how marketplaces display it."
+    },
+    {
+     "target": "Browsers (Chrome, Firefox, Safari incl. iOS) rendering the precedent images",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Not tested in a browser in this sweep. OpenSea and Rarible serve these tokens to browsers as image/webp (OpenSea re-encodes to VP8; Rarible serves the original VP8L), which implies normal browser WebP support. macOS sips decoded all on-chain VP8L and VP8 files correctly in my scratch dir."
+    }
+   ],
+   "check": {
+    "holds": true,
+    "corrections": [
+     "OpenSea, confirmed by rerun (observed). A fresh eth_call via ethereum-rpc.publicnode.com gave the same bytes for Tozzi Duck 200 and 201 and ShitPlunger 1: RIFF/WEBPVP8L, 760 / 362 / 10,482 B, MD5 fc1d1e92... / 3a2e4064... / fedc189b.... I re-fetched the three OpenSea item pages today. Each one contains i2c.seadn.io/ethereum/<contract>/<that md5>.webp. The CDN returns HTTP 200 image/webp, re-encoded as LOSSY VP8 (duck 400px; plunger 500px by default, 1000px with ?w=1000). Pixel comparison against the on-chain image (PIL): mean absolute difference per channel is about 0.7/255 for the plunger at 1000px and about 2-3/255 for the duck. So OpenSea decoded the LOSSLESS data-URI WebP. Limit: the largest image tested is 10.5 KB and 1536px, against our 110,572 B and 1536x2048. Note that OpenSea serves a lossy re-encode whatever the input format. That the same happens to PNG input is inferred, not tested; if so, lossless fidelity on OpenSea is the same for PNG and WebP.",
+     "OpenSea has no documentation naming WebP. Its media docs say only that it supports 'most image formats' (docs.opensea.io/docs/media-and-traits). The OpenSea 'yes' rests on observation only and should be labelled that way.",
+     "Rarible, confirmed (observed). https://api.rarible.org/content/embedded/624c14d7c9f4999d266d51bdd6748b111a2965305eb1e55203b3d83abeef91c1 returns 200 image/webp, byte-identical to the on-chain VP8L of duck 200. Only the og:image/proxy path was checked, not the rendered page, and only on a 760 B image.",
+     "Alchemy should be 'unknown (mixed)', not 'likely'. 1 of 3 tokens decoded (the plunger, updated 2025-12-07). Both ducks still show the 2,059,620 B GIF collection-image fallback. I re-queried today. A getNFTMetadata call with refreshCache=true on duck 201 did not change the result: still gif, timeLastUpdated 2025-05-09. The duck contract source shows the image is always data:image/webp from SSTORE2 and never changes, so the ducks are real failures, not stale data from an earlier image. The claim that support was added between May and Dec 2025 is a guess and should not be used to upgrade the verdict.",
+     "LikeCoin citation has the wrong date and attribution. Issue #27 ('likenft-migrate: Convert webp/other thumbnail to opensea readable') was opened 2025-01-31 and closed 2025-11-05. The quoted line 'webp does not work in image field...' is from a comment by pcyeung dated 2025-05-12, not 2025-01-31. 'Rare case. No need to do now.' is from 2025-11-05. The planned conversion target was gif. The test file is still unverifiable: IPFS gateways w3s.link and dweb.link return 429, and pinata and 4everland fail. It stays a weak, testnet, IPFS-hosted counter-example whose WebP variant is unknown.",
+     "Browsers should be 'yes' with basis documented, not 'likely' and inferred. caniuse data (github.com/Fyrd/caniuse features-json/webp.json): Chrome 9-22 is partial with the note 'not supporting lossless, alpha and animated WebP', and Chrome 23+ decodes lossless. Firefox 65+ yes. Safari 14-15.6 yes, but only on macOS 11 Big Sur or later; Safari 16+ yes. iOS Safari 14+ yes. The only real gap is Safari on macOS 10.15 or older, which cannot decode WebP at all, where PNG would display.",
+     "Missed context: two listed targets no longer exist as live services. Phantom acquired SimpleHash on 2025-02-26 and the standalone API was sunset on 2025-03-27 (simplehash.com/blog/simplehash-acquisition-by-phantom). Reservoir sunset its NFT API on 2025-10-15 (reported via cryptonews.net/news/nft/30856993; the API had served Coinbase, MetaMask and Magic Eden). Verdicts for SimpleHash and Reservoir are moot. The current image backends for Coinbase Wallet, MetaMask and Magic Eden are unknown and need separate checks.",
+     "Etherscan, Magic Eden and Blockscout as 'unknown' is correct. Wallets (MetaMask, Rainbow, Rabby, Zerion, Trust, Ledger Live), Zora, Foundation, Manifold, Gallery.so and Moralis stay 'unknown': the sweep did not test them and I found no documentation either way.",
+     "No precedent found for a large data-URI WebP (about 100 KB or more) inside a tokenURI of about 1 MB. The size risk does not depend on the format, and WebP makes the payload smaller, not larger."
+    ],
+    "reason": "I reran the two verdicts that carry the most weight, OpenSea and Rarible, end to end: eth_call, then hash, then live page and CDN, then a pixel comparison. Both hold. OpenSea decoded and displayed LOSSLESS VP8L data-URI WebP images up to 1536px and 10.5 KB, and Rarible proxies the original bytes unchanged. The Alchemy verdict is overstated: 2 of 3 tokens still fall back to the collection GIF even after a refresh request, so it is mixed or unknown. The browser verdict should rest on caniuse documentation rather than inference; the only gap there is Safari on macOS before Big Sur. The LikeCoin quote date was wrong. The sweep also missed that SimpleHash and Reservoir have shut down. I found no contradicting evidence of data-URI WebP failing on mainnet. Scratch files: /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/webp-precedent-check/ (rerun.py, out/, cdn/, os_*.html)."
+   }
+  },
+  {
+   "key": "render",
+   "summary": "Rendering sweep, run on this Mac on 2026-10-11. Scratch dir: /private/tmp/claude-501/-Users-orkhan-Documents-ChatGPT-kilim/312fc50c-c278-46b4-8c02-9f5c98c46bda/scratchpad/webp-render/ (check.py, build.py, run.mjs, runbg.mjs, wk.swift, test.html, bg.html, shot-*.png, sips-decoded.png, dl/caniuse.json).\n\n(1) The file is OBSERVED to be simple-format lossless WebP. /Users/orkhan/Documents/ChatGPT/kilim/research/motifs/curate/living-language-v3/mint/still.webp (sha256 73b4afc4…8252, 110,572 bytes) has the bytes 'RIFF' + size 110,564 (+8 = the file length) + 'WEBP' + a single 'VP8L' chunk of 110,552 bytes, signature 0x2f. The header bits read width 1536, height 2048, alpha_is_used 0, version 0. There is no VP8X extended header and no ICC, EXIF or XMP chunk, so it is the most basic lossless form, with no alpha and no animation. The PNG has no iCCP, gAMA or sRGB chunk either. Pillow 11.3.0 (libwebp 1.5.0) decodes it to RGB 1536x2048, byte-identical to still.png: the RGBA buffers are equal and the difference bbox is None. The image has 1,363 distinct colours.\n\n(2) Headless Chrome 154.0.8037.98 is OBSERVED to show it pixel for pixel. Using onchain/test/chrome.mjs:\n- `<img src=data:image/webp;base64,…>` gives naturalWidth 1536 and naturalHeight 2048.\n- Drawing the WebP and the PNG to a full 1536x2048 canvas gives 0 differing bytes, and 0 of 64 sampled pixels differ from Pillow's PNG values.\n- A real tokenURI flow works: a 'data:application/json;utf8,{…\"image\":\"data:image/webp;base64,…\"}' string is parsed and its .image is loaded into new Image().\n- fetch() of the data URI returns a blob of type image/webp, 110,572 bytes, and createImageBitmap gives 1536x2048.\n- Screenshots of the `<img>` and of a CSS background-image div are both identical to still.png. No page errors, and the only requests were file:// and data:.\n\n(3) Apple's decoders are OBSERVED to handle it on macOS 26.6.2 (Safari 26.6.2):\n- `sips -g all` reports format webp, 1536x2048, RGB, 8 bits, hasAlpha no. sips converts it to a PNG that is pixel-identical to still.png.\n- Quick Look (qlmanage -t) makes a thumbnail.\n- A compiled Swift WKWebView harness (system WebKit, the Safari engine, UA AppleWebKit/605.1.15) loading the same test page gives naturalWidth/naturalHeight 1536x2048, 0 differing canvas bytes against the PNG, 0 of 64 sample mismatches, a working tokenURI parse and img load, and fetch → blob image/webp 110,572 → createImageBitmap 1536x2048.\n- iOS was not run. iOS 14+ WebKit and ImageIO share this decoder, which is strong evidence but still inferred.\n- Firefox is not installed, so it was not run.\n\n(4) Browser support is DOCUMENTED in caniuse data-2.0.json (updated 2026-10-06, raw.githubusercontent.com/Fyrd/caniuse/main/fulldata-json/data-2.0.json), feature 'webp':\n- Lossless support: Chrome 23+ (full, including animation, from 32), Firefox 65+, Safari 14+ (14–15.6 need macOS 11 Big Sur; full from 16.0), iOS Safari 14.0+, Edge 18+, Opera 12+, Android Browser 4.2+, Samsung Internet 4+, and current Chrome and Firefox for Android.\n- Note 1 says \"Partial support refers to not supporting lossless, alpha and animated WebP images\". That limitation applied only to Chrome 9–22, Opera 11.1–11.6 and Android 4.0–4.1, which are now negligible.\n- Global usage is 96.74% full plus 0.08% partial. About 0.44% of global usage is on versions without lossless WebP. The largest groups are IE 11 at 0.24% and iOS Safari before 14 at about 0.17% (11.0–11.2 at 0.098%, 12.2–12.5 at 0.042%). Safari 14–15.6 on pre-Big Sur macOS is a further small group.\n\n(5) Sizes are OBSERVED:\n- PNG: 283,014 bytes raw, 377,352 bytes base64, 377,374 bytes as a data URI.\n- WebP: 110,572 bytes raw, 147,432 bytes base64, 147,455 bytes as a data URI.\n- The tokenURI JSON shrinks by 229,919 bytes (229,920 base64 characters, plus 1 because 'webp' is one letter longer than 'png'). That is 61% less for the image field. Base64 needs no JSON escaping and contains no '%' or '#' to break a data:…;utf8 URL.\n- Gas, INFERRED: contracts/docs/STORAGE.md records 44,655,799 gas for 188,421 prefix bytes, about 237 gas per byte. At that rate the saving is roughly 54 million gas.\n- Repo state, observed: the working copy of onchain/pack_page.py already accepts a WebP still and picks the media type from the file's own bytes. contracts/docs/STORAGE.md still says \"the still must be a PNG\", and contracts/scripts/stores.mjs still defaults to mint/still.png.\n\nBottom line from this sweep: every browser engine I could run (Blink and WebKit) and Apple ImageIO decode this exact VP8L data URI losslessly. Marketplaces, indexers and wallets were not tested here and need the other sweeps. Their webviews are Blink or WebKit, so client-side display is very likely. The real risk is server-side thumbnailers and CDNs, not browsers.",
+   "verdicts": [
+    {
+     "target": "still.webp file format (lossless VP8L, dimensions, pixel identity)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "xxd shows 52494646 e4af0100 57454250 5650384c (RIFF, size 110564 (+8 = the file length 110572), WEBP, VP8L). The chunk is 110552 bytes with signature 0x2f. The header bits read 1536x2048, alpha_is_used 0, version 0. There is no VP8X, ICC, EXIF or XMP chunk. Pillow 11.3.0 with libwebp 1.5.0 opens it as WEBP RGB (1536,2048), and its RGBA bytes equal still.png's (difference getbbox() None). sha256 73b4afc4a901665659d162937d1eee4e01c4c9e486d2c4d436c3074b581b8252 matches mint/still.json. Script: scratchpad/webp-render/check.py"
+    },
+    {
+     "target": "Chrome (desktop, Blink) 154.0.8037.98 headless",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Ran scratchpad/webp-render/run.mjs with onchain/test/chrome.mjs openPage. Results:\n- <img src=data:image/webp;base64,...> gives naturalWidth/Height 1536x2048.\n- An OffscreenCanvas draw of the WebP and the PNG gives fullCanvasDiffBytes 0 and samplesMismatchVsPython 0/64.\n- JSON.parse of a 'data:application/json;utf8,{...\"image\":\"data:image/webp;base64,...\"}' string, then new Image(), gives 1536x2048.\n- fetch(dataURI).blob() gives type image/webp, 110572 bytes, and createImageBitmap gives 1536x2048.\n- Screenshots of the <img> (shot-img.png) and of a CSS background-image div (bg.html → shot-bg.png) are pixel-identical to still.png (difference bbox None).\n- errors []"
+    },
+    {
+     "target": "Safari / WebKit on macOS (system WebKit, Safari 26.6.2, macOS 26.6.2)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Compiled scratchpad/webp-render/wk.swift, a WKWebView loading test.html (UA AppleWebKit/605.1.15). Output: {\"webp\":[1536,2048],\"fullCanvasDiffBytes\":0,\"samplesMismatchVsPython\":0,\"samples\":64,\"fromTokenURI\":[1536,2048],\"fetchBlob\":[\"image/webp\",110572,1536,2048]}. WKWebView is also the engine inside iOS and macOS wallet and marketplace webviews."
+    },
+    {
+     "target": "Apple ImageIO / sips / Quick Look (macOS 26.6.2)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "`sips -g all still.webp` reports typeIdentifier org.webmproject.webp, format webp, pixelWidth 1536, pixelHeight 2048, samplesPerPixel 3, hasAlpha no. `sips -s format png` gives a PNG that Pillow finds identical to still.png. `qlmanage -t -s 512` reports it \"produced one thumbnail\"."
+    },
+    {
+     "target": "Safari on iOS / iPadOS (14+)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "Not run, since no simulator was used. caniuse webp lists ios_saf 'y' from 14.0-14.4. iOS shares WebKit and ImageIO with the macOS stack that decoded this exact file losslessly (observed above). iOS before 14 has no support: about 0.17% of global usage per caniuse (11.0-11.2 0.098%, 12.2-12.5 0.042%, 10.3 0.0145%, ...)."
+    },
+    {
+     "target": "Firefox (65+)",
+     "supports_webp_data_uri": "likely",
+     "basis": "documented",
+     "evidence": "Not installed here, so not run. caniuse data-2.0.json (updated 2026-10-06) feature webp: firefox 'p' (polyfill only) for 4-64, then 'y' from 65. and_ff 157 'y'."
+    },
+    {
+     "target": "Edge (18+, Chromium 79+), Opera 12+/19+, Samsung Internet 4+, Android Browser 4.2+, Chrome for Android",
+     "supports_webp_data_uri": "likely",
+     "basis": "documented",
+     "evidence": "caniuse webp: edge 'y' from 18; opera 'a #2' (lossless, no animation) from 12 and 'y' from 19; samsung 'y' from 4; android 'a #1' 4.0-4.1 then 'y' from 4.2-4.3; and_chr 154 'y'. Chromium-based Edge uses the same Blink decoder observed in Chrome 154."
+    },
+    {
+     "target": "Old decoders without LOSSLESS WebP (lossy-only era)",
+     "supports_webp_data_uri": "no",
+     "basis": "documented",
+     "evidence": "caniuse note 1: lossless was not supported in Chrome 9-22, Opera 11.1-11.6 and Android 4.0-4.1. IE 11 has no WebP at all. Global usage on versions without lossless WebP (statuses n, p and a#1) is 0.44%, mostly IE11 at 0.2358%. Overall caniuse usage_perc_y is 96.74% and usage_perc_a 0.08%. Source: raw.githubusercontent.com/Fyrd/caniuse/main/fulldata-json/data-2.0.json"
+    },
+    {
+     "target": "In-app webviews used by wallets/marketplaces (iOS WKWebView, Android System WebView)",
+     "supports_webp_data_uri": "likely",
+     "basis": "inferred",
+     "evidence": "WKWebView was observed to decode the file losslessly (wk.swift), and Android System WebView is Blink, the same engine observed in Chrome 154. Whether each marketplace or wallet passes the data URI straight to the webview, or re-hosts it through a server-side thumbnailer, was not tested in this sweep. That server path is the open risk."
+    },
+    {
+     "target": "Size impact on tokenURI JSON (PNG vs WebP)",
+     "supports_webp_data_uri": "yes",
+     "basis": "observed",
+     "evidence": "Measured with check.py:\n- PNG: raw 283014, base64 377352, data URI 377374 bytes.\n- WebP: raw 110572, base64 147432, data URI 147455 bytes.\n- The JSON shrinks by 229,919 bytes. Base64 needs no JSON escaping and has no '%' or '#'.\n- Gas, inferred: contracts/docs/STORAGE.md gives 44,655,799 gas for 188,421 prefix bytes (about 237 gas per byte), so roughly 54M gas saved.\n- Repo, observed: the onchain/pack_page.py working copy already detects WebP (lines 111-120 return 'image/webp' for RIFF/WEBP). STORAGE.md line 130 still says 'the still must be a PNG', and contracts/scripts/stores.mjs defaults to mint/still.png."
+    }
+   ],
+   "check": {
+    "holds": true,
+    "corrections": [
+     "Safari on iOS / iPadOS: change the verdict from 'likely' to 'unknown (not run)'. The evidence is inferred: caniuse lists ios_saf as 'y' from 14.0-14.4, and the macOS WebKit/ImageIO result was observed, but nothing ran on iOS. To make it observed, run the test on an iOS Simulator or a real device.",
+     "In-app webviews used by wallets and marketplaces: change the verdict from 'likely' to 'unknown'. The evidence is inferred and indirect. Blink and WKWebView decoding the file says nothing about whether each app hands the data URI to a webview or sends it through its own server-side thumbnailer or CDN, and that server path is the real risk.",
+     "Firefox: keep the verdict, but label it 'documented only, not run'. I re-fetched caniuse features-json/webp.json and it shows firefox 'p' for 4-64 and 'y' from 65. Firefox is not installed here and no Playwright Firefox build exists in ~/Library/Caches/ms-playwright. Only webkit and chromium builds are there.",
+     "Minor precision fix: caniuse marks Safari 14-15.6 as 'a #3', and note 3 says these versions fully support WebP but need macOS 11 Big Sur or later. The status 'a #3' is not a lossless limitation, so Safari 14+ on Big Sur or later is fine. This matches what the sweep said."
+    ],
+    "reason": "I re-checked the three most consequential verdicts on this Mac today.\n\n(1) File format, observed. still.webp is 110,572 bytes with sha256 73b4afc4…8252. xxd shows RIFF, size e4af0100 (110,564), WEBP, VP8L, chunk size d8af0100 (110,552), then the signature byte 0x2f. sips reports org.webmproject.webp, 1536x2048, 3 samples per pixel, hasAlpha no.\n\n(2) Chrome, observed. I first checked that the sweep's test.html embeds the real bytes: the base64 inside it decodes to the WebP sha 73b4afc4… three times and to the PNG sha 8ec1ea03…, which matches still.png. I copied run.mjs and test.html to scratchpad/webp-render-verify/ and reran them with Chrome 154.0.8037.98. Results: naturalWidth/naturalHeight 1536x2048, fullCanvasDiffBytes 0, 0 of 64 sample mismatches, the tokenURI parse loads the image at 1536x2048, fetch returns a blob of image/webp 110,572 bytes, and createImageBitmap gives 1536x2048. There were no errors, and the only requests were file:// and data:.\n\n(3) WebKit, observed. I recompiled wk.swift with swiftc and ran it, which uses the system WKWebView. Output: {webp:[1536,2048], fullCanvasDiffBytes:0, samplesMismatchVsPython:0 of 64, fromTokenURI:[1536,2048], fetchBlob:[image/webp,110572,1536,2048]}.\n\n(4) caniuse, documented. I re-fetched raw.githubusercontent.com/Fyrd/caniuse/main/features-json/webp.json. It shows usage_perc_y 96.74 and usage_perc_a 0.08. Note 1 reads 'Partial support refers to not supporting lossless, alpha and animated WebP images.' Chrome 22 is 'a #1', Chrome 23-31 are 'a #2' (no animation, lossless OK) and Chrome 32+ is 'y'. Opera 11.6 is 'a #1' and 12 is 'a #2'. Android 4.0-4.1 is 'a #1' and 4.2-4.3 is 'y'. Firefox is 'y' from 65, ios_saf 'y' from 14.0-14.4, edge 'y' from 18, and IE is 'n'. The sweep's lossless boundaries are all correct.\n\nRepo claims, observed. STORAGE.md line 34 gives 188,421 prefix bytes and line 95 gives 44,655,799 gas, so about 237 gas per byte is right and the ~54M saving is a fair inferred estimate. Line 130 still says 'the still must be a PNG'. stores.mjs line 29 defaults to mint/still.png. pack_page.py lines 111-120 detect RIFF/WEBP.\n\nI found no contradicting evidence for the browser verdicts. The data URI is 147 KB, far below the data-URL size limits in Chrome, Firefox and Safari; the 2 MiB Chromium limit applies only to the animation_url navigation. The only problems are labelling: under the rules, the verdicts for iOS and in-app webviews rest on inferred evidence and should read 'unknown', not 'likely'. The sweep correctly leaves marketplaces, indexers and wallets untested and names server-side thumbnailers as the open risk."
+   }
+  }
+ ]
+}
