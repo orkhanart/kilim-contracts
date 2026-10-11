@@ -2,7 +2,7 @@
   "_comment": "The Ethereum mainnet deployment, filled 11 October 2026 except the two values only the artist decides (checklists/0-launch-steps.md, then 1-pre-deploy.md and 2-deploy.md). The auction values are the decided launch settings; on chain 1 script/DeployKilim.s.sol refuses any other, any deployer but orkhanart.eth, a skipped nonce check, a zero minLeadSeconds, a missing or different expected block, and a deployer with code. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 55f33486...). minLeadSeconds is 86400, the recommended 24-hour inspection window. Both TODO fields must be whole numbers without quotes before either command runs (the script cannot read the config while they are text).",
   "chainId": 1,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-  "deployerNonce": "TODO: orkhanart.eth's mainnet nonce after the transaction that switches it back to a standard account. It was 1566 on 11 October 2026 with the EIP-7702 delegation still on; MetaMask's own switch-back is an EIP-7702 transaction sent by the wallet itself and uses two nonces, so expect 1568 (1567 if it is relayed); use the number you read, never an assumption. Read it with eth_getTransactionCount (latest and pending must agree), check eth_getCode answers 0x, publish it, then send nothing else from the wallet until runContracts.",
+  "deployerNonce": 1568,
   "minLeadSeconds": 86400,
   "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",

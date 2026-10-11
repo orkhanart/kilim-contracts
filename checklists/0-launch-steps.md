@@ -14,6 +14,8 @@ A nonce comes back in hex: `0x61e` is 1,566, `0x61f` is 1,567 and `0x620` is 1,5
 
 ## 1. Switch orkhanart.eth back to a standard account (mainnet)
 
+**Done 11 October 2026.** Checked on two nodes: `eth_getCode` answers `0x`, the nonce is 1,568 (`0x620`, latest and pending), and `deploy/mainnet.json` carries `"deployerNonce": 1568`. A rehearsal on a fork of mainnet in this state deployed the three contracts at Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. **Send nothing from orkhanart.eth on mainnet until step 10**, and never accept a smart-account upgrade.
+
 Today the wallet is a MetaMask smart account on mainnet: `eth_getCode` answers `0xef0100…63c0c19a…` and the deploy script refuses it.
 - In MetaMask, on Ethereum mainnet, open the account's details, find **Smart account** and choose **Switch back** to a standard account. Menu names differ between MetaMask versions. Confirm the one transaction.
 - **You should see:** `eth_getCode` now answers `"result":"0x"`, and the nonce reads the same for `"latest"` and `"pending"`. MetaMask sends the switch-back from the wallet itself as an EIP-7702 transaction, which uses **two** nonces (one for the transaction, one for the authorization inside it), so expect `0x620` (1,568); a relayed switch-back would leave `0x61f` (1,567). It also shows the key works today; checklist 2 asks again on deploy day.

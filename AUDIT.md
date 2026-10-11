@@ -585,4 +585,8 @@ The figures for the whole store in STORAGE.md, the README, the checklists and AR
   - `deploy/mainnet.json` is filled except `deployerNonce` and `startsAt`. Its texts and `expected` block equal the packed stores.
   - [checklists/0-launch-steps.md](checklists/0-launch-steps.md) is the artist's sheet, in order.
 - **[audit/HANDOFF-2026-10-11.md](audit/HANDOFF-2026-10-11.md):** the package for the independent audit (K-08), at the tag `audit-candidate-2026-10-11`.
+- **The deployer is a plain account again (11 October 2026).** The artist switched orkhanart.eth back from MetaMask's smart account. Two public nodes then read `eth_getCode` `0x` and the nonce 1,568, latest and pending: two nonces spent, as predicted. `deploy/mainnet.json` carries `deployerNonce` 1568.
+  - **Fork rehearsal in this real state.** On a fresh mainnet fork (block 26,170,335) `runStore` sent the 45 chunks from another wallet and `runContracts` deployed from orkhanart.eth with no refusal.
+  - **Addresses:** Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC`, the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. These are the mainnet addresses provided the wallet sends nothing else first.
+  - **Still open:** only `startsAt` remains in the config.
 
