@@ -1,0 +1,235 @@
+Sepolia rehearsal, deployed 11 October 2026 (chain 11155111, Glamsterdam)
+==========================================================================
+
+The full launch on the Sepolia testnet, the two phases as on mainnet (checklists/0-launch-steps.md steps 5
+and 6, checklists/2-deploy.md), from the final artwork (mint/artwork.html SHA-256 55f33486…, WebP still).
+First store transaction at block 11,893,078 (17:01:36 UTC), auction at block 11,893,419 (18:09:48 UTC).
+Sepolia's block gas limit was about 200M. Nothing was sent on Ethereum mainnet: orkhanart.eth's mainnet
+nonce stayed 1,568 throughout (a watch stopped forge if it moved).
+
+forge 1.7.1, solc 0.8.37, the contracts and script at commit 3548b8cb (no source change since).
+RPC for sending: https://sepolia.drpc.org. Gas flags on every command: --skip-simulation
+--gas-estimate-multiplier 125 (store) or 120 (contracts, display), --with-gas-price 20000000
+--priority-gas-price 2000000. The base fee was a few wei, so every transaction paid about 0.002 gwei.
+
+The deployment
+--------------
+  KilimMotifs   (Motif Bazaar)        0x48b3D1E55920BE80B952cff3568a142623e85c1e
+  KilimOneOfOne (The Unwoven Kilim)   0xCeEA7EBD8eE3Cc0a39ED89B999b4dB5c0CAC30F9
+  KilimAuction                        0xf8301C81906512090f663bA474B59Cc186BD2e66   deployBlock 11,893,419
+
+  deployer orkhanart.eth 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac at nonce 11 (deploy/sepolia.json)
+  treasury orkhanart.eth; reserve 0.01 ETH; increment 10 %; duration 86,400 s from the first bid;
+  extension window 600 s; motifCap and maxMotifsPerBid 1,000,000; startsAt 1791745564
+  (2026-10-11 19:06:04 UTC): registration opens then, bidding at the hundredth registration.
+
+Phase 1, the store: 45 chunks through the CREATE2 deployer 0x4e59b44847b379578588920cA78FbF26c0B4956C
+----------------------------------------------------------------------------------------------------
+The first 8 went from orkhanart.eth, each signed in MetaMask through forge's browser wallet
+(--browser, deploy/sepolia.json then had deployerNonce = NO_NONCE_CHECK so the script allowed it). One
+confirmation per chunk was too slow by hand, so the other 37 went from a throwaway store wallet,
+0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 (an encrypted keystore made for this, funded with 0.01
+Sepolia ETH from orkhanart.eth at its nonce 10), as the checklist intends: a chunk's address depends on its
+bytes alone. Every chunk is checked below to hold exactly 0x00 || its bytes.
+
+  #  sender         nonce  chunk          bytes   CREATE2 address                              block       gas used     transaction
+  1  orkhanart.eth      2  grids_00.bin   24544   0x52AdF9Dde0211EF2F7E5367AF4128fe48f125DE9   11893078     38,108,475   0x2b60a4680ffc5ff6d23239addfa3d0ee5e55964a4d9250a06074cc4d28742426
+  2  orkhanart.eth      3  grids_01.bin    8224   0xE1D77BD0Ec2278Cf1900c72365F8f99386379354   11893197     12,904,475   0xe3a559beccb54884e787ab7f8c063c33770792fd30467bd0c67e7e14d8f3fc0c
+  3  orkhanart.eth      4  names_00.bin   13739   0xaC19aC8c4863159f67Ed485554c5bc9aD540102b   11893241     21,464,471   0xfd55c093d288289be422df3d9239ea2a62da1387a6f564fd020cf2342e819dfd
+  4  orkhanart.eth      5  prefix_00.bin  24575   0x5dC8059c941D7A7c9297E86a81DcE478aBBc02C1   11893244     38,227,746   0x7197d664d09375032695bd4140bf4ba2dd544c042c9184112544953338c74540
+  5  orkhanart.eth      6  prefix_01.bin  24575   0x7a2F5d93950cC4B6aC85ed88A8dF4962f9bEa63c   11893248     38,227,746   0x3dad834397445bca67dca94cce8044fd7cb8f9a1f7bc83672ab2658f92e87834
+  6  orkhanart.eth      7  prefix_02.bin  24575   0x3Ea0bc0d182A000106B041fe5ab46a0CcD7a7725   11893251     38,227,746   0x8aba236d42cfd5eb511d55e6ad51dc22f094697974a18d8f43ef8318552da8bc
+  7  orkhanart.eth      8  prefix_03.bin  24575   0x83FdA42F7A370bba42902306D6eDB52F6106df11   11893252     38,227,746   0x021877bb690af013ac8cc8233dca9e1c6d95ea267dc9670715b9edf794bbbff1
+  8  orkhanart.eth      9  prefix_04.bin  24575   0xf3A23808556974b36A3A6151D62828800E44b0f3   11893304     38,227,746   0x0bacb9628a6cd8381e1b7571e7b1ac5344c411078485b2067989b03dcf5768ba
+  9  store wallet       0  prefix_05.bin  24575   0x76D3728CA9292300BaD71801CA6220789B918DF0   11893363     38,227,746   0x1bcbe3634a1ad92c218e95a03545020a66fa8241ec320ef3de54a7dfab33c0dc
+ 10  store wallet       1  prefix_06.bin    552   0xbf34C31eFB9419C03bD87c555947833DB3c1aeCc   11893364      1,066,379   0x4af090919da5c6c14a2b24ac3397812131cb77064d6dba07fddc820dea0af5cf
+ 11  store wallet       2  head_00.bin      197   0xCe2627ac21F808C56948281d721FEA8e40074546   11893365        517,251   0x2b85148d7ee3386bf1d3ada2611f26c1967673ab3676af80fb8c8a9c4c8e781a
+ 12  store wallet       3  tail_00.bin    24575   0xC52d3dF58036F8E00C72AF62E0D5184bf71Ca16E   11893366     38,227,746   0x7c80a94e0116b06d44a19bc57b0b04d0120888526186d5fd7fb26361122a2039
+ 13  store wallet       4  tail_01.bin    24575   0x7db9301517fD666703a62197254CdB186611AC4F   11893367     38,227,746   0xedeed507cffc6e84b739a2c5b46d0a87d3c2e98fbb52998c4dc98b9f72b21627
+ 14  store wallet       5  tail_02.bin    24575   0x1C922325de281e90eC797589D54Bea2Dd3ecCD9b   11893368     38,227,746   0x41cc5c1c6725647bfdf47b5049fdc8b6a2b734c99335580629aebec1542b716e
+ 15  store wallet       6  tail_03.bin    24575   0x4a563d8684cB7247FcF33E1E179a2CeaC09C20e9   11893369     38,227,746   0xd93e2c738fd6e9bffb9cdb45ae64e215790d30b9506091df0675fd06d6aebfb5
+ 16  store wallet       7  tail_04.bin    24575   0x0653993CF786ecB75a90e80168397a6501E5Ed55   11893370     38,227,746   0xd6d86bf12454e43098384947871785ab87e6e141d01fc7b7120df2b12087b61c
+ 17  store wallet       8  tail_05.bin    24575   0x253BF1cB53A44De52aAa36d128f7750037BEbC05   11893371     38,227,746   0x2465983ce9d5685af3ce3b67e0c3d4eb2f827bd6f919e759a4ef127885f8c758
+ 18  store wallet       9  tail_06.bin    24575   0xF4096024134806eE1E8351484fB99e4356c46335   11893372     38,227,746   0xaeff3cb3ed9b6c37044352086cd9fda7844295f7f520644eaaf91842ef6afd17
+ 19  store wallet      10  tail_07.bin    24575   0x5435E863786dA1379bDf640FBBb017684868b544   11893373     38,227,746   0x5d4ac58568c877d0289eace3e078ca649488744c532781e61461804f984e07da
+ 20  store wallet      11  tail_08.bin    24575   0xC36833FA37449c1CA8F507E032F1Ba65fd931224   11893374     38,227,746   0xed506421197b1361fd5e0b0bee91a3733afb414e125c7e5c5afa75ea01a4f32a
+ 21  store wallet      12  tail_09.bin    24575   0x8Fb009556E547Afc76617B94b38f143706b9bfBA   11893375     38,227,746   0xca1fb7e681dfb7a0e26d6f8578a5680c52aad2948f7e50143e303c5dbff681a5
+ 22  store wallet      13  tail_10.bin    24575   0xb350af9b366981a2CA62Ad9D7252B0A2Cf7aDE81   11893376     38,227,746   0xd912aae2e75a3cfe55fd49f17f13c32b45f7193b2b2b6a8926a9394ec39c8c8c
+ 23  store wallet      14  tail_11.bin    24575   0x7D88aA7Cdbf76A83642C3FF74FfF4dfB5a71b686   11893377     38,227,746   0xb38ed94570886b714a51ac22432ee36f6e8824ad7887bc153db6a284f9a80a11
+ 24  store wallet      15  tail_12.bin    24575   0xD3Cf4243e4104D9e8C60690A3d9D0fA57205C6f5   11893378     38,227,746   0xf6c7d9482e081eb7cdabbaac48af18e5a3c83e1461787f25dfe1624e4085d896
+ 25  store wallet      16  tail_13.bin    24575   0x90E8786E63d7adf4D915181192784d9898EF765d   11893379     38,227,746   0xe1c7df87776e0d13247f87be88e441be52547e8235527fdad271cec3dfa640df
+ 26  store wallet      17  tail_14.bin    24575   0x0Dd928B113336C621f3C3A3c286d6b2CC78AfAe0   11893380     38,227,746   0xfd03e69bbcf13e37146d7d834e1374495cb80768f3f029593155ce9d4876b1f3
+ 27  store wallet      18  tail_15.bin    24575   0xC43C8D500fC2daFa4bA1D88539f3a36e75Ef4373   11893381     38,227,746   0x538ed03b9fd585cacfe21b2cd0aee69784da9a64cab2487eb5137b67e5234f4c
+ 28  store wallet      19  tail_16.bin    24575   0x6868AfAf6c0056aDA55a51C5c3B9e3c5CBA076a4   11893382     38,227,746   0x90fca12b7b3b55c1150b63548cbb13c729371e31ae9617bf837302676d032b59
+ 29  store wallet      20  tail_17.bin    24575   0x8cc485295fe2aFeae672838347DAa2561363929e   11893383     38,227,746   0xfe540184b28ae704765a5bd60a4765fe8191e5e857558a5603995188fad06aa6
+ 30  store wallet      21  tail_18.bin    24575   0xB22A672E2cD7F3922B5C76b02eA2aAe6333D7880   11893384     38,227,746   0xc2bb9ae3fdf8e4b964ba9deb6197b75ba2e672030283a43d09a9fceb11e9365a
+ 31  store wallet      22  tail_19.bin    24575   0xF2DAaF72c21dfcf43bF4051edB03f65477f3f67F   11893385     38,227,746   0x47c49eb273230f77ddbf5c7840e3acca963b40aace98e5c7ed2f7b41f4d3914b
+ 32  store wallet      23  tail_20.bin    24575   0xC101F724E6693A6336704179f76bdDC18a962085   11893386     38,227,746   0xe54c45a9fc4192759715c3a899a55408931e35ecbf014775b125d90d370c6246
+ 33  store wallet      24  tail_21.bin    24575   0x162045ECcE8311b966F0ace42Dd60C52Ba6c2fb6   11893387     38,227,746   0x6608fa653498fdc189ac12844a5eb9df742522bb1794365a957d2b47f5bfd16c
+ 34  store wallet      25  tail_22.bin    24575   0xAb08C99fCFcC32ADbB5cd1aacb1119f69AA27C92   11893388     38,227,746   0xe6999d66473b3a65b24e94608be63e7e0d6819f36fee13141f92aac5c968b9b8
+ 35  store wallet      26  tail_23.bin    24575   0xCF3907C2058c0f7E425550E408926FD1C227EdC4   11893389     38,227,746   0x3a13781de29b7fcc6e3a9e113fbff3fa36f868c13b81b083837014c2ad31e55c
+ 36  store wallet      27  tail_24.bin    24575   0x229FBc8f4Fb3AF178fA37A703B6E7019c5a91355   11893390     38,227,746   0x6cf8417b04c966951b1ce9fd75a12d3049ec6662f69935ea360e79689ade584e
+ 37  store wallet      28  tail_25.bin    24575   0x59ccDF49ecc4C9DdEAB8d2e4d747D374790031D1   11893391     38,227,746   0x6b71b8f8bc82303763fd9ef5b579674601f25602d24158153b08ccad4e602e61
+ 38  store wallet      29  tail_26.bin    24575   0xE89F08CdF883FAe14714B3110bE088De7ffafa65   11893392     38,227,746   0xc74aa2f69930ccb306a8d0116879e849dc9d32d20a9974c3c5accb89aca89e8e
+ 39  store wallet      30  tail_27.bin    24575   0x3C91fEfCC450d51e48467766b1D51198CfCFCB80   11893393     38,227,746   0x1cce2169ea18a402939df967fa06d9dc8aef9aa92d6964efd1fe0cbb65d216ee
+ 40  store wallet      31  tail_28.bin    24575   0xaA450B83b1CD1171830229498Ad73B36939A96cf   11893394     38,227,746   0xb968ed299dd3aa35bc25b338fcee8997a934199e4ffb0eb4960ff480e911e704
+ 41  store wallet      32  tail_29.bin    24575   0x5F7a67953fee0cc49960d8355b2dA476a1DD821f   11893395     38,227,746   0x531330f95a6d7021dd9cc3e3d4be2cce65dcfb602a8679aa43586ce05e2bbedc
+ 42  store wallet      33  tail_30.bin    24575   0x8128d1670a280a910BdB5ea0de7B83Beb71A00E4   11893396     38,227,746   0x172b7137b9ad9c314e5f59335f3551415c0b9ddfb77d95db27bf5e9467ffeca5
+ 43  store wallet      34  tail_31.bin    24575   0x6475268879A22eaBfee93573C8806D204Bb3A55D   11893397     38,227,746   0x56be634f0ab5d46ff767bf866a4b808ef879c5fb4a64bc6321e140fa171d85dd
+ 44  store wallet      35  tail_32.bin    24575   0x0D4f2610b0C1dFA3B3B4471D433A2186c5B2841A   11893398     38,227,746   0xaacfcd3820d0f71db5023d533688bd8e1f87436235c0f51cc41ef9ca5e616f46
+ 45  store wallet      36  tail_33.bin    21981   0x95D603c659FfAB51A24fDeB6d5EF6c2083cE36dF   11893399     34,214,866   0x3d1af166a02171c26b121908bd2b6228bca9561d95787ef9ed0405cab2588f3d
+     Store total: 1,599,158,011 gas used in 45 transactions, all status 1, 0.003198 Sepolia ETH paid; 45 distinct chunks of 45.
+
+  A full 24,575-byte chunk used 38,227,746 gas (checklists/2-deploy.md expected about 38.6M; the
+  multiplier of 125 on eth_estimateGas left about 20 % headroom). On mainnet before Glamsterdam the same
+  store measured 225,022,981 gas (audit/rehearsal-2026-10-11.txt): Glamsterdam's state gas makes it
+  about 7.1 times as much gas.
+  The funding transfer to the store wallet (orkhanart.eth nonce 10, a plain 0.01 ETH send to an empty
+  account) used 204,600 gas, not 21,000: Glamsterdam charges state gas for creating the account.
+
+Phase 2, the contracts: three creations from orkhanart.eth at nonces 11, 12, 13, signed in MetaMask
+----------------------------------------------------------------------------------------------------
+  nonce  contract        block        gas used    script's Cancun figure   transaction
+     11  KilimMotifs     11893409   18,530,924    3,210,755                0xee52074b70025a3c9b414ceea608eb34c3bf2d05e302ccf3f3458b8eb83b48f2
+     12  KilimOneOfOne   11893412   23,722,953    6,138,985                0xdae3494c20c1a47024419fe5f295e2acfd0abf7160d8156141b5971699a9bcbb
+     13  KilimAuction    11893419   17,335,761    2,864,327                0x6e25d8dcdb39445c5c3513bb392a73bd3e454d040dbc9347a25e8120a0660579
+  Total 59,589,638 gas, 0.000119 Sepolia ETH. The dry run (no --broadcast) passed first with the same
+  addresses; the script's own read-back and both golden tokenURIs passed in its run (motif tokenURI
+  287,312 gas, 1/1 tokenURI 4,519,744 gas, Cancun).
+
+Whole deployment: 1,658,747,649 gas (store 1,599,158,011, contracts 59,589,638), 0.003317 Sepolia ETH.
+
+Independent checks after the deployment
+---------------------------------------
+- Runtime bytecode of all three equals contracts/out/ outside the immutable slots: KilimMotifs 10,891
+  bytes (544 immutable), KilimOneOfOne 9,981 (416), KilimAuction 10,975 (1,120).
+- All 45 chunks hold exactly 0x00 || their chunk bytes.
+- pnpm -s site-config --chain 11155111 --auction 0xf830… --tx 0x6e25…: passed its checks and wrote
+  site/chains/11155111.json.
+- checklists/2-deploy.md read back, against the chain, 52 minutes before startsAt:
+    block 11893437, time 1791742404, startsAt 1791745564 (in 3160 s)
+    — Auction settings
+    ok   treasury: 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    ok   reservePrice: 10000000000000000
+    ok   incrementBps: 1000
+    ok   startsAt: 1791745564
+    ok   duration: 86400
+    ok   extensionWindow: 600
+    ok   motifs(): 0x48b3D1E55920BE80B952cff3568a142623e85c1e
+    ok   oneOfOne(): 0xCeEA7EBD8eE3Cc0a39ED89B999b4dB5c0CAC30F9
+    ok   motifCap: 1000000
+    ok   motifCap equals the collection's: 1000000
+    ok   maxMotifsPerBid: 1000000
+    — Auction constants
+    ok   MOTIF_PRICE: 1000000000000000
+    ok   REGISTRATION_BALANCE: 10000000000000000
+    ok   REGISTRATION_TARGET: 100
+    — Registration domain
+    ok   eip712 name: Kilim Registration
+    ok   eip712 version: 1
+    ok   eip712 chainId: 11155111
+    ok   eip712 verifyingContract: 0xf8301C81906512090f663bA474B59Cc186BD2e66
+    — Nothing has happened yet
+    ok   registrationCount: 0
+    ok   endsAt: 0
+    ok   highestBid: 0
+    ok   highestBidder: 0x0000000000000000000000000000000000000000
+    ok   motifsAllocated: 0
+    ok   motifsClaimed: 0
+    ok   settled: false
+    ok   prizeClaimed: false
+    ok   refundLiability: 0
+    ok   proceedsDue: 0
+    ok   liabilities: 0
+    ok   highestBidMotifs: 0,0
+    ok   auction ETH balance: 0
+    — Closed doors
+    ok   minimumBid: 10000000000000000
+    ok   register() simulated before startsAt: reverts with RegistrationClosed
+    ok   plain ETH transfer simulated: reverts
+    — Motif Bazaar
+    ok   name: Motif Bazaar
+    ok   symbol: MOTIF
+    ok   minter: 0xf8301C81906512090f663bA474B59Cc186BD2e66
+    ok   royaltyReceiver: 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    ok   ROYALTY_BPS: 500
+    ok   MOTIF_COUNT: 1024
+    ok   deploymentChainId: 11155111
+    ok   MAX_MINT_BATCH: 64
+    ok   gridsHash: 0x966b338f2228d7a4809f4287e0ae2835c96c8cf03f5d27514d6650a8c3b12ddb
+    ok   namesHash: 0xf92beabc41c8297d69e7e0eccd7abbc8293a19e4f91719cbac76c4d7971b1396
+    ok   gridChunks: 0x52AdF9Dde0211EF2F7E5367AF4128fe48f125DE9,0xE1D77BD0Ec2278Cf1900c72365F8f99386379354
+    ok   namesChunk: 0xaC19aC8c4863159f67Ed485554c5bc9aD540102b
+    ok   description: One of the 1,024 Kilim motifs.
+    ok   externalUrl: https://kilim.art
+    ok   motifsMinted: 0
+    ok   motifsBurned: 0
+    ok   keccak256(grids()) = gridsHash: 0x966b338f2228d7a4809f4287e0ae2835c96c8cf03f5d27514d6650a8c3b12ddb
+    ok   grid(1) = first 32 bytes of grids.bin: 0x000003c007e00ff01ff837ec3bdc199803c007e01ff83ffc1ff81ff80ff00000
+    ok   grid(1024) = last 32 bytes of grids.bin: 0x07c00c2018101c3014301f30072007800bc009e01cf0141018200c4007800000
+    ok   motifName(1): Hands on hips
+    ok   contractURI name: Motif Bazaar
+    ok   contractURI description: One of the 1,024 Kilim motifs.
+    ok   contractURI external_link: https://kilim.art
+    ok   tokenURI(1) before any mint: reverts with ERC721NonexistentToken
+    — The Unwoven Kilim
+    ok   name: The Unwoven Kilim
+    ok   symbol: UNWOVEN
+    ok   minter: 0xf8301C81906512090f663bA474B59Cc186BD2e66
+    ok   motifs(): 0x48b3D1E55920BE80B952cff3568a142623e85c1e
+    ok   royaltyReceiver: 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac
+    ok   ROYALTY_BPS: 500
+    ok   TOKEN_ID: 1
+    ok   prefixHash: 0xd59efff574dc7c2b7b084873bfc8514c5ff0260cc0f6cc55dd3723d0296888a4
+    ok   headHash: 0x69dd43c64deca3dd5cc1b7a9d6ee082e14054a2931591ba93e4280e1550a261a
+    ok   tailHash: 0x25b853dcdb5725d48dae54b6d7822e46d508e7f8de896693e7deaebe8228b794
+    ok   prefixChunks: 0x5dC8059c941D7A7c9297E86a81DcE478aBBc02C1,0x7a2F5d93950cC4B6aC85ed88A8dF4962f9bEa63c,0x3E…
+    ok   headChunks: 0xCe2627ac21F808C56948281d721FEA8e40074546
+    ok   tailChunks: 0xC52d3dF58036F8E00C72AF62E0D5184bf71Ca16E,0x7db9301517fD666703a62197254CdB186611AC4F,0x1C…
+    ok   description: A generative ASCII carpet drawn from the 1,024 Kilim motifs.
+    ok   externalUrl: 
+    ok   minted: false
+    ok   tokenURI(1) before the mint: reverts with ERC721NonexistentToken
+    — motifOf spot checks (keccak256(abi.encode(chainId, collection, id)) % 1024 + 1)
+    ok   motifOf(1): 91
+    ok   motifOf(2): 1014
+    ok   motifOf(64): 677
+    ok   motifOf(1169): 1
+    ok   motifOf(999999): 264
+    ok   motifOf(1000000): 992
+    ok   motifOf(1000001) past the cap: reverts with InvalidTokenId
+    
+    (the first run simulated the bid from orkhanart.eth: it reverted with TreasuryCannotBid, correct for the treasury; rerun from an unregistered wallet holding 1 ETH, last line)
+    ok   bid(minimum) simulated from an unregistered wallet with 1 ETH: reverts with RegistrationIncomplete
+  All 83 items pass.
+
+Display test (checklists/0-launch-steps.md step 6), from the store wallet
+--------------------------------------------------------------------------
+  display KilimMotifs     0xdaA88d21b432Aad60323C0F031561E3bC4Ef4220   18,530,924 gas
+  display KilimOneOfOne   0x00dBE5b514d15C50dFa41a387964c7832Cd3b93b   23,722,953 gas
+  DisplayMinter           0xd0ff42264e88cdd683daa12c22c9df530af667d3    1,914,682 gas (mints in its constructor)
+  Minted the 1/1 and motif ids 1..8 and 2,204 (the id showing the golden motif, "Hands on hips") to the
+  store wallet. Read back by eth_call on two RPCs (publicnode and drpc): tokenURI(1) of the display 1/1 is
+  1,068,635 bytes and equals the page golden (image data:image/webp;base64, 147,847 characters;
+  animation_url data:text/html;base64, 920,626 characters); tokenURI(2204) equals the motif golden.
+  To look at: https://testnets.opensea.io/assets/sepolia/0x00dBE5b514d15C50dFa41a387964c7832Cd3b93b/1
+  These are throwaway collections with the launch names; the real ones are above.
+
+What the rehearsal taught (for mainnet)
+---------------------------------------
+- forge's browser wallet serves its page at http://127.0.0.1:9545 and the page's code posts to exactly
+  that origin: localhost:9545 or another port fails. Use Chrome with MetaMask, pick MetaMask in the page's
+  wallet list (another installed wallet answered first once, on its own chain), and make MetaMask show the
+  right network before Connect. The page waits 5 minutes for a connection, then forge gives up. Between
+  transactions the page can sit on "No pending transaction"; reloading it brings the next request, and a
+  request that MetaMask already holds is still sent if confirmed after forge stops: reject stale
+  requests in MetaMask before a rerun (the rerun skips whatever landed).
+- For 45 chunks the browser wallet is too slow by hand: send the store from a separate wallet with a key
+  forge can use (the checklist's store wallet), and keep the browser wallet for the three contracts.
+- forge reads a keystore only with a lowercase "crypto" field; ethers v6 writes "Crypto".
+- DisplayTest.s.sol holds two contracts: its command needs --tc DisplayTest (fixed in the checklist).
+- Public RPCs answered every 24.6 KB eth_estimateGas in well under a second.
+
+Not done here: source verification on an explorer (it publishes the source; the artist's call), the
+OpenSea check by eye, and the public test itself (registrations and bids from the published page,
+orkhan.art/kilim/sepolia, from 12 October), whose events and gas are the next record.

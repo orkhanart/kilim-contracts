@@ -27,7 +27,7 @@ contract DisplayMinter {
 ///         These are throwaway test collections with the launch names: refused on Ethereum mainnet.
 ///
 ///   KILIM_DEPLOY_CONFIG=deploy/sepolia.json node scripts/forge.mjs script script/DisplayTest.s.sol \
-///     --sig 'display()' --rpc-url "$RPC" --broadcast --slow --sender <wallet> <--ledger or --browser> \
+///     --tc DisplayTest --sig 'display()' --rpc-url "$RPC" --broadcast --slow --sender <wallet> <--ledger or --browser> \
 ///     --skip-simulation --gas-estimate-multiplier 120
 contract DisplayTest is DeployKilim {
     uint256 public constant DISPLAY_MOTIFS = 8;

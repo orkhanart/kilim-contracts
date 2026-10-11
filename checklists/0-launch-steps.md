@@ -53,6 +53,8 @@ forge never sees the key. Choose for each wallet, since the store wallet and ork
 
 ## 5. Rehearse on Sepolia
 
+**Done on 11 October 2026** ([audit/sepolia-2026-10-11.txt](../audit/sepolia-2026-10-11.txt)): orkhanart.eth deployed at its Sepolia nonce 11 (not 2: 8 chunks and the store wallet's funding went from it first), so the addresses are Motif Bazaar `0x48b3D1E55920BE80B952cff3568a142623e85c1e`, The Unwoven Kilim `0xCeEA7EBD8eE3Cc0a39ED89B999b4dB5c0CAC30F9`, the auction `0xf8301C81906512090f663bA474B59Cc186BD2e66`; registration opened at 19:06 UTC. The read back passed (83 items) and so did the display test (step 6). Keep the steps below for mainnet's order; the nonce-2 addresses in them no longer apply.
+
 `deploy/sepolia.json` is ready, with orkhanart.eth as deployer at its Sepolia nonce 2 (11 October) and a 10-minute inspection window. Sepolia already runs the next Ethereum upgrade (Glamsterdam), so its commands carry two extra flags that mainnet's do not.
 
 ```sh
@@ -77,7 +79,7 @@ KILIM_DEPLOY_CONFIG=deploy/sepolia.json node scripts/forge.mjs script script/Dep
 In the auction the 1/1 exists only after settlement (100 registrations and a day of bidding), so the display test mints it straight away instead: `script/DisplayTest.s.sol` deploys the two token contracts over the Sepolia store with the same texts and bytes as the launch, with a small helper as their minter, and mints the 1/1 and nine motifs to the sending wallet. It refuses mainnet. Any Sepolia wallet can send it (use the store wallet, so orkhanart.eth's nonce is untouched):
 
 ```sh
-KILIM_DEPLOY_CONFIG=deploy/sepolia.json node scripts/forge.mjs script script/DisplayTest.s.sol --sig 'display()' \
+KILIM_DEPLOY_CONFIG=deploy/sepolia.json node scripts/forge.mjs script script/DisplayTest.s.sol --tc DisplayTest --sig 'display()' \
   --rpc-url "$RPC" --broadcast --slow --timeout 600 --skip-simulation --gas-estimate-multiplier 120 <SIGN> --sender <STORE WALLET>
 ```
 

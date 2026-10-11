@@ -1,14 +1,14 @@
 {
-  "_comment": "The Sepolia rehearsal, filled 11 October 2026 (checklists/0-launch-steps.md, then 2-deploy.md). Rehearse as mainnet: runStore from a store wallet that is NOT orkhanart.eth, then runContracts from orkhanart.eth. Sepolia runs Glamsterdam: add --skip-simulation --gas-estimate-multiplier 120 to both commands. deployerNonce is orkhanart.eth's Sepolia nonce read on 11 October 2026 (eth_getTransactionCount = 2, no code there): send nothing else from it on Sepolia before runContracts, or update this number. startsAt is a placeholder (0, in the past): runStore ignores it, runContracts refuses it ('startsAt outside the inspection window'). Right before runContracts, set it to the unix time now + 3600 (python3 -c 'import time; print(int(time.time()) + 3600)'): it must be at least minLeadSeconds (600, a 10-minute inspection window for the rehearsal) after the block the contracts land in, and less than a year out. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 55f33486...).",
+  "_comment": "The Sepolia rehearsal, filled 11 October 2026 (checklists/0-launch-steps.md, then 2-deploy.md). Rehearse as mainnet: runStore from a store wallet that is NOT orkhanart.eth, then runContracts from orkhanart.eth. Sepolia runs Glamsterdam: add --skip-simulation --gas-estimate-multiplier 120 to both commands. deployerNonce is orkhanart.eth's Sepolia nonce read on 11 October 2026 after the store went out (eth_getTransactionCount = 11, no code there; 8 chunks were sent from orkhanart.eth through forge's browser wallet, then the other 37 from a throwaway store wallet, 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756): send nothing else from it on Sepolia before runContracts, or update this number. startsAt is a placeholder (0, in the past): runStore ignores it, runContracts refuses it ('startsAt outside the inspection window'). Right before runContracts, set it to the unix time now + 3600 (python3 -c 'import time; print(int(time.time()) + 3600)'): it must be at least minLeadSeconds (600, a 10-minute inspection window for the rehearsal) after the block the contracts land in, and less than a year out. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 55f33486...).",
   "chainId": 11155111,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-  "deployerNonce": 2,
+  "deployerNonce": 11,
   "minLeadSeconds": 600,
   "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "startsAt": 0,
+    "startsAt": 1791745564,
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,

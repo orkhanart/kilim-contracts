@@ -590,3 +590,12 @@ The figures for the whole store in STORAGE.md, the README, the checklists and AR
   - **Addresses:** Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC`, the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. These are the mainnet addresses provided the wallet sends nothing else first.
   - **Still open:** only `startsAt` remains in the config.
 
+### Sepolia rehearsal deployed, 11 October 2026
+
+The full launch on Sepolia, two phases as on mainnet: [audit/sepolia-2026-10-11.txt](audit/sepolia-2026-10-11.txt).
+
+- **Addresses:** Motif Bazaar `0x48b3D1E55920BE80B952cff3568a142623e85c1e`, The Unwoven Kilim `0xCeEA7EBD8eE3Cc0a39ED89B999b4dB5c0CAC30F9`, the auction `0xf8301C81906512090f663bA474B59Cc186BD2e66` (block 11,893,419), from orkhanart.eth at nonce 11. Registration opens at `startsAt` 1791745564 (19:06 UTC).
+- **Gas under Glamsterdam:** store 1,599,158,011 (a full chunk 38,227,746), contracts 59,589,638 (18.5M, 23.7M, 17.3M): about 7 times the Cancun figures, as predicted. A plain send to an empty account used 204,600.
+- **Checked on the chain:** runtime bytecode equal to `out/` outside the immutables; all 45 chunks exact; `site-config` passed; the read back of checklists/2-deploy.md, 83 items, all pass; the display test's tokenURIs equal both goldens on two RPCs.
+- **Learned:** forge's browser wallet works only at `http://127.0.0.1:9545` and is too slow for 45 chunks by hand (send the store from a store wallet with a key forge can use); `DisplayTest.s.sol` needs `--tc DisplayTest` (checklist fixed).
+- **Next record:** the public test from orkhan.art/kilim/sepolia (registrations, bids, settlement, claims), then the independent audit before mainnet.
