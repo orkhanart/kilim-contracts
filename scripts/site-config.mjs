@@ -117,5 +117,5 @@ cfg.motifs = A.checksum(motifs);
 cfg.oneOfOne = A.checksum(oneOfOne);
 cfg.deployBlock = block;
 writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
-console.log(`Wrote ${path}.\nNext: python3 site/build.py, then publish site/index.html and auction.html.`
-  + (chainId === 1 ? '\nFor orkhan.art (the pages go live there too): pnpm site:sync-orkhanart on its local branch kilim/unified-site, then review and commit there.' : ''));
+console.log(`Wrote ${path}.\nNext: python3 site/build.py; the auction page is live from this config.`
+  + (chainId === 1 ? '\nFor orkhan.art: pnpm site:sync-orkhanart (it builds the landing and the live auction page) on its local branch kilim/unified-site, then review, commit and deploy there.' : ''));

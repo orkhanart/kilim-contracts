@@ -196,7 +196,7 @@ The pages inline their scripts, so after editing rebuild with `python3 site/buil
 ## Operations readiness
 
 - [ ] Write an incident runbook. It needs:
-  - a tested way to switch off the site's bid button and post a banner within minutes (the auction itself cannot be stopped);
+  - a tested way to switch off the site's bid button and post a banner within minutes: who edits `/kilim/status.json` on orkhan.art, how, and how long it took in the rehearsal (launch/HOSTING-HEADERS.md, 'The off switch'). The auction itself cannot be stopped;
   - notices written in advance for a chain outage near the close, a bug found mid-auction, registrations stalling below 100, and a phishing clone;
   - named people on call for the whole auction;
   - a public commitment on what the treasury does with proceeds if the result is compromised.

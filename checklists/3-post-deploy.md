@@ -18,7 +18,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
 
 ## Website goes live (before `startsAt`)
 
-- [ ] Point the site at the deployment: `pnpm -s site-config --chain <id> --auction <address> --tx <the auction's creation transaction, from forge's broadcast file>` (it checks the receipt, takes the deployment block from it, verifies the auction and reads the two token contracts from it; `--block <n>` instead needs a node that still answers for that block), then rebuild with `site/build.py` and deploy.
+- [ ] Point the site at the deployment: `pnpm -s site-config --chain <id> --auction <address> --tx <the auction's creation transaction, from forge's broadcast file>` (it checks the receipt, takes the deployment block from it, verifies the auction and reads the two token contracts from it; `--block <n>` instead needs a node that still answers for that block), then run `pnpm site:sync-orkhanart` (it rebuilds the live auction page and the landing into the orkhan.art checkout), commit there and deploy. Open `orkhan.art/kilim/auction` and check it is live, with the published addresses.
 - [ ] Pin and display the official addresses. Confirm the site only ever asks a wallet to send to the published auction and Motif Bazaar addresses.
 - [ ] Smoke test in read-only mode against the live contracts:
   - the page shows 0 of 100 registered and offers no bid;
@@ -26,7 +26,7 @@ Nothing on-chain can be changed from here. The levers left are the website, publ
   - the quote shows `minimumBid()` (0.01 ETH) and `rewardForBid()` (10 motifs);
   - registering is disabled until `startsAt`;
   - the site's `gridsHash` and `namesHash` equal the collection's (it refuses to start otherwise).
-- [ ] Test the kill switch: disable the buttons, post a banner, then restore. It stops the site, not the auction.
+- [ ] Test the kill switch on the live host: with `orkhan.art/kilim/auction` open in a tab, set `/kilim/status.json` to `{"writesDisabled": true, "notice": "…"}`, time how long the tab takes to disable its buttons and show the notice (one 12-second refresh once the file is served, plus the deploy if it goes through Next.js; launch/HOSTING-HEADERS.md), record the time here, then restore `{"writesDisabled": false, "notice": ""}`. It stops the site, not the auction.
 - [ ] If sponsored registration is used: the sponsor service points at this auction and this chain, its wallet is funded within its limit, and one test registration goes through on Sepolia first.
 
 ## Monitoring on (before `startsAt`)
