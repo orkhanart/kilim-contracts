@@ -76,6 +76,8 @@ KILIM_DEPLOY_CONFIG=deploy/sepolia.json node scripts/forge.mjs script script/Dep
 
 ## 6. Check the 1/1 on testnets.opensea.io
 
+**OpenSea closed its testnet site on 23 July 2025**, so the look on OpenSea below cannot be done on Sepolia. The display test itself ran on 11 October ([audit/sepolia-2026-10-11.txt](../audit/sepolia-2026-10-11.txt)): both tokenURIs equal the goldens on two RPCs and Alchemy's Sepolia API reads both tokens intact, but no testnet marketplace shows the still and the page. That look now needs another route before mainnet (the marketplace's written confirmation in step 7, or a display on a chain OpenSea serves).
+
 In the auction the 1/1 exists only after settlement (100 registrations and a day of bidding), so the display test mints it straight away instead: `script/DisplayTest.s.sol` deploys the two token contracts over the Sepolia store with the same texts and bytes as the launch, with a small helper as their minter, and mints the 1/1 and nine motifs to the sending wallet. It refuses mainnet. Any Sepolia wallet can send it (use the store wallet, so orkhanart.eth's nonce is untouched):
 
 ```sh

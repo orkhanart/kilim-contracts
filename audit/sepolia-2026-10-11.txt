@@ -212,8 +212,18 @@ Display test (checklists/0-launch-steps.md step 6), from the store wallet
   store wallet. Read back by eth_call on two RPCs (publicnode and drpc): tokenURI(1) of the display 1/1 is
   1,068,635 bytes and equals the page golden (image data:image/webp;base64, 147,847 characters;
   animation_url data:text/html;base64, 920,626 characters); tokenURI(2204) equals the motif golden.
-  To look at: https://testnets.opensea.io/assets/sepolia/0x00dBE5b514d15C50dFa41a387964c7832Cd3b93b/1
+  The still inside tokenURI(1) decodes to 110,866 bytes of RIFF/WEBP with SHA-256 0xfed32204…, the
+  config's expected.still.
   These are throwaway collections with the launch names; the real ones are above.
+
+  Indexers. testnets.opensea.io no longer exists: OpenSea ended testnet support on 23 July 2025
+  (support.opensea.io, "Farewell, Testnets"), so the checklist's look on OpenSea cannot be done on any
+  testnet. Alchemy's Sepolia NFT API (getNFTMetadata, demo key, refreshCache) read both tokens at
+  19:16 UTC: raw.error null; the 1/1's image and animation originalUrl equal the on-chain data URIs
+  character for character (147,847 and 920,626 characters), name "The Unwoven Kilim", ERC721; the motif
+  2,204 reads "Hands on hips (motif 1)" with its SVG. Alchemy keeps data URIs as they are (cachedUrl is
+  the data URI itself, thumbnailUrl and contentType null): it parses the token intact but renders no
+  thumbnail, so how the still and the page look stays a question for the marketplace.
 
 What the rehearsal taught (for mainnet)
 ---------------------------------------
@@ -230,6 +240,6 @@ What the rehearsal taught (for mainnet)
 - DisplayTest.s.sol holds two contracts: its command needs --tc DisplayTest (fixed in the checklist).
 - Public RPCs answered every 24.6 KB eth_estimateGas in well under a second.
 
-Not done here: source verification on an explorer (it publishes the source; the artist's call), the
-OpenSea check by eye, and the public test itself (registrations and bids from the published page,
+Not done here: source verification on an explorer (it publishes the source; the artist's call), a
+marketplace's look at the 1/1 (no OpenSea testnet any more: see the display test), and the public test itself (registrations and bids from the published page,
 orkhan.art/kilim/sepolia, from 12 October), whose events and gas are the next record.
