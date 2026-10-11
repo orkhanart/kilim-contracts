@@ -100,7 +100,9 @@ The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` i
 | the whole store, 46 chunks | about 252.2M |
 | everything | about 265.5M |
 
-Code deposit is 200 gas per byte today; EIP-8037 (Glamsterdam) raises it to 1,530, so the store should go on the chain before that fork reaches mainnet.
+The creation figures are the dry run's and conservative against the 8M policy: they count the script frame's memory and the creation's intrinsic cost twice, which outweighs reading the chunks warm, and on the one live anvil run of 10 October the chain charged about 7% less for `KilimOneOfOne` (6,276,216) than the dry run reported (audit FA-05).
+
+Code deposit is 200 gas per byte today; EIP-8037 (Glamsterdam) raises it to 1,530 gas per byte of state gas. The repricing covers the three contracts as well as the store, so both phases should go on the chain before that fork reaches mainnet, which has no date yet. On Sepolia, which runs Glamsterdam since 6 October, a full chunk needs at least 38,626,249 gas (measured) and the estimates for the contracts are about 18.6M for `KilimMotifs`, 24.9M for `KilimOneOfOne` and 18.1M for `KilimAuction`; the whole store would be about 1.95G gas against about 0.25G today. The 16,777,216 cap of EIP-7825 limits execution gas only; state gas is paid from the gas limit above it. The table above and the script's 8M policy are Cancun measurements and do not describe a Glamsterdam chain; the rehearsal's flags are in [../checklists/2-deploy.md](../checklists/2-deploy.md#the-sepolia-rehearsal-runs-glamsterdam) (audit FA-02).
 
 forge simulates the whole script before sending anything, so a refusal means nothing is broadcast. The script reverts with `Refused(reason)` when:
 

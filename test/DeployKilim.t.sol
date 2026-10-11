@@ -404,6 +404,45 @@ contract DeployKilimTest is TestBase {
         script.deployAuction(c);
     }
 
+    /// @dev Final audit FA-04: only a dropped third creation leaves the deployer at n + 2. One that was
+    ///      mined and reverted, or replaced by another transaction at n + 2, spent that nonce: the minter
+    ///      both tokens name can never get code, and completing is refused.
+    function testCompletingRefusesAThirdCreationThatWasMined() public {
+        DeployKilim.Config memory c = _config();
+        script.deployStore(c, SENDER);
+        uint256 n = vmd.getNonce(DEPLOYER);
+        c.deployerNonce = n;
+        (KilimMotifs k, KilimOneOfOne o) = _deployTwoTokens(c);
+        assertEq(vmd.getNonce(DEPLOYER), n + 2);
+        vmd.setNonce(DEPLOYER, uint64(n + 3));
+        _expectRefused("deployer nonce is not the published one plus two");
+        script.deployAuction(c);
+        assertEq(k.minter(), vmd.computeCreateAddress(DEPLOYER, n + 2));
+        assertEq(k.minter().code.length, 0);
+        assertEq(o.minter(), k.minter());
+    }
+
+    /// @dev Final audit FA-17: the deployer must be a plain account. An EIP-7702 delegation or a contract
+    ///      wallet could send from it, spend the published nonce or put its own contract at n + 2.
+    function testRefusesADeployerWithCode() public {
+        DeployKilim.Config memory c = _config();
+        script.deployStore(c, SENDER);
+        uint256 n = vmd.getNonce(DEPLOYER);
+        c.deployerNonce = n;
+        bytes memory delegation = abi.encodePacked(hex"ef0100", address(0xDE1E6A7E));
+        vmd.etch(DEPLOYER, delegation);
+        _expectRefused("deployer has code (EIP-7702 delegation or contract wallet)");
+        script.deployContracts(c);
+        vmd.etch(DEPLOYER, "");
+        _deployTwoTokens(c);
+        vmd.etch(DEPLOYER, hex"6000");
+        _expectRefused("deployer has code (EIP-7702 delegation or contract wallet)");
+        script.deployAuction(c);
+        vmd.etch(DEPLOYER, "");
+        script.deployAuction(c);
+        assertEq(vmd.getNonce(DEPLOYER), n + 3);
+    }
+
     function testCompletingRefusesTokensThatAreNotTheOnesThisConfigDeploys() public {
         DeployKilim.Config memory c = _config();
         script.deployStore(c, SENDER);
@@ -568,11 +607,18 @@ contract DeployKilimTest is TestBase {
             script.deployStore(c, SENDER);
             _expectRefused(string.concat("expected ", name));
             script.deployContracts(c);
+            // a zero is a value nobody filled in
+            c = _mainnetConfig();
+            _spoil(c, field, bytes32(0));
+            _expectRefused(string.concat("expected ", name));
+            script.deployStore(c, SENDER);
+            _expectRefused(string.concat("expected ", name));
+            script.deployContracts(c);
         }
-        // The real page store is other content than this config names.
+        // The real page store is other content than this config names: same texts, another prefix.
         c = _mainnetConfig();
         c.pageStore = PAGE_STORE;
-        vm.expectPartialRevert(DeployKilim.Refused.selector);
+        _expectRefused("expected prefixHash");
         script.deployContracts(c);
     }
 

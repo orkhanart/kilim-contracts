@@ -39,9 +39,11 @@ interface VmDeploy {
 ///                              both with the auction predicted at n + 2 as minter, then KilimAuction at
 ///                              n + 2. Every immutable is read back and the auction's address is checked
 ///                              against the prediction.
-///           3. runAuction():   only if the third creation was lost: with the two token contracts already
-///                              at n and n + 1 and the deployer at n + 2, deploys KilimAuction alone,
-///                              after the same checks, so the published addresses survive.
+///           3. runAuction():   only if the third creation was dropped (never mined): with the two token
+///                              contracts already at n and n + 1 and the deployer still at n + 2, deploys
+///                              KilimAuction alone, after the same checks, so the published addresses
+///                              survive. A mined third creation that reverted, or a replacement at n + 2,
+///                              spent that nonce; both token contracts are then void and this refuses.
 ///         `run()` does 1 and 2 for the local dry run (`pnpm deploy:dry`); the rehearsal uses the two
 ///         phases as mainnet does. The store is sent by forge's --sender, never by the config's
 ///         deployer once its nonce is published: 38 chunks would spend that nonce. The config is a JSON
@@ -50,7 +52,8 @@ interface VmDeploy {
 ///         must be the artist's wallet, the auction settings must be the decided launch values, the
 ///         config must name the content by hash (`expected`), the artwork must read KILIM_GRIDS, the
 ///         published nonce is always checked and the inspection window must be nonzero. Other chains
-///         accept any valid settings and print each one next to the launch value.
+///         accept any valid settings and print each one next to the launch value. On every chain the
+///         deployer must be a plain account: no code, so no EIP-7702 delegation and no contract wallet.
 /// @dev forge simulates the whole script before broadcasting, so any revert here means nothing is sent.
 ///      Every heavy step is first dry-run inside a state snapshot to measure its gas (printed per
 ///      transaction, refused above MAX_TX_GAS) and check its output: the dry run of the contracts also
@@ -448,6 +451,7 @@ contract DeployKilim {
         Store memory s = loadStore(c);
         _requireStored(s);
         _requireAuctionSettings(c);
+        _requirePlainDeployer(c.deployer);
         uint256 nonce = vm.getNonce(c.deployer);
         if (c.deployerNonce != NO_NONCE_CHECK) {
             if (nonce != c.deployerNonce) {
@@ -478,11 +482,15 @@ contract DeployKilim {
         _logDeployed(d);
     }
 
-    /// @notice Completes a deployment whose third creation was lost (dropped, replaced or reverted)
-    ///         after the first two succeeded. The two token contracts name the address at nonce n + 2 as
-    ///         their minter, so an auction deployed there, and only there, makes them whole: the published
+    /// @notice Completes a deployment whose third creation was dropped from the pool (never mined) after
+    ///         the first two succeeded. The two token contracts name the address at nonce n + 2 as their
+    ///         minter, so an auction deployed there, and only there, makes them whole: the published
     ///         addresses and the motif layout survive. Needs the published nonce n in the config, the
-    ///         deployer at n + 2, and both tokens reading back exactly as this config would deploy them.
+    ///         deployer still at n + 2, and both tokens reading back exactly as this config would deploy
+    ///         them. A third creation that was mined and reverted, or replaced by another transaction at
+    ///         n + 2, spent that nonce: nothing can be deployed at the minter's address any more, both
+    ///         token contracts are void, and this refuses ("deployer nonce is not the published one plus
+    ///         two"). A dropped first or second creation spends nothing: run runContracts again.
     function deployAuction(Config memory c) public returns (Deployed memory d) {
         _requireChain(c);
         _printSettings(c);
@@ -490,6 +498,7 @@ contract DeployKilim {
         Store memory s = loadStore(c);
         _requireStored(s);
         _requireAuctionSettings(c);
+        _requirePlainDeployer(c.deployer);
         if (c.deployerNonce == NO_NONCE_CHECK) {
             revert Refused("completing needs the published deployerNonce");
         }
@@ -541,6 +550,15 @@ contract DeployKilim {
                 || c.auction.startsAt > block.timestamp + MAX_LEAD
         ) revert Refused("startsAt outside the inspection window");
         if (c.auction.treasury == address(0)) revert Refused("zero address");
+    }
+
+    /// @dev The deployer must be a plain account. An EIP-7702 delegation (23 bytes, 0xef0100 and the
+    ///      delegate) or a contract wallet may let someone else send from it and spend the published nonce,
+    ///      or create a contract at n + 2 that would be both tokens' minter (audit FA-17).
+    function _requirePlainDeployer(address deployer) internal view {
+        if (deployer.code.length != 0) {
+            revert Refused("deployer has code (EIP-7702 delegation or contract wallet)");
+        }
     }
 
     /// @dev `vm.getNonce` is the nonce at the latest block. A transaction from the deployer still waiting
