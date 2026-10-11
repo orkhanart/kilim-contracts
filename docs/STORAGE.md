@@ -31,15 +31,15 @@ A chunk's runtime code is `0x00` followed by the data (the leading `STOP` keeps 
 
 | Section | Contents | Stored as | Today |
 | --- | --- | --- | --- |
-| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/webp;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 147,610 bytes, 7 chunks (the still: the opening frame, 1536 × 2048, lossless WebP of 110,572 bytes; `image/png` if the still is a PNG) |
+| PREFIX | `{"name":…,"description":…,["external_url":…,]"image":"data:image/webp;base64,<still>","animation_url":"data:text/html;base64,` | raw bytes | 148,002 bytes, 7 chunks (the still: the opening frame, 1536 × 2048, lossless WebP of 110,866 bytes; `image/png` if the still is a PNG) |
 | HEAD | The loader up to and including `const GRIDS='` | raw bytes | 197 bytes, 1 chunk |
-| TAIL | The rest of the loader, from the `;` after the closing quote, holding `base64(gzip(artwork))` | **already base64** | 832,612 bytes, 34 chunks |
+| TAIL | The rest of the loader, from the `;` after the closing quote, holding `base64(gzip(artwork))` | **already base64** | 832,956 bytes, 34 chunks |
 
 The loader (`onchain/loader.html`, 896 bytes before the blob goes in; its script is one block, so none of its names stay declared in the artwork's scope) is a small page of its own: it decodes the blob, gunzips it with `DecompressionStream('gzip')`, puts `<script>KILIM_GRIDS="…"</script>` right after the artwork's doctype and writes the result over itself with `document.open`, `write`, `close`. In a browser without `DecompressionStream` it shows one line of text instead. The artwork never carries the grids: the contract hands them in when the token is read, so the 1/1 can provably draw the motifs the motif tokens show: that holds only for an artwork that builds its motifs from `KILIM_GRIDS`. The packer records whether the page names it at all (`artwork.readsGrids` in the manifest) and the deploy script refuses a page that does not on mainnet. `onchain/ARTWORK-ONCHAIN.md` says what the artwork file must do with `KILIM_GRIDS`; the artwork of 11 October reads it.
 
 The packer checks the one piece of arithmetic the contract relies on: `(len(HEAD) + 65,536 + 1 + pad) mod 3 == 0`, with `pad` 0 to 2 spaces, so that the base64 of the middle piece ends on a whole group and concatenates with TAIL into one valid encoding (today `pad` is 2). The contract knows nothing of what is inside HEAD and TAIL beyond that rule and the closing quote.
 
-Today's store is packed from the artwork as it stood on 11 October, `research/motifs/curate/living-language-v3/mint/artwork.html` (2,210,193 bytes, gzip 467,831 bytes, blob 623,776 characters), with its still `mint/still.webp` (lossless WebP, 1536 × 2048, 110,572 bytes). The final artwork is re-packed by the procedure at the end of this file. The packer refuses an artwork that is not valid UTF-8 (the loader would decode it with losses) and an `animation_url` above 2 MiB, the longest URL Chromium opens (920,282 characters today).
+Today's store is packed from the artwork as it stood on 11 October, `research/motifs/curate/living-language-v3/mint/artwork.html` (2,211,152 bytes, gzip 468,025 bytes, blob 624,036 characters), with its still `mint/still.webp` (lossless WebP, 1536 × 2048, 110,866 bytes). The final artwork is re-packed by the procedure at the end of this file. The packer refuses an artwork that is not valid UTF-8 (the loader would decode it with losses) and an `animation_url` above 2 MiB, the longest URL Chromium opens (920,626 characters today).
 
 ## The hash chain
 
@@ -79,7 +79,7 @@ Measured on 11 October 2026 (`pnpm -s deploy:dry`, the store packed from that da
 
 | Read (`eth_call`) | Gas | Answer |
 | --- | --- | --- |
-| `KilimOneOfOne.tokenURI(1)` | **4,516,602** | 1,067,899 bytes |
+| `KilimOneOfOne.tokenURI(1)` | **4,519,744** | 1,068,635 bytes |
 | `KilimMotifs.tokenURI(id)` (a token showing motif 1) | 287,312 | 2,053 bytes |
 
 The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` in the script: half of the 16,777,216 per-transaction cap of EIP-7825, which some nodes also apply to `eth_call`). The dry run refuses a store whose 1/1 reads above it. `test/KilimOneOfOne.t.sol` measures a page of launch size (a 70 KB prefix and a 600 KB tail across 25 chunks) at 3,378,414 gas for a 757,791-byte answer and asserts the ceiling. `scripts/probe-rpc.mjs` measures how much gas each RPC endpoint allows an `eth_call`, without deploying anything.
@@ -90,15 +90,15 @@ The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` i
 
 | Transaction | Gas |
 | --- | --- |
-| the two grid chunks (24,544 and 8,224 bytes) | 7,534,505 together |
-| the names chunk | 3,261,227 |
-| the 7 prefix chunks (the still, WebP, 11 October) and the head chunk | 34,939,409 and 96,731 |
-| each full chunk (24,575 bytes) | at most 5,975,890; the 34 tail chunks 199,981,882 in all |
-| `KilimMotifs` | 3,210,743 |
-| `KilimOneOfOne` | 6,597,641 |
-| `KilimAuction` | 3,312,691 |
-| the whole store, 45 chunks | 245,813,754, about 245.8M |
-| everything | about 258.9M |
+| the two grid chunks (24,544 and 8,224 bytes) | 7,535,043 together |
+| the names chunk | 3,261,375 |
+| the 7 prefix chunks (the still, WebP, 11 October) and the head chunk | 35,025,979 and 96,731 |
+| each full chunk (24,575 bytes) | at most 5,975,459; the 34 tail chunks 200,074,516 in all |
+| `KilimMotifs` | 3,210,755 |
+| `KilimOneOfOne` | 6,601,234 |
+| `KilimAuction` | 3,313,228 |
+| the whole store, 45 chunks | 245,993,644, about 246.0M |
+| everything | about 259.1M |
 
 The creation figures are the dry run's and conservative against the 8M policy: they count the script frame's memory and the creation's intrinsic cost twice, which outweighs reading the chunks warm, and on the one live anvil run of 10 October the chain charged about 7% less for `KilimOneOfOne` (6,276,216) than the dry run reported (audit FA-05).
 

@@ -555,3 +555,18 @@ Four groups worked in separate worktrees and each was checked by an adversarial 
 After the cleanup: forge **267 of 267** (266 after the merge, plus `testIncrementOfExactlyOneHundredPercentIsAccepted`; the E96 case extends an existing test); packers 25 of 25; page 3 of 3; site 92 of 92; `forge fmt --check` clean.
 
 The figures for the whole store in STORAGE.md, the README, the checklists and ARTWORK-ONCHAIN.md (FA-11) are regenerated from `pnpm -s deploy:dry` of 11 October: 45 chunks, 245.8M gas, `KilimOneOfOne` creation 6,597,641 gas, and `tokenURI(1)` reading 1,067,899 bytes at 4,516,602 gas.
+
+### V-21 closed: the three duplicate motifs are replaced (11 October 2026)
+
+#147 (Chest), #483 (Amulet) and #613 (Family signs) were exact copies of #590, #246 and #482. They now have new drawings, under the same names and with the same ink counts (36, 24, 28), so the artwork's tone banks do not move. The new drawings are C1a, A1a and F1b of `research/motifs/curate/duplicate-replacements/`: the judges' first choices, because the artist left the choice open. Each is unique against all 1,024 in every rotation and mirror (at most 0.52).
+- **How they went in.** The pixel stage was restored from the archive into `research/motifs/curate/pixel-1024`; its inputs are now in git. They were added as `overrides-9.json`, like the earlier hand redraws. The atlas generator, which had lived only in `/tmp`, is now `symbol-atlas/build_data.py`.
+- **Checked before changing anything.** The unchanged pipeline reproduced today's `symbol-atlas/data.json` byte for byte.
+- **What changed.** After the change exactly three motifs' rows differ, no name and no ink count changes, and 1,024 drawings are distinct. The pixel build now refuses two identical drawings.
+- **Rebuilt.** The artwork (`mint/artwork.html` SHA-256 `55f33486…`, 2,211,152 bytes), its still (the opening frame shows new motifs: `still.webp` 110,866 bytes), the stores, the site's motif file and pages, and the landing's motif data.
+- **Measured after.**
+  - Hashes: `gridsHash 0x966b338f…`; `namesHash` unchanged.
+  - Store: 45 chunks, 245,993,644 gas.
+  - Creations: `KilimOneOfOne` 6,601,234; `KilimMotifs` 3,210,755; `KilimAuction` 3,313,228.
+  - `tokenURI(1)`: 1,068,635 bytes, read at 4,519,744 gas.
+- **Tests.** forge 267 of 267; site 93 of 93; packers 25 of 25; page 3 of 3 (the grids proof passes with the new grids); artwork 87 of 87; `pnpm -s deploy:dry` green.
+
