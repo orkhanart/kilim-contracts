@@ -243,3 +243,14 @@ What the rehearsal taught (for mainnet)
 Not done here: source verification on an explorer (it publishes the source; the artist's call), a
 marketplace's look at the 1/1 (no OpenSea testnet any more: see the display test), and the public test itself (registrations and bids from the published page,
 orkhan.art/kilim/sepolia, from 12 October), whose events and gas are the next record.
+
+Kilim Bazaar on Sepolia (deployed 11 October 2026, evening)
+-----------------------------------------------------------
+  KilimBazaar   0x0A584BaC7D7A5eaB0C5459C536B51493b29968c3   block 11,895,338   37,772,733 gas (Glamsterdam)
+  tx 0x15171969dabc90038f7541e53094828fc8e69821ae51e8838d4ec1652cb72694, from orkhanart.eth through forge's
+  browser wallet (one confirmation), main d6d10004, deploy/sepolia.json's bazaar block. The dry run against
+  Sepolia passed first. Read back: name "Kilim Bazaar" / KILIM, auction, motifs and 1/1 as above, royalty
+  750 of 10,000 to orkhanart.eth, seedWindow 8,191 (the EIP-2935 history contract), motifPrice 0.001 ETH,
+  imageBase empty (the title motif's drawing), externalUrl https://orkhan.art/kilim/bazaar/, ranks
+  Apprentice / Journeyman / Weaver / Artisan / Dyer / The Master, runtime 23,416 bytes as built.
+  Making opens when the auction settles (deposit and make revert NotSettled before).
