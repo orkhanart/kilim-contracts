@@ -34,6 +34,7 @@
     "description": "Kilims made from burned motifs by the engine of The Unwoven Kilim. Each is fixed by its seed and drawn only in the motifs that went into it.",
     "externalUrl": "https://orkhan.art/kilim/bazaar/",
     "imageBase": "",
+    "pageStore": "../onchain/build-page-sepolia",
     "pageRanks": {
       "names": [
         "Apprentice",

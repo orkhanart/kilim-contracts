@@ -384,7 +384,7 @@ contract KilimBazaarPageTest is BazaarBase {
     }
 
     /// @dev The real stores (onchain/build-page, onchain/build-motifs) at a 0.3 ETH close: an Apprentice, a
-    ///      Journeyman, a Weaver, the winner's tagged Master and a Whole Master, each equal to the reference
+    ///      Spinner, a Weaver, the winner's tagged Master and a Whole Master, each equal to the reference
     ///      byte for byte, under 2 MiB and under the read ceiling, and logged as `KILIM_FIXTURE <json>` and
     ///      `KILIM_URI <tokenURI>` for onchain/test/kilim-page.test.mjs (forge test --json -vv). The two
     ///      tests below add the other closes the page must handle; the node test reads all three.

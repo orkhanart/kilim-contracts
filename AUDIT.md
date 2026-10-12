@@ -612,3 +612,13 @@ The pre-mainnet audit (21 agents: five reviewers, a skeptic on every finding rat
   - The runbook items are written into checklists 0 and 2: a creation still pending, never Cancel, the fork check repeated before the contracts, a clean checkout of the frozen tag.
   - The site items went to the web session: six fixed, the quote cross-check kept by design (W-05).
   - Still to decide: PRIZE_GAS headroom under Glamsterdam (the Sepolia settlement measures it), the bytecode pin in the script, V-13's wording.
+
+### The 30-motif rank is Spinner; the mainnet page re-packed (11 October 2026)
+
+The artist asked for Journeyman to be renamed and let Claude choose. The new name is **Spinner**, the one who makes the yarn: Apprentice, Spinner, Weaver, Artisan, Dyer, The Master.
+
+- **The artwork:** the only source change is the name in `living-language-v3/source/bazaar.js` (and its test and the weave page text). The artwork build is reproducible: before the change, a rebuild gave the same `55f33486…` bytes. After it, mint/artwork.html is `bbc7b408…`. esbuild re-assigns some short identifiers when the text changes, so the bytes differ in more places than the name. The artwork's audit passes 87/87.
+- **The store:** prefix, head, the motif chunks, the still and the loader are unchanged. The tail (34 chunks) changes: tailHash `0xc8e4866c…2eed`, 1/1 golden `0x9e08a6db…147f`, artwork and motifSource `0xbbc7b408…d54b`. These are written in deploy/mainnet.json.
+- **The contract:** KilimBazaar's `rankName(2)` is "Spinner". mainnet.json gains its bazaar block: royalty 7.5% to orkhanart.eth; imageBase `https://orkhan.art/kilim/bazaar/image/`, which the site must serve before mainnet; the auction address is to be filled after runContracts.
+- **Sepolia keeps Journeyman.** Its 1/1 page on chain says it, and its Bazaar (0x0A584BaC…) was deployed from d6d10004. deploy/sepolia.json points its bazaar block at `onchain/build-page-sepolia`, a git-ignored snapshot of the page store from before the rename. Regenerate it from mint/artwork.html at 6c9b7770 if needed.
+- **Tests:** forge 411/411, site 97/97, packers 25/25, page 3/3, kilim-page 22/22, `deploy:dry` green.

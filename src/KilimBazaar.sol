@@ -307,7 +307,7 @@ contract KilimBazaar is IERC4906, ERC721, ReentrancyGuardTransient {
     ///         "" for any other rank.
     function rankName(uint256 rank) public pure returns (string memory) {
         if (rank == 1) return "Apprentice";
-        if (rank == 2) return "Journeyman";
+        if (rank == 2) return "Spinner";
         if (rank == 3) return "Weaver";
         if (rank == 4) return "Artisan";
         if (rank == 5) return "Dyer";

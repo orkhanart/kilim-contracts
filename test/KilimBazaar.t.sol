@@ -792,7 +792,7 @@ contract KilimBazaarTest is BazaarBase {
         assertEq(bazaar.kilim(_make(ALICE, 16)).rank, 1);
         assertEq(bazaar.kilim(_make(ALICE, 17)).rank, 6);
         assertEq(bazaar.kilim(_make(ALICE, 18)).rank, 6);
-        assertEq(bazaar.kilim(_make(ALICE, 30)).rank, 6); // no Journeyman at top 17
+        assertEq(bazaar.kilim(_make(ALICE, 30)).rank, 6); // no Spinner at top 17
         assertEq(bazaar.kilim(4).number, 3);
         (uint256[6] memory costs,) = bazaar.ladder();
         assertEq(costs[0], 10);
