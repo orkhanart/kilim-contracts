@@ -25,6 +25,33 @@
     "description": "A generative ASCII carpet drawn from the 1,024 Kilim motifs.",
     "externalUrl": ""
   },
+  "bazaar": {
+    "auction": "0xf8301C81906512090f663bA474B59Cc186BD2e66",
+    "motifs": "0x48b3D1E55920BE80B952cff3568a142623e85c1e",
+    "oneOfOne": "0xCeEA7EBD8eE3Cc0a39ED89B999b4dB5c0CAC30F9",
+    "royaltyReceiver": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
+    "pageTailHash": "0x25b853dcdb5725d48dae54b6d7822e46d508e7f8de896693e7deaebe8228b794",
+    "description": "Kilims made from burned motifs by the engine of The Unwoven Kilim. Each is fixed by its seed and drawn only in the motifs that went into it.",
+    "externalUrl": "https://orkhan.art/kilim/bazaar/",
+    "imageBase": "",
+    "pageRanks": {
+      "names": [
+        "Apprentice",
+        "Journeyman",
+        "Weaver",
+        "Artisan",
+        "Dyer",
+        "The Master"
+      ],
+      "costs": [
+        10,
+        30,
+        100,
+        300,
+        1000
+      ]
+    }
+  },
   "expected": {
     "gridsHash": "0x966b338f2228d7a4809f4287e0ae2835c96c8cf03f5d27514d6650a8c3b12ddb",
     "namesHash": "0xf92beabc41c8297d69e7e0eccd7abbc8293a19e4f91719cbac76c4d7971b1396",
