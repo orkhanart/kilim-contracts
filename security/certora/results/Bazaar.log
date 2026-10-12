@@ -1,0 +1,241 @@
+WARNING: Note: attribute packages value in CLI (@openzeppelin/contracts=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../node_modules/@openzeppelin/contracts kilim=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../src) overrides value stored in conf file (@openzeppelin/contracts=../../node_modules/@openzeppelin/contracts kilim=../../src)
+WARNING: Note: attribute solc_allow_path value in CLI (/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../..) overrides value stored in conf file (../..)
+WARNING: Build cache is used with a local certora-cli script version. Beware of false hits and unexpected behaviors!
+Reports in /Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/Bazaar/emv-1-certora-12-Oct--11-21/Reports
+Start Mon Oct 12 11:21:02 EDT 2026
+Warning: Syntax warning in spec file Bazaar.spec:120:12: Usage of bitwise operation flags & 1 is experimental. Use with caution.
+Warning: Syntax warning in spec file Bazaar.spec:124:49: Usage of bitwise operation (flags | 1) is experimental. Use with caution.
+Warning: Failed to locate an internal function called from KilimBazaarHarness-tokenURI(uint256): Could not detect the internal function KilimBazaar._respondWithPage(bytes before, bytes piece, bytes afterPage)
+Warning: Symbol 0xf90827f1c53a10cb7a02335b175320002935 at CmdPointer(block=2830_1004_2_0_0_0, pos=16) is already a constant - may have to introduce a dummy variable
+Warning: Symbol 0xf90827f1c53a10cb7a02335b175320002935 at LTACCmd(ptr=CmdPointer(block=2830_1004_2_0_0_0, pos=16), cmd=WordLoad R2941:bv256 0xf90827f1c53a10cb7a02335b175320002935 tacExtcodehash:wordmap (9127:16:32:0xce4604a0000000000000000000000045) // KilimBazaar.sol) is already a constant - may have to introduce a dummy variable
+Warning: Pointer analysis for optimization failed in internal function Base64._encode(bytes data, bool urlAndFilenameSafe) returns (bytes) (when called from external function contractURI() of contract KilimBazaarHarness). No precise source code information available for the location, range information points to the next method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 2580757490
+Warning: Pointer analysis for optimization failed in internal function KilimBazaar._dec(uint256 p, uint256 v) returns (uint256) (when called from external function pieceOf(uint256) of contract KilimBazaarHarness).  Error code 1277565207
+Warning: Pointer analysis for optimization failed in internal function KilimBazaar._dec(uint256 p, uint256 v) returns (uint256) (when called from external function pieceOf(uint256) of contract KilimBazaarHarness).  Error code 1277565207
+Warning: Pointer analysis for optimization failed in internal function Base64._encode(bytes data, bool urlAndFilenameSafe) returns (bytes) (when called from external function tokenURI(uint256) of contract KilimBazaarHarness). No precise source code information available for the location, range information points to the next method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 2580757490
+The scene contains 1 contracts:
+KilimBazaarHarness : 0xce4604a0000000000000000000000045
+Running initial transformations
+Warning: Pointer analysis failed, could pose a linking issue in a caller in internal function Base64._encode(bytes data, bool urlAndFilenameSafe) returns (bytes) (when called from external function contractURI() of contract KilimBazaarHarness). No precise source code information available for the location, range information points to the next method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 2580757490
+Warning: Pointer analysis for call resolution failed in internal function KilimBazaar._dec(uint256 p, uint256 v) returns (uint256) (when called from external function pieceOf(uint256) of contract KilimBazaarHarness).  Error code 1277565207
+Warning: Pointer analysis for call resolution failed in internal function KilimBazaar._dec(uint256 p, uint256 v) returns (uint256) (when called from external function pieceOf(uint256) of contract KilimBazaarHarness).  Error code 1277565207
+Warning: Pointer analysis for call resolution failed in internal function Base64._encode(bytes data, bool urlAndFilenameSafe) returns (bytes) (when called from external function tokenURI(uint256) of contract KilimBazaarHarness). No precise source code information available for the location, range information points to the next method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 2580757490
+Warning: Memory partitioning failed while analyzing contract KilimBazaarHarness, function pieceOf(uint256).  This can lead to longer running times. 
+Warning: Memory partitioning failed while analyzing contract KilimBazaarHarness, function tokenURI(uint256).  This can lead to longer running times. 
+Warning: Memory partitioning failed while analyzing contract KilimBazaarHarness, function contractURI().  This can lead to longer running times. 
+Ping 1m - Processed 0/8 (0%) rules. 0 tasks complete, 14 pending.
+Ping 2m - Processed 0/8 (0%) rules. 0 tasks complete, 14 pending.
+Ping 3m - Processed 0/8 (0%) rules. 0 tasks complete, 14 pending.
+Ping 4m - Processed 0/8 (0%) rules. 0 tasks complete, 14 pending.
+Has CVL checks.
+Checking CVL security/certora/work/Bazaar/specs/Bazaar.spec for contract KilimBazaarHarness
+Unrolling loops 6 times, unwinding condition is assumed
+Checking rule rankForRevertsBeforeSettlement (5 out of 8)...
+Checking rule masterExactlyAtTop (3 out of 8)...
+Checking rule fixedRankIsHighestCostReached (4 out of 8)...
+Checking rule rankMonotone (2 out of 8)...
+Checking rule ladderAgreesWithRankFor (6 out of 8)...
+Checking rule rankZeroOnlyUnderFloor (1 out of 8)...
+Checking rule sealOnlySeals (7 out of 8)...
+Checking rule envfreeFuncsStaticCheck (8 out of 8)...
+Result for envfreeFuncsStaticCheck: envfreeFuncsStaticCheck: madeAt(uint8): SUCCESS
+masterCost(): SUCCESS
+rankFor(uint256): SUCCESS
+totalSupply(): SUCCESS
+ladder(): SUCCESS
+motifPrice(): SUCCESS
+Starting to run on rule rankForRevertsBeforeSettlement
+Starting to run on rule rankZeroOnlyUnderFloor
+Starting to run on rule rankMonotone
+Starting to run on rule fixedRankIsHighestCostReached
+Starting to run on rule masterExactlyAtTop
+Starting to run on rule ladderAgreesWithRankFor
+Starting to run on rule sealOnlySeals
+Verified: rankForRevertsBeforeSettlement
+rankForRevertsBeforeSettlement: Properties successfully verified on all inputs
+Starting to run on rule rankForRevertsBeforeSettlement-rule_not_vacuous
+Total time for rankZeroOnlyUnderFloor: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Total time for fixedRankIsHighestCostReached: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: rankZeroOnlyUnderFloor
+rankZeroOnlyUnderFloor: Properties successfully verified on all inputs
+Verified: fixedRankIsHighestCostReached
+fixedRankIsHighestCostReached: Properties successfully verified on all inputs
+Total time for rankMonotone: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Total time for masterExactlyAtTop: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: masterExactlyAtTop
+masterExactlyAtTop: Properties successfully verified on all inputs
+Verified: rankMonotone
+rankMonotone: Properties successfully verified on all inputs
+Starting to run on rule rankZeroOnlyUnderFloor-rule_not_vacuous
+Starting to run on rule fixedRankIsHighestCostReached-rule_not_vacuous
+Total time for rankForRevertsBeforeSettlement-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: rankForRevertsBeforeSettlement-rule_not_vacuous
+rankForRevertsBeforeSettlement-rule_not_vacuous: A property is violated
+Starting to run on rule rankMonotone-rule_not_vacuous
+Starting to run on rule masterExactlyAtTop-rule_not_vacuous
+Result for rankForRevertsBeforeSettlement: rankForRevertsBeforeSettlement: SUCCESS
+Total time for ladderAgreesWithRankFor: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: ladderAgreesWithRankFor
+ladderAgreesWithRankFor: Properties successfully verified on all inputs
+Total time for rankZeroOnlyUnderFloor-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: rankZeroOnlyUnderFloor-rule_not_vacuous
+rankZeroOnlyUnderFloor-rule_not_vacuous: A property is violated
+Result for rankZeroOnlyUnderFloor: rankZeroOnlyUnderFloor: SUCCESS
+Starting to run on rule ladderAgreesWithRankFor-rule_not_vacuous
+Total time for fixedRankIsHighestCostReached-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: fixedRankIsHighestCostReached-rule_not_vacuous
+fixedRankIsHighestCostReached-rule_not_vacuous: A property is violated
+Result for fixedRankIsHighestCostReached: fixedRankIsHighestCostReached: SUCCESS
+Total time for rankMonotone-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: rankMonotone-rule_not_vacuous
+rankMonotone-rule_not_vacuous: A property is violated
+Result for rankMonotone: rankMonotone: SUCCESS
+Total time for masterExactlyAtTop-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: masterExactlyAtTop-rule_not_vacuous
+masterExactlyAtTop-rule_not_vacuous: A property is violated
+Result for masterExactlyAtTop: masterExactlyAtTop: SUCCESS
+Total time for ladderAgreesWithRankFor-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: ladderAgreesWithRankFor-rule_not_vacuous
+ladderAgreesWithRankFor-rule_not_vacuous: A property is violated
+Result for ladderAgreesWithRankFor: ladderAgreesWithRankFor: SUCCESS
+Total time for sealOnlySeals: 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Verified: sealOnlySeals
+sealOnlySeals: Properties successfully verified on all inputs
+Starting to run on rule sealOnlySeals-rule_not_vacuous
+Total time for sealOnlySeals-rule_not_vacuous: 1 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: sealOnlySeals-rule_not_vacuous
+sealOnlySeals-rule_not_vacuous: A property is violated
+Result for sealOnlySeals: sealOnlySeals: SUCCESS
+Results for envfreeFuncsStaticCheck:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|madeAt(uint8)                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|masterCost()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rankFor(uint256)                        |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|totalSupply()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|ladder()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifPrice()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for all:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|envfreeFuncsStaticCheck                 |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rankForRevertsBeforeSettlement          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rankZeroOnlyUnderFloor                  |Not violated |1         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|fixedRankIsHighestCostReached           |Not violated |1         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|masterExactlyAtTop                      |Not violated |1         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rankMonotone                            |Not violated |1         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rule_not_vacuous                        |Not violated |0         |Assert message: sanity check for rule rankForRevertsBefo... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |count=0                                           |
+|ladderAgreesWithRankFor                 |Not violated |1         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rule_not_vacuous                        |Not violated |0         |Assert message: sanity check for rule rankZeroOnlyUnderF... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |count=10                                          |
+|                                        |             |          |                                                            |r=6                                               |
+|rule_not_vacuous                        |Not violated |0         |Assert message: sanity check for rule fixedRankIsHighest... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |count=10                                          |
+|                                        |             |          |                                                            |r=1                                               |
+|rule_not_vacuous                        |Not violated |0         |Assert message: sanity check for rule rankMonotone succe... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |a=0                                               |
+|                                        |             |          |                                                            |b=2^10 - 24                                       |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule masterExactlyAtTop... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |count=10                                          |
+|                                        |             |          |                                                            |r=6                                               |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule ladderAgreesWithRa... |KilimBazaarHarness=10001                          |
+|                                        |(sat)        |          |                                                            |costs=...                                         |
+|                                        |             |          |                                                            |costs.length=...                                  |
+|                                        |             |          |                                                            |i=0                                               |
+|                                        |             |          |                                                            |open=true                                         |
+|sealOnlySeals                           |Not violated |6         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rule_not_vacuous                        |Not violated |2         |Assert message: sanity check for rule sealOnlySeals succ... |KilimBazaarHarness=17178                          |
+|                                        |(sat)        |          |                                                            |count=0                                           |
+|                                        |             |          |                                                            |distinct=0                                        |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x4319                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |flags=118                                         |
+|                                        |             |          |                                                            |flagsAfter=118                                    |
+|                                        |             |          |                                                            |handKey=0                                         |
+|                                        |             |          |                                                            |id=22330                                          |
+|                                        |             |          |                                                            |number=0                                          |
+|                                        |             |          |                                                            |rank=0                                            |
+|                                        |             |          |                                                            |sealBlock=0                                       |
+|                                        |             |          |                                                            |seed=0                                            |
+|                                        |             |          |                                                            |tally=0                                           |
+|                                        |             |          |                                                            |title=0                                           |
+|                                        |             |          |                                                            |tokenIds=                                         |
+|                                        |             |          |                                                            |tokenIds.length=0                                 |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Failures summary:
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule rankForRevertsBefo...
+
+sanity check (vacuity of rule) for rule rankForRevertsBeforeSettlement
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule rankZeroOnlyUnderF...
+
+sanity check (vacuity of rule) for rule rankZeroOnlyUnderFloor
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule fixedRankIsHighest...
+
+sanity check (vacuity of rule) for rule fixedRankIsHighestCostReached
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule rankMonotone succe...
+
+sanity check (vacuity of rule) for rule rankMonotone
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule masterExactlyAtTop...
+
+sanity check (vacuity of rule) for rule masterExactlyAtTop
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule ladderAgreesWithRa...
+
+sanity check (vacuity of rule) for rule ladderAgreesWithRankFor
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule sealOnlySeals succ...
+
+sanity check (vacuity of rule) for rule sealOnlySeals
+
+Done 4m
+Event reporter: all events were sent without errors
+Reports in file:///Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/Bazaar/emv-1-certora-12-Oct--11-21/Reports
+Final report in emv-1-certora-12-Oct--11-21/Reports/FinalResults.html
+Compiling harness/KilimBazaarHarness.sol...
+Compiling harness/KilimBazaarHarness.sol to expose internal function information and local variables...
+Encountered an exception generating autofinder .certora_internal/26_10_12_11_20_51_219888912b/.certora_sources/security/certora/work/Bazaar/harness/KilimBazaarHarness.sol (solc8.37 had an error:
+CompilerError: Stack too deep. Try compiling with `--via-ir` (cli) or the equivalent `viaIR: true` (standard JSON) while enabling the optimizer. Otherwise, try removing local variables.
+   --> ../../../../src/KilimBazaar.sol:639:72:
+    |
+639 |         emit KilimMade(tokenId, msg.sender, to, rank, number, l.count, l.title, sealBlock);
+    |                                                                        ^
+
+), falling back to original file KilimBazaarHarness.sol
+Compiling harness/KilimBazaarHarness.sol to expose internal function information...
+Verifier run command:
+ java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 6 -assumeUnwindCond -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_20_51_219888912b
+[32mFinished running verifier:[0m
+	java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 6 -assumeUnwindCond -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_20_51_219888912b

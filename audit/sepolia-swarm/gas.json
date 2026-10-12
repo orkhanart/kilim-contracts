@@ -1,0 +1,152 @@
+{
+ "relay the 0.01 on": {
+  "n": 76,
+  "min": 21000,
+  "max": 204600,
+  "sum": 8756400
+ },
+ "register (site)": {
+  "n": 35,
+  "min": 142341,
+  "max": 142341,
+  "sum": 4981935
+ },
+ "registerFor (sponsored)": {
+  "n": 4,
+  "min": 152249,
+  "max": 152249,
+  "sum": 608996
+ },
+ "return to pool": {
+  "n": 5,
+  "min": 21000,
+  "max": 21000,
+  "sum": 105000
+ },
+ "fund B2 for b2-1": {
+  "n": 1,
+  "min": 204600,
+  "max": 204600,
+  "sum": 204600
+ },
+ "bid (site, outbid)": {
+  "n": 4,
+  "min": 229075,
+  "max": 648155,
+  "sum": 1546778
+ },
+ "fund B3 for the contract wallet": {
+  "n": 1,
+  "min": 204600,
+  "max": 204600,
+  "sum": 204600
+ },
+ "deploy SwarmBidder": {
+  "n": 1,
+  "min": 1540520,
+  "max": 1540520,
+  "sum": 1540520
+ },
+ "fund B3 for cw-1": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "bid (contract wallet)": {
+  "n": 1,
+  "min": 441399,
+  "max": 441399,
+  "sum": 441399
+ },
+ "consolidate to pool": {
+  "n": 2,
+  "min": 21000,
+  "max": 21000,
+  "sum": 42000
+ },
+ "fund B1 for b1-2": {
+  "n": 1,
+  "min": 204600,
+  "max": 204600,
+  "sum": 204600
+ },
+ "fund B3 to withdraw for the contract wallet": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "withdrawRefund (contract wallet)": {
+  "n": 1,
+  "min": 57694,
+  "max": 57694,
+  "sum": 57694
+ },
+ "fund B1 for late-1": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "fund B2 for late-2": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "fund B3 to settle": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "settle (site)": {
+  "n": 1,
+  "min": 599508,
+  "max": 599508,
+  "sum": 599508
+ },
+ "claimMotifs (site, to another address)": {
+  "n": 1,
+  "min": 4422673,
+  "max": 4422673,
+  "sum": 4422673
+ },
+ "fund B2 to claim": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "fund B3 to claim for the contract wallet": {
+  "n": 1,
+  "min": 21000,
+  "max": 21000,
+  "sum": 21000
+ },
+ "claimMotifs (contract wallet, to itself)": {
+  "n": 1,
+  "min": 2033654,
+  "max": 2033654,
+  "sum": 2033654
+ },
+ "motif transferFrom": {
+  "n": 1,
+  "min": 58589,
+  "max": 58589,
+  "sum": 58589
+ },
+ "motif approve": {
+  "n": 1,
+  "min": 130661,
+  "max": 130661,
+  "sum": 130661
+ },
+ "motif burn by its owner": {
+  "n": 1,
+  "min": 254170,
+  "max": 254170,
+  "sum": 254170
+ }
+}

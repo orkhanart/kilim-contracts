@@ -1,0 +1,13 @@
+KILLED  settle-twice             settle() can run again after the proceeds were paid; violated: prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: settle(), solvency / Induction step: after external (non-view) methods / Using general requirements :: settle()
+KILLED  proceeds-not-zeroed      withdrawProceeds pays without clearing proceedsDue; violated: solvency / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+KILLED  refund-not-cleared       withdrawRefund pays without clearing the caller's refund; violated: refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+KILLED  deferred-not-counted     a deferred refund is not added to refundLiability; violated: refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256), refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SURVIVED deferred-not-recorded    a failed push refund is dropped instead of deferred (the bidder loses it); violated: none
+KILLED  no-close-check           bids accepted after the close; violated: bidTiming
+KILLED  refund-wrong-bidder      the outbid amount is refunded to the new bidder; violated: bidRefundsOutbidBidder
+KILLED  self-call-open           anyone can call payOutbidRefund; violated: payOutbidRefundOnlyBySelf
+KILLED  treasury-check-dropped   anyone can withdraw the proceeds; violated: withdrawProceedsOnlyTreasuryOnce, withdrawProceedsRevertsForOthers
+KILLED  reward-uncapped          rewards ignore the motif cap; violated: motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+KILLED  claim-keeps-credits      claimMotifs mints without spending credits; violated: claimMotifsNeverExceedsCredits, creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+KILLED  prize-claim-twice        the winner can claim the 1/1 again; violated: prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+KILLED  withdraw-unguarded       withdrawRefund loses its reentrancy guard; violated: reentryReverts :: withdrawRefund(address)

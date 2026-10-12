@@ -44,8 +44,8 @@ contract PoolWinner is IERC721Receiver {
     }
 }
 
-/// @dev A pool whose bookkeeping on receipt needs more than the 500,000 gas settlement gives the
-///      delivery (thirty new slots, about 670k), and that has no way to call claimPrize.
+/// @dev A pool whose bookkeeping on receipt needs more than the 1,000,000 gas settlement gives the
+///      delivery (fifty new slots and its counter, about 1,140k), and that has no way to call claimPrize.
 contract HeavyPoolWinner is IERC721Receiver {
     uint256 public received;
     mapping(uint256 => uint256) public ledger;
@@ -60,7 +60,7 @@ contract HeavyPoolWinner is IERC721Receiver {
 
     function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
         ++received;
-        for (uint256 i; i < 30; ++i) {
+        for (uint256 i; i < 50; ++i) {
             ledger[i] = block.number + 1;
         }
         return IERC721Receiver.onERC721Received.selector;
@@ -146,7 +146,7 @@ contract GasFloorsTest is TestBase {
         // sweep reaches past the settle floor, so some limits must settle: a floor raised out of its
         // range would otherwise pass unexamined.
         uint256 delivered;
-        for (uint256 gasLimit = 60_000; gasLimit <= 900_000; gasLimit += 4_000) {
+        for (uint256 gasLimit = 60_000; gasLimit <= 1_400_000; gasLimit += 4_000) {
             uint256 snap = vm.snapshotState();
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {

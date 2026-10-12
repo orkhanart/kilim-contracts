@@ -1,0 +1,3 @@
+FAIL         withdrawProceedsOnlyTreasuryOnce
+FAIL         withdrawProceedsRevertsForOthers
+totals: FAIL=2

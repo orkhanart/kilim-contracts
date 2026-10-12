@@ -1,0 +1,927 @@
+{
+ "tool": "slither 0.11.6",
+ "date": "2026-10-12",
+ "results": [
+  {
+   "impact": "High",
+   "confidence": "Medium",
+   "check": "weak-prng",
+   "where": [
+    "src/KilimBazaar.sol:868",
+    "src/KilimBazaar.sol:998"
+   ],
+   "description": "KilimBazaar._respondWithPage(bytes,bytes,bytes) (src/KilimBazaar.sol#868-1077) uses a weak PRNG: \"m__respondWithPage_asm_0 = m__respondWithPage_asm_0 + 3 - m__respondWithPage_asm_0 % 3 % 3 (src/KilimBazaar.sol#998)\" "
+  },
+  {
+   "impact": "High",
+   "confidence": "Medium",
+   "check": "incorrect-return",
+   "where": [
+    "src/KilimBazaar.sol:388",
+    "src/KilimBazaar.sol:868"
+   ],
+   "description": "KilimBazaar.tokenURI(uint256) (src/KilimBazaar.sol#388-401) calls KilimBazaar._respondWithPage(bytes,bytes,bytes) (src/KilimBazaar.sol#868-1077) which halt the execution return(uint256,uint256)(ptr__respondWithPage_asm_0,64 + total__respondWithPage_asm_0 + 31 & ~ 31) (src/KilimBazaar.sol#1075)"
+  },
+  {
+   "impact": "High",
+   "confidence": "High",
+   "check": "uninitialized-state",
+   "where": [
+    "src/KilimBazaar.sol:119",
+    "src/KilimBazaar.sol:541"
+   ],
+   "description": "KilimBazaar._hands (src/KilimBazaar.sol#119) is never initialized. It is used in:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:1146",
+    "src/KilimBazaar.sol:1147"
+   ],
+   "description": "KilimBazaar._escapedLength(bytes1) (src/KilimBazaar.sol#1146-1150) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:358",
+    "src/KilimBazaar.sol:360"
+   ],
+   "description": "KilimBazaar.sealState(uint256) (src/KilimBazaar.sol#358-365) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:309"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:313"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:248",
+    "src/KilimBazaar.sol:267"
+   ],
+   "description": "KilimBazaar.seal(uint256[]) (src/KilimBazaar.sol#248-279) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:314"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:1117",
+    "src/KilimBazaar.sol:1123"
+   ],
+   "description": "KilimBazaar._escapeJson(string) (src/KilimBazaar.sol#1117-1144) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:345",
+    "src/KilimBazaar.sol:347"
+   ],
+   "description": "KilimBazaar.pieceOf(uint256) (src/KilimBazaar.sol#345-355) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:666",
+    "src/KilimBazaar.sol:673"
+   ],
+   "description": "KilimBazaar._hand(uint256,uint256,bool) (src/KilimBazaar.sol#666-697) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:248",
+    "src/KilimBazaar.sol:269"
+   ],
+   "description": "KilimBazaar.seal(uint256[]) (src/KilimBazaar.sol#248-279) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:1146",
+    "src/KilimBazaar.sol:1148"
+   ],
+   "description": "KilimBazaar._escapedLength(bytes1) (src/KilimBazaar.sol#1146-1150) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:469",
+    "src/KilimBazaar.sol:471"
+   ],
+   "description": "KilimBazaar._known(uint256) (src/KilimBazaar.sol#469-472) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:248",
+    "src/KilimBazaar.sol:252"
+   ],
+   "description": "KilimBazaar.seal(uint256[]) (src/KilimBazaar.sol#248-279) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:312"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:311"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:868",
+    "src/KilimBazaar.sol:1072"
+   ],
+   "description": "KilimBazaar._respondWithPage(bytes,bytes,bytes) (src/KilimBazaar.sol#868-1077) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "High",
+   "check": "incorrect-equality",
+   "where": [
+    "src/KilimBazaar.sol:308",
+    "src/KilimBazaar.sol:310"
+   ],
+   "description": "KilimBazaar.rankName(uint256) (src/KilimBazaar.sol#308-316) uses a dangerous strict equality:"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "reentrancy-no-eth",
+   "where": [
+    "src/KilimBazaar.sol:218",
+    "src/KilimBazaar.sol:227"
+   ],
+   "description": "Reentrancy in KilimBazaar.deposit(uint256[]) (src/KilimBazaar.sol#218-231):"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "reentrancy-no-eth",
+   "where": [
+    "src/KilimBazaar.sol:234",
+    "src/KilimBazaar.sol:239"
+   ],
+   "description": "Reentrancy in KilimBazaar.makeFromLoom(uint256[],address) (src/KilimBazaar.sol#234-243):"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:522"
+   ],
+   "description": "KilimBazaar._summary(KilimBazaar.Batch).best (src/KilimBazaar.sol#522) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:552"
+   ],
+   "description": "KilimBazaar._record(uint256,KilimBazaar.Batch,uint256,uint256).buf (src/KilimBazaar.sol#552) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:261"
+   ],
+   "description": "KilimBazaar.seal(uint256[]).h (src/KilimBazaar.sol#261) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:676"
+   ],
+   "description": "KilimBazaar._hand(uint256,uint256,bool).w (src/KilimBazaar.sol#676) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:206"
+   ],
+   "description": "KilimBazaar.make(uint256[],address).l (src/KilimBazaar.sol#206) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:1125"
+   ],
+   "description": "KilimBazaar._escapeJson(string).n (src/KilimBazaar.sol#1125) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:553"
+   ],
+   "description": "KilimBazaar._record(uint256,KilimBazaar.Batch,uint256,uint256).i (src/KilimBazaar.sol#553) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:685"
+   ],
+   "description": "KilimBazaar._hand(uint256,uint256,bool).k (src/KilimBazaar.sol#685) is a local variable never initialized"
+  },
+  {
+   "impact": "Medium",
+   "confidence": "Medium",
+   "check": "uninitialized-local",
+   "where": [
+    "src/KilimBazaar.sol:1119"
+   ],
+   "description": "KilimBazaar._escapeJson(string).length (src/KilimBazaar.sol#1119) is a local variable never initialized"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "missing-zero-check",
+   "where": [
+    "src/KilimMotifs.sol:62",
+    "src/KilimMotifs.sol:92"
+   ],
+   "description": "KilimMotifs.constructor(address,address,uint256,address[],bytes32,address,bytes32,string,string).namesChunk_ (src/KilimMotifs.sol#62) lacks a zero-check on :"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:489"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.transferFrom(msg.sender,address(this),ids[i]) (src/KilimBazaar.sol#489)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:248",
+    "src/KilimBazaar.sol:266"
+   ],
+   "description": "KilimBazaar.seal(uint256[]) (src/KilimBazaar.sol#248-279) has external calls inside a loop: (ok,r) = HISTORY.staticcall(abi.encode(sb)) (src/KilimBazaar.sol#266)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:489"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.transferFrom(msg.sender,address(this),ids[i]) (src/KilimBazaar.sol#489)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimAuction.sol:166",
+    "src/KilimAuction.sol:190"
+   ],
+   "description": "KilimAuction._claim(uint256,address) (src/KilimAuction.sol#166-193) has external calls inside a loop: motifs.mintMotifs(to,bidder,firstIds[i],counts[i]) (src/KilimAuction.sol#190)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:489"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.transferFrom(msg.sender,address(this),ids[i]) (src/KilimBazaar.sol#489)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:495"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.burn(id) (src/KilimBazaar.sol#495)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:495"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.burn(id) (src/KilimBazaar.sol#495)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "calls-loop",
+   "where": [
+    "src/KilimBazaar.sol:484",
+    "src/KilimBazaar.sol:495"
+   ],
+   "description": "KilimBazaar._take(uint256[]) (src/KilimBazaar.sol#484-506) has external calls inside a loop: m.burn(id) (src/KilimBazaar.sol#495)"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-benign",
+   "where": [
+    "src/KilimBazaar.sol:200",
+    "src/KilimBazaar.sol:204"
+   ],
+   "description": "Reentrancy in KilimBazaar.make(uint256[],address) (src/KilimBazaar.sol#200-214):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-benign",
+   "where": [
+    "src/KilimBazaar.sol:200",
+    "src/KilimBazaar.sol:204"
+   ],
+   "description": "Reentrancy in KilimBazaar.make(uint256[],address) (src/KilimBazaar.sol#200-214):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-benign",
+   "where": [
+    "src/auction/EnglishAuction.sol:238",
+    "src/auction/EnglishAuction.sol:244"
+   ],
+   "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#238-251):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-benign",
+   "where": [
+    "src/KilimBazaar.sol:234",
+    "src/KilimBazaar.sol:239"
+   ],
+   "description": "Reentrancy in KilimBazaar.makeFromLoom(uint256[],address) (src/KilimBazaar.sol#234-243):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-events",
+   "where": [
+    "src/KilimAuction.sol:218",
+    "src/KilimAuction.sol:222"
+   ],
+   "description": "Reentrancy in KilimAuction.deliverPrize() (src/KilimAuction.sol#218-224):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "reentrancy-events",
+   "where": [
+    "src/auction/EnglishAuction.sol:238",
+    "src/auction/EnglishAuction.sol:244"
+   ],
+   "description": "Reentrancy in EnglishAuction._refundOutbid(address,uint256) (src/auction/EnglishAuction.sol#238-251):"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "timestamp",
+   "where": [
+    "src/auction/EnglishAuction.sol:121",
+    "src/auction/EnglishAuction.sol:122"
+   ],
+   "description": "EnglishAuction.registerFor(address,uint256,bytes) (src/auction/EnglishAuction.sol#121-130) uses timestamp for comparisons"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "timestamp",
+   "where": [
+    "src/auction/EnglishAuction.sol:202",
+    "src/auction/EnglishAuction.sol:209"
+   ],
+   "description": "EnglishAuction._handleBid(uint256) (src/auction/EnglishAuction.sol#202-229) uses timestamp for comparisons"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "timestamp",
+   "where": [
+    "src/auction/EnglishAuction.sol:167",
+    "src/auction/EnglishAuction.sol:170"
+   ],
+   "description": "EnglishAuction.settle() (src/auction/EnglishAuction.sol#167-175) uses timestamp for comparisons"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "timestamp",
+   "where": [
+    "src/auction/EnglishAuction.sol:93",
+    "src/auction/EnglishAuction.sol:98"
+   ],
+   "description": "EnglishAuction.constructor(EnglishAuction.AuctionConfig) (src/auction/EnglishAuction.sol#93-110) uses timestamp for comparisons"
+  },
+  {
+   "impact": "Low",
+   "confidence": "Medium",
+   "check": "timestamp",
+   "where": [
+    "src/auction/EnglishAuction.sol:136",
+    "src/auction/EnglishAuction.sol:137"
+   ],
+   "description": "EnglishAuction._register(address) (src/auction/EnglishAuction.sol#136-145) uses timestamp for comparisons"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:368",
+    "src/KilimOneOfOne.sol:379"
+   ],
+   "description": "KilimOneOfOne._store(address[],address[],bytes32) (src/KilimOneOfOne.sol#368-386) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:150",
+    "src/KilimOneOfOne.sol:150"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:883",
+    "src/KilimBazaar.sol:883"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.copyChunks() (src/KilimBazaar.sol#883-892) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:775",
+    "src/KilimBazaar.sol:779"
+   ],
+   "description": "KilimBazaar._piece(KilimBazaar.Kilim,uint256) (src/KilimBazaar.sol#775-812) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimMotifs.sol:309",
+    "src/KilimMotifs.sol:312"
+   ],
+   "description": "KilimMotifs._chunkSize(address) (src/KilimMotifs.sol#309-318) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:815",
+    "src/KilimBazaar.sol:816"
+   ],
+   "description": "KilimBazaar._put(uint256,bytes32,uint256) (src/KilimBazaar.sol#815-820) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:900",
+    "src/KilimBazaar.sol:900"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.hexHalf() (src/KilimBazaar.sol#900-930) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimMotifs.sol:152",
+    "src/KilimMotifs.sol:157"
+   ],
+   "description": "KilimMotifs.grid(uint16) (src/KilimMotifs.sol#152-161) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:868",
+    "src/KilimBazaar.sol:874"
+   ],
+   "description": "KilimBazaar._respondWithPage(bytes,bytes,bytes) (src/KilimBazaar.sol#868-1077) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:184",
+    "src/KilimOneOfOne.sol:184"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:1083",
+    "src/KilimBazaar.sol:1092"
+   ],
+   "description": "KilimBazaar._checkSplicePoint(KilimOneOfOne) (src/KilimBazaar.sol#1083-1101) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimMotifs.sol:294",
+    "src/KilimMotifs.sol:300"
+   ],
+   "description": "KilimMotifs._grids() (src/KilimMotifs.sol#294-306) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:130",
+    "src/KilimOneOfOne.sol:130"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.sectionSize() (src/KilimOneOfOne.sol#130-135) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:932",
+    "src/KilimBazaar.sol:932"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.base64Block() (src/KilimBazaar.sol#932-993) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:851",
+    "src/KilimBazaar.sol:856"
+   ],
+   "description": "KilimBazaar._hex8(uint256,uint256) (src/KilimBazaar.sol#851-863) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimMotifs.sol:320",
+    "src/KilimMotifs.sol:321"
+   ],
+   "description": "KilimMotifs._copyChunk(address,bytes) (src/KilimMotifs.sol#320-324) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:120",
+    "src/KilimOneOfOne.sol:128"
+   ],
+   "description": "KilimOneOfOne.tokenURI(uint256) (src/KilimOneOfOne.sol#120-330) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimMotifs.sol:165",
+    "src/KilimMotifs.sol:170"
+   ],
+   "description": "KilimMotifs.motifName(uint16) (src/KilimMotifs.sol#165-183) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:833",
+    "src/KilimBazaar.sol:842"
+   ],
+   "description": "KilimBazaar._dec(uint256,uint256) (src/KilimBazaar.sol#833-848) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:345",
+    "src/KilimBazaar.sol:350"
+   ],
+   "description": "KilimBazaar.pieceOf(uint256) (src/KilimBazaar.sol#345-355) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:509",
+    "src/KilimBazaar.sol:510"
+   ],
+   "description": "KilimBazaar._lane(uint256,address,uint256) (src/KilimBazaar.sol#509-517) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:894",
+    "src/KilimBazaar.sol:894"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.copyBytes() (src/KilimBazaar.sol#894-898) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:700",
+    "src/KilimBazaar.sol:708"
+   ],
+   "description": "KilimBazaar._openJson(uint256,KilimBazaar.Kilim,string,bool) (src/KilimBazaar.sol#700-735) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimBazaar.sol:876",
+    "src/KilimBazaar.sol:876"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.sectionSize() (src/KilimBazaar.sol#876-881) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:389",
+    "src/KilimOneOfOne.sol:392"
+   ],
+   "description": "KilimOneOfOne._chunkSize(address) (src/KilimOneOfOne.sol#389-398) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "assembly",
+   "where": [
+    "src/KilimOneOfOne.sol:137",
+    "src/KilimOneOfOne.sol:137"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.copyChunks() (src/KilimOneOfOne.sol#137-146) uses assembly"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "pragma",
+   "where": [
+    "node_modules/@openzeppelin/contracts/interfaces/IERC1271.sol:4",
+    "node_modules/@openzeppelin/contracts/interfaces/IERC7913.sol:4"
+   ],
+   "description": "7 different versions of Solidity are used:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "low-level-calls",
+   "where": [
+    "src/KilimBazaar.sol:248",
+    "src/KilimBazaar.sol:266"
+   ],
+   "description": "Low level call in KilimBazaar.seal(uint256[]) (src/KilimBazaar.sol#248-279):"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "low-level-calls",
+   "where": [
+    "src/auction/EnglishAuction.sol:281",
+    "src/auction/EnglishAuction.sol:282"
+   ],
+   "description": "Low level call in EnglishAuction._pay(address,uint256) (src/auction/EnglishAuction.sol#281-284):"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "High",
+   "check": "missing-inheritance",
+   "where": [
+    "src/KilimBazaar.sol:25",
+    "node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol:11"
+   ],
+   "description": "KilimBazaar (src/KilimBazaar.sol#25-1161) should inherit from IERC721Receiver (node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#11-28)"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:150",
+    "src/KilimOneOfOne.sol:151"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:932",
+    "src/KilimBazaar.sol:937"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.base64Block() (src/KilimBazaar.sol#932-993) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:184",
+    "src/KilimOneOfOne.sol:197"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:900",
+    "src/KilimBazaar.sol:901"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.hexHalf() (src/KilimBazaar.sol#900-930) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:932",
+    "src/KilimBazaar.sol:933"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.base64Block() (src/KilimBazaar.sol#932-993) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:184",
+    "src/KilimOneOfOne.sol:189"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:932",
+    "src/KilimBazaar.sol:941"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.base64Block() (src/KilimBazaar.sol#932-993) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:900",
+    "src/KilimBazaar.sol:905"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.hexHalf() (src/KilimBazaar.sol#900-930) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimBazaar.sol:932",
+    "src/KilimBazaar.sol:945"
+   ],
+   "description": "KilimBazaar._respondWithPage.asm_0.base64Block() (src/KilimBazaar.sol#932-993) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:150",
+    "src/KilimOneOfOne.sol:155"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.hexHalf() (src/KilimOneOfOne.sol#150-180) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:184",
+    "src/KilimOneOfOne.sol:185"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:"
+  },
+  {
+   "impact": "Informational",
+   "confidence": "Medium",
+   "check": "too-many-digits",
+   "where": [
+    "src/KilimOneOfOne.sol:184",
+    "src/KilimOneOfOne.sol:193"
+   ],
+   "description": "KilimOneOfOne.tokenURI.asm_0.base64Block() (src/KilimOneOfOne.sol#184-245) uses literals with too many digits:"
+  }
+ ]
+}

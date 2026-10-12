@@ -1,0 +1,19 @@
+SUCCESS      refundAtMostLiability / Induction base: After the constructor
+FAIL         refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      refundAtMostLiability / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction base: After the constructor
+FAIL         refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      refundLiabilityIsSumOfRefunds / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+totals: FAIL=2, SUCCESS=16

@@ -1,0 +1,19 @@
+VERDICT PASS at block 11901595
+  pass  before 100 check-ins a bid reverts with RegistrationIncomplete
+  pass  exactly 100 Registered (100)
+  pass  at least 10 check-ins through registerFor
+  pass  the 101st check-in reverts with RegistrationClosed
+  pass  one AuctionStarted, close = first bid + 86400
+  pass  at least one refund pushed back in the same transaction
+  pass  the artist's opening bid (0x24c6bc2DEc66cA19Cb6Ea3E0781c40C5fBC35853, through the page) came back in the outbidding transaction
+  pass  the contract wallet: refund deferred, then withdrawn
+  pass  the first late bid moved the close
+  pass  the second late bid moved the close again
+  pass  settled at or after the final close
+  pass  the real 1/1 tokenURI equals the golden
+  pass  every robot claimed all its motifs
+  pass  each robot's minted ids are its bids' reserved ranges
+  pass  motifOf: the site's port equals the contract (14 ids)
+  pass  no failed check in checks.jsonl (0 failed of 470)
+  note  1 non-robot addresses took part (listed as a deviation)
+  note  8 step errors were retried (checks.jsonl, kind "step"): each needs a reason

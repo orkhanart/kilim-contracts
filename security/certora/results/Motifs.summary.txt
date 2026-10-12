@@ -1,0 +1,40 @@
+SUCCESS      bidAllocatesReward
+SUCCESS      claimMoreThanCreditsReverts
+SUCCESS      claimMotifsNeverExceedsCredits
+SUCCESS      creditsMatchAllocation / Induction base: After the constructor
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+SUCCESS      mintedEqualsClaimed / Induction base: After the constructor
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      mintedEqualsClaimed / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+SUCCESS      mintsOnlyForTheClaimer / Induction base: After the constructor
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      mintsOnlyForTheClaimer / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+SUCCESS      motifAllocationWithinCap / Induction base: After the constructor
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      motifAllocationWithinCap / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+totals: SUCCESS=39

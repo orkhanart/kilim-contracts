@@ -1,0 +1,4 @@
+work/
+.certora_internal/
+emv-*/
+.certora_sources/

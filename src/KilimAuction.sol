@@ -48,7 +48,10 @@ contract KilimAuction is EnglishAuction {
     uint128 private _highestBidMotifCount;
 
     /// @dev Gas allowed for sending the 1/1 to the winner at settlement, receiver callback included.
-    uint256 private constant PRIZE_GAS = 500_000;
+    ///      1,000,000 keeps the delivery working if Glamsterdam's state-gas prices (EIP-8037/8038)
+    ///      come in above the draft figures: the delivery writes four new storage slots (audit of
+    ///      12 October 2026, ETH-1 and CR-3). The settle floor is therefore 1,065,873 gas.
+    uint256 private constant PRIZE_GAS = 1_000_000;
 
     error RewardSlippage();
     error InvalidQuantity();
@@ -207,6 +210,7 @@ contract KilimAuction is EnglishAuction {
     function _afterSettle() internal override {
         // Give the delivery its full allowance or do not settle yet (EIP-150 keeps back 1/64): a
         // low-gas settle() cannot skip sending the 1/1. Reverting undoes the settlement; anyone retries.
+        // 1,000,000 + 15,873 + 50,000 for the work after the call: 1,065,873 gas left here.
         if (gasleft() < PRIZE_GAS + PRIZE_GAS / 63 + 50_000) revert InsufficientGas();
         try this.deliverPrize{gas: PRIZE_GAS}() {}
         catch {

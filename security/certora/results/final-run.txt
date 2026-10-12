@@ -1,0 +1,9 @@
+Auction       totals: SUCCESS=10
+Solvency      totals: SUCCESS=117
+SelfCalls     totals: SUCCESS=13
+Motifs        totals: SUCCESS=39
+MotifRanges   totals: SUCCESS=45
+Parametric    totals: SUCCESS=72
+Reachability  totals: SUCCESS=9
+MinimumBid    totals: SUCCESS=4
+Bazaar        totals: SUCCESS=7

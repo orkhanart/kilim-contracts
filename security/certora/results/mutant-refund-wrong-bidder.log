@@ -1,0 +1,172 @@
+WARNING: Note: attribute packages value in CLI (@openzeppelin/contracts=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../node_modules/@openzeppelin/contracts kilim=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutants/refund-wrong-bidder/src) overrides value stored in conf file (@openzeppelin/contracts=../../node_modules/@openzeppelin/contracts kilim=../../src)
+WARNING: Note: attribute solc_allow_path value in CLI (/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../..) overrides value stored in conf file (../..)
+WARNING: Note: attribute msg value in CLI (mutant refund-wrong-bidder) overrides value stored in conf file (Kilim auction: bid, refund, settlement, proceeds and prize rules)
+WARNING: Build cache is used with a local certora-cli script version. Beware of false hits and unexpected behaviors!
+Reports in /Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutant-refund-wrong-bidder/emv-1-certora-12-Oct--11-32/Reports
+Start Mon Oct 12 11:32:04 EDT 2026
+Warning: Pointer analysis for optimization failed in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 1277565207
+The scene contains 2 contracts:
+KilimAuctionHarness : 0xce4604a000000000000000000000003d,
+OneOfOneMock : 0xce4604a000000000000000000000003f
+Running initial transformations
+Warning: Pointer analysis failed, could pose a linking issue in a caller in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 1277565207
+Warning: Memory partitioning failed while analyzing contract KilimAuctionHarness, function eip712Domain(). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. This can lead to longer running times. 
+Has CVL checks.
+Checking CVL security/certora/work/mutant-refund-wrong-bidder/specs/Auction.spec for contract KilimAuctionHarness
+Unrolling loops 3 times, unwinding condition is assumed
+Checking rule envfreeFuncsStaticCheck (2 out of 2)...
+Checking rule bidRefundsOutbidBidder (1 out of 2)...
+Result for envfreeFuncsStaticCheck: envfreeFuncsStaticCheck: motifCredits(address): SUCCESS
+startsAt(): SUCCESS
+highestBidMotifs(): SUCCESS
+extensionWindow(): SUCCESS
+minimumBid(): SUCCESS
+liabilities(): SUCCESS
+registered(address): SUCCESS
+motifsAllocated(): SUCCESS
+incrementBps(): SUCCESS
+oneOfOne(): SUCCESS
+harnessGuardEntered(): SUCCESS
+harnessIsNewWinningBid(uint256): SUCCESS
+proceedsDue(): SUCCESS
+motifs(): SUCCESS
+treasury(): SUCCESS
+duration(): SUCCESS
+refunds(address): SUCCESS
+settled(): SUCCESS
+motifsClaimed(): SUCCESS
+maxMotifsPerBid(): SUCCESS
+motifCap(): SUCCESS
+endsAt(): SUCCESS
+rewardForBid(uint256): SUCCESS
+registrationCount(): SUCCESS
+highestBidder(): SUCCESS
+reservePrice(): SUCCESS
+refundLiability(): SUCCESS
+prizeClaimed(): SUCCESS
+highestBid(): SUCCESS
+Starting to run on rule bidRefundsOutbidBidder
+Total time for bidRefundsOutbidBidder: 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Violated: bidRefundsOutbidBidder
+bidRefundsOutbidBidder: A property is violated
+received `signalSkip` for rule bidRefundsOutbidBidder-rule_not_vacuous
+Result for bidRefundsOutbidBidder: bidRefundsOutbidBidder: FAIL: ETH goes only to the outbid bidder
+Results for envfreeFuncsStaticCheck:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|motifCredits(address)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|startsAt()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidMotifs()                      |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|extensionWindow()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|minimumBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|liabilities()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registered(address)                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsAllocated()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|incrementBps()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|oneOfOne()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessGuardEntered()                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessIsNewWinningBid(uint256)         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|proceedsDue()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifs()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|treasury()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|duration()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refunds(address)                        |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|settled()                               |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsClaimed()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|maxMotifsPerBid()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifCap()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|endsAt()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rewardForBid(uint256)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registrationCount()                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidder()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|reservePrice()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refundLiability()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|prizeClaimed()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for all:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|envfreeFuncsStaticCheck                 |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|bidRefundsOutbidBidder                  |Violated     |5         |Assert message: ETH goes only to the outbid bidder          |KilimAuctionHarness=11844                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=8                                    |
+|                                        |             |          |                                                            |amount=0x1ff973cafa8000                           |
+|                                        |             |          |                                                            |balance=6554                                      |
+|                                        |             |          |                                                            |deferred=false                                    |
+|                                        |             |          |                                                            |e.block.basefee=12                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=11                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x2e41                               |
+|                                        |             |          |                                                            |e.msg.value=0x1ff973cafa8000                      |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |expectedFirst=1                                   |
+|                                        |             |          |                                                            |liability=0                                       |
+|                                        |             |          |                                                            |minReward=0                                       |
+|                                        |             |          |                                                            |other=0x2e43                                      |
+|                                        |             |          |                                                            |otherRefund=0                                     |
+|                                        |             |          |                                                            |paid=212                                          |
+|                                        |             |          |                                                            |prev=0x2e42                                       |
+|                                        |             |          |                                                            |prevBid=212                                       |
+|                                        |             |          |                                                            |prevRefund=0                                      |
+|                                        |             |          |                                                            |sent=0                                            |
+|                                        |             |          |                                                            |sentToPrev=1768                                   |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Failures summary:
+Failed on bidRefundsOutbidBidder:
+Assert message: ETH goes only to the outbid bidder
+
+
+
+Done 0m
+Event reporter: all events were sent without errors
+Reports in file:///Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutant-refund-wrong-bidder/emv-1-certora-12-Oct--11-32/Reports
+Final report in emv-1-certora-12-Oct--11-32/Reports/FinalResults.html
+Compiling harness/KilimAuctionHarness.sol...
+Compiling harness/KilimAuctionHarness.sol to expose internal function information and local variables...
+Compiling harness/OneOfOneMock.sol...
+Compiling harness/OneOfOneMock.sol to expose internal function information and local variables...
+Verifier run command:
+ java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -rule bidRefundsOutbidBidder -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_31_58_909468c8b5
+ERROR: Execution of command "java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -rule bidRefundsOutbidBidder -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_31_58_909468c8b5" terminated with exitcode 100.
+
+Certora Prover run failed (code 1)
+

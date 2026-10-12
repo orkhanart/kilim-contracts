@@ -1,0 +1,21 @@
+{
+	"rules": {
+		"envfreeFuncsStaticCheck": {
+			"SUCCESS": [
+				"ladder()",
+				"madeAt(uint8)",
+				"masterCost()",
+				"motifPrice()",
+				"rankFor(uint256)",
+				"totalSupply()"
+			]
+		},
+		"fixedRankIsHighestCostReached": "SUCCESS",
+		"ladderAgreesWithRankFor": "SUCCESS",
+		"masterExactlyAtTop": "SUCCESS",
+		"rankForRevertsBeforeSettlement": "SUCCESS",
+		"rankMonotone": "SUCCESS",
+		"rankZeroOnlyUnderFloor": "SUCCESS",
+		"sealOnlySeals": "SUCCESS"
+	}
+}

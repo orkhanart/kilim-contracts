@@ -1,0 +1,11 @@
+FAIL         claimMotifsNeverExceedsCredits
+SUCCESS      creditsMatchAllocation / Induction base: After the constructor
+FAIL         creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      creditsMatchAllocation / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+totals: FAIL=2, SUCCESS=8

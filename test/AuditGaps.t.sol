@@ -112,9 +112,10 @@ contract AuditGapsTest is TestBase {
         uint256 used = before - gasleft();
         assertTrue(auction.settled());
         assertTrue(!auction.prizeClaimed());
-        // The delivery's 500,000 cap plus settlement itself (about 17,000 today); a cap of 583,000 or
-        // more fails this.
-        assertTrue(used < 600_000);
+        // The delivery's 1,000,000 cap plus settlement itself, less the 1/64 shares held back at the
+        // delivery's two inner calls (they come back): 1,001,448 today. A cap of about 1,102,000 or more
+        // fails this.
+        assertTrue(used < 1_100_000);
     }
 
     // ---- the gas given to a receiver is really what the constants promise (R-12) ----
@@ -122,14 +123,14 @@ contract AuditGapsTest is TestBase {
     function testAWinnerNeedingMostOfThePrizeCapIsDeliveredAtAnyGasLimit() public {
         ProbeWallet winner = _wallet();
         // Under the most a winner's callback can use. This winner is built inside the test, so the 1/1
-        // and the winner are already warm when settle() runs and the budget here is about 389,000; a
+        // and the winner are already warm when settle() runs and the budget here is about 873,000; a
         // settle() sent on mainnet finds both cold and leaves about 4,900 less (ColdPrizeBudgetTest
-        // below measures that state). 385,000 is delivered in both.
-        winner.set(false, 0, 385_000, "");
+        // below measures that state). 870,000 is delivered in both.
+        winner.set(false, 0, 870_000, "");
         winner.bid(RESERVE);
         vm.warp(auction.endsAt());
         uint256 delivered;
-        for (uint256 gasLimit = 100_000; gasLimit <= 900_000; gasLimit += 1_000) {
+        for (uint256 gasLimit = 100_000; gasLimit <= 1_500_000; gasLimit += 1_000) {
             uint256 snap = vm.snapshotState();
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {
@@ -377,7 +378,7 @@ contract ClockHungryWinner is IERC721Receiver {
 ///         The auction, the 1/1 and the winner are built in setUp, so inside the test they are cold: no
 ///         account or storage slot has been read yet when settle() is called.
 contract ColdPrizeBudgetTest is TestBase {
-    uint256 private constant PRIZE_GAS = 500_000;
+    uint256 private constant PRIZE_GAS = 1_000_000;
     KilimAuction private auction;
     ClockHungryWinner private winner;
     uint256 private close;
@@ -405,8 +406,8 @@ contract ColdPrizeBudgetTest is TestBase {
     /// @dev What a winner's hook may use today, cold, to one gas. The bounds are loose on purpose: a
     ///      compiler or library change may move the number by a few hundred gas, not by thousands.
     function testColdHookBudgetToday() public {
-        uint256 lo = 370_000;
-        uint256 hi = 400_000;
+        uint256 lo = 855_000;
+        uint256 hi = 885_000;
         assertTrue(_delivered(lo));
         assertTrue(!_delivered(hi));
         while (hi - lo > 1) {
@@ -416,14 +417,14 @@ contract ColdPrizeBudgetTest is TestBase {
         }
         emit log_named_uint("cold hook budget today (gas a winner's hook may use)", lo);
         emit log_named_uint("delivery overhead, cold", PRIZE_GAS - lo);
-        assertTrue(lo >= 385_000 && lo < 389_000);
+        assertTrue(lo >= 869_500 && lo < 873_500);
     }
 
-    /// @dev A winner burning 385,000 is delivered at every gas limit that settles, cold.
+    /// @dev A winner burning 870,000 is delivered at every gas limit that settles, cold.
     function testAColdWinnerNeedingMostOfTheCapIsDeliveredAtAnyGasLimit() public {
-        vm.warp(close + 385_000);
+        vm.warp(close + 870_000);
         uint256 delivered;
-        for (uint256 gasLimit = 100_000; gasLimit <= 900_000; gasLimit += 5_000) {
+        for (uint256 gasLimit = 100_000; gasLimit <= 1_500_000; gasLimit += 5_000) {
             uint256 snap = vm.snapshotState();
             (bool ok,) = address(auction).call{gas: gasLimit}(abi.encodeCall(auction.settle, ()));
             if (ok) {

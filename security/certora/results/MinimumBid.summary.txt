@@ -1,0 +1,5 @@
+SUCCESS      bidAtLeastMinimumBid
+SUCCESS      launchLadder
+SUCCESS      minimumBidIsAccepted
+SUCCESS      nothingBelowMinimumIsAccepted
+totals: SUCCESS=4

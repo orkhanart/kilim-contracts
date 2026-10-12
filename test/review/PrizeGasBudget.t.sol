@@ -180,7 +180,7 @@ contract PrizeMover is IERC721Receiver {
 ///         the assertions pin what the surrounding comments and tests claim. A probe, kept for the record.
 contract PrizeGasBudgetPoC is TestBase {
     VmP private constant vmp = VmP(address(uint160(uint256(keccak256("hevm cheat code")))));
-    uint256 private constant PRIZE_GAS = 500_000;
+    uint256 private constant PRIZE_GAS = 1_000_000;
     uint256 private constant SETTLE_FLOOR = PRIZE_GAS + PRIZE_GAS / 63 + 50_000;
     // EIP-8037 + EIP-8038 as published (both Last Call, deadline 2026-11-01).
     uint256 private constant NEW_SLOT_TODAY = 22_100;
@@ -313,22 +313,22 @@ contract PrizeGasBudgetPoC is TestBase {
         assertTrue(untouched > touched);
         assertTrue(untouched - touched >= 2 * (COLD_ACCOUNT_TODAY - 100) - 500);
 
-        uint256 warm = _maxBurn(_deliveredWarm, 380_000, 400_000);
+        uint256 warm = _maxBurn(_deliveredWarm, 860_000, 890_000);
         emit log_named_uint("hook budget, winner warm (as the AttackPatterns loop measures)", warm);
-        uint256 cold = _maxBurn(_deliveredCold, 370_000, 400_000);
+        uint256 cold = _maxBurn(_deliveredCold, 855_000, 885_000);
         emit log_named_uint("hook budget, 1/1 and winner cold (as a real settle() transaction)", cold);
         emit log_named_uint("delivery overhead today, cold (PRIZE_GAS - budget)", PRIZE_GAS - cold);
-        // AttackPatterns logs 391,406 at 1,000-gas granularity with both warm; AuditGaps pins 389,005
+        // AttackPatterns logs 875,781 at 1,000-gas granularity with both warm; AuditGaps pins 873,423
         // for its ProbeWallet in a state like `warm` here. Neither is the mainnet number.
         assertTrue(warm > cold);
-        assertTrue(cold < 389_005);
+        assertTrue(cold < 873_423);
 
-        uint256 viaSafe = _maxBurn(_deliveredThroughSafe, 350_000, 400_000);
+        uint256 viaSafe = _maxBurn(_deliveredThroughSafe, 815_000, 865_000);
         emit log_named_uint("hook budget, through a cold Safe-shaped shell", viaSafe);
         // What the shell takes from the budget: its own work (two cold slots, two cold accounts, the
-        // copying) plus the 1/64 held back at each of its two extra call depths (about 6,000 each;
-        // returned if the handler finishes, so a real Safe's handler, which burns nothing, never
-        // needs them).
+        // copying) plus the 1/64 held back at each of its two extra call depths (about 13,500 each at
+        // this budget; returned if the handler finishes, so a real Safe's handler, which burns nothing,
+        // never needs them).
         uint256 shell = cold - viaSafe;
         emit log_named_uint("Safe shell cost inside the budget, cold, incl. two 1/64 retentions", shell);
         // A real Safe's handler burns nothing. It is delivered today.
@@ -349,14 +349,23 @@ contract PrizeGasBudgetPoC is TestBase {
         emit log_named_uint("a Safe's need at EIP-8037/8038 prices, upper bound", safeNeedAfter);
         assertTrue(safeNeedAfter < budgetAfter);
         emit log_named_uint("margin left for a Safe after the fork", budgetAfter - safeNeedAfter);
-        // One new storage slot in a winner's hook (a pool recording the token) after the fork:
+        // New storage slots in a winner's hook (a pool recording the token) after the fork: at 500,000
+        // not even one fit; at 1,000,000 four do, five do not.
         emit log_named_uint("one new slot in the hook after the fork", NEW_SLOT_AFTER);
-        assertTrue(NEW_SLOT_AFTER > budgetAfter);
+        assertTrue(4 * NEW_SLOT_AFTER < budgetAfter);
+        assertTrue(5 * NEW_SLOT_AFTER > budgetAfter);
+        // The new-slot price at which this cold delivery fails even with a hook that does nothing: the
+        // delivery's own four new slots take all the budget. About twice the scheduled 110,020; at 500,000
+        // it was less than 10% above it (audit of 12 October 2026, ETH-1 and CR-3).
+        uint256 breakEven =
+            NEW_SLOT_TODAY + (cold - 2 * (COLD_ACCOUNT_AFTER - COLD_ACCOUNT_TODAY) - EXTCODESIZE_EXTRA) / 4;
+        emit log_named_uint("new-slot price at which no winner is delivered, cold", breakEven);
+        assertTrue(breakEven > 2 * NEW_SLOT_AFTER);
         // The Safe shell's two cold slots are already inside `shell`; COLD_SLOT records their price.
         assertTrue(shell > 2 * COLD_SLOT);
     }
 
-    // ---- 2. the AuditGaps comments: 390,000 not delivered, settle ~17,000, bid ~128,000 ----
+    // ---- 2. the AuditGaps comments: 870,000 delivered, settle with a burner ~1,001,000, bid ~128,000 ----
 
     function testSettleFloorIsExactAndTheDeliveryAlwaysGetsFullGas() public {
         // A winner that needs the whole budget: delivered only if the hook really gets PRIZE_GAS less
@@ -366,7 +375,7 @@ contract PrizeGasBudgetPoC is TestBase {
         // a bare out-of-gas or a lowest limit below SETTLE_FLOOR. The settle's own work before the check is
         // about 28,000 gas, so a floor lowered by less than that is not seen here: the 50,000 it keeps for the
         // work after the call carries that much slack (mutation record of 11 October, A61).
-        uint256 warm = _maxBurn(_deliveredWarm, 380_000, 400_000);
+        uint256 warm = _maxBurn(_deliveredWarm, 860_000, 890_000);
         Burner w = new Burner(warm);
         _fund(address(w), 1 ether);
         vm.prank(address(w));

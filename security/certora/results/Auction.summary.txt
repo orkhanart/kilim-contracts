@@ -1,0 +1,11 @@
+SUCCESS      bidRaisesHighestBid
+SUCCESS      bidRefundsOutbidBidder
+SUCCESS      bidTiming
+SUCCESS      claimPrizeOnlyWinnerOnce
+SUCCESS      settleDeliversPrizeOrLeavesItClaimable
+SUCCESS      settleOnlyAfterCloseOnce
+SUCCESS      withdrawProceedsOnlyTreasuryOnce
+SUCCESS      withdrawProceedsRevertsForOthers
+SUCCESS      withdrawRefundOnce
+SUCCESS      withdrawRefundPaysOnlyOwed
+totals: SUCCESS=10

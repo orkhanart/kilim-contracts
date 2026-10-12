@@ -1,0 +1,19 @@
+SUCCESS      prizeMintedAtMostOnce / Induction base: After the constructor
+FAIL         prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      prizeMintedAtMostOnce / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+SUCCESS      solvency / Induction base: After the constructor
+FAIL         solvency / Induction step: after external (non-view) methods / Using general requirements :: settle()
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: bid(uint256,uint256,uint256)
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: claimMotifs(uint256,address)
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: claimPrize(address)
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: register()
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: registerFor(address,uint256,bytes)
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: withdrawProceeds(address)
+SUCCESS      solvency / Induction step: after external (non-view) methods / Using general requirements :: withdrawRefund(address)
+totals: FAIL=2, SUCCESS=16

@@ -14,7 +14,7 @@ Sources: `src/auction/EnglishAuction.sol` (registration, bids, refunds, settleme
 | `REGISTRATION_TARGET` | 100 | Registrations needed before anyone can bid. |
 | Refund gas | 150,000 | Gas given to the automatic refund. |
 | Deferred-refund reserve | 300,000 | Gas kept back, after the refund's allowance, for recording a refund that could not be paid (about 47,000 today; sized for the EIP-8037 repricing of new storage). |
-| Prize gas | 500,000 | Gas given to minting the 1/1 to the winner at settlement. |
+| Prize gas | 1,000,000 | Gas given to minting the 1/1 to the winner at settlement. 500,000 until 12 October 2026; the Sepolia rehearsal's auction, deployed before then, keeps 500,000. |
 
 All amounts are wei. Duration, late-bid window, increment and `maxMotifsPerBid` are constructor settings; `motifCap` is read from the motif collection so it cannot be configured twice. The launch values are in [checklists/1-pre-deploy.md](../checklists/1-pre-deploy.md).
 
@@ -99,12 +99,12 @@ Two guards protect a bidder from another bid landing first:
 
 ## 6. Settlement and the 1/1
 
-At or after `endsAt`, anyone calls `settle()`. It records the winner and the proceeds, emits `AuctionSettled`, then mints the 1/1 (token id 1 of The Unwoven Kilim, through `KilimOneOfOne.mint`) to the winner in a self-call (`deliverPrize`) with 500,000 gas.
+At or after `endsAt`, anyone calls `settle()`. It records the winner and the proceeds, emits `AuctionSettled`, then mints the 1/1 (token id 1 of The Unwoven Kilim, through `KilimOneOfOne.mint`) to the winner in a self-call (`deliverPrize`) with 1,000,000 gas.
 
 - If the winner's wallet accepts it, `PrizeClaimed(winner, winner)` is emitted and nothing more is needed.
-- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims). If the wallet only needed more gas than the 500,000, the winner calls `claimPrize` too, to its own address, with as much gas as it gives. Only the winner can claim the 1/1, so only the winner chooses where it goes (decided 11 October; the open `deliverPrizeToWinner()` of the review round is removed). A winning contract must therefore be able to make a call; any contract that could bid can.
+- If the wallet rejects it or needs more gas, settlement still stands, `PrizeDeliveryFailed(winner)` is emitted, and the winner calls `claimPrize(to)` to any address that accepts it (with the same exclusions as claims). If the wallet only needed more gas than the 1,000,000, the winner calls `claimPrize` too, to its own address, with as much gas as it gives. Only the winner can claim the 1/1, so only the winner chooses where it goes (decided 11 October; the open `deliverPrizeToWinner()` of the review round is removed). A winning contract must therefore be able to make a call; any contract that could bid can.
 
-`settle()` must have enough gas for the delivery's full allowance (`PRIZE_GAS + PRIZE_GAS / 63 + 50_000`, that is 557,936). With less it reverts with `InsufficientGas`, nothing is settled, and anyone can call it again. A low-gas call therefore cannot skip the delivery. Measured on 10 October 2026, `settle()` succeeds from a gas limit of 585,836 on the call itself, about 607,000 as a transaction (the 21,000 base cost and the call data come on top); the site sends a fixed 1,200,000.
+`settle()` must have enough gas for the delivery's full allowance (`PRIZE_GAS + PRIZE_GAS / 63 + 50_000`, that is 1,065,873; 557,936 on the Sepolia rehearsal). With less it reverts with `InsufficientGas`, nothing is settled, and anyone can call it again. A low-gas call therefore cannot skip the delivery. Measured on 12 October 2026, with every slot cold as a mainnet transaction meets it, `settle()` succeeds from a gas limit of 1,104,637 on the call itself, about 1,125,700 as a transaction (the 21,000 base cost and the call data come on top); at the Glamsterdam Last Call prices it needs about 1,227,800. The site sends a fixed 1,400,000.
 - `highestBidMotifs()` returns the ids the highest bid reserved, after settlement the winning bid's: `count` ids from `firstMotifId`, the same ones its `BidPlaced` event names, and 0 and 0 when it earned none. They stay the same after they are claimed. Kilim Bazaar reads them to treat the winner's own motifs apart (FA-08).
 
 ## 7. Proceeds

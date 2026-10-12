@@ -161,6 +161,8 @@ contract AttackPatternsTest is TestBase {
     // Glamsterdam as scheduled (EIP-8037, EIP-8038): what one storage write costs more than today.
     uint256 private constant NEW_SLOT_EXTRA = 110_020 - 22_100;
     uint256 private constant UPDATE_EXTRA = 12_100 - 5_000;
+    // KilimAuction's PRIZE_GAS: the gas settlement gives the 1/1's delivery to the winner.
+    uint256 private constant PRIZE_GAS = 1_000_000;
 
     KilimAuction internal auction;
     KilimMotifs internal nft;
@@ -438,26 +440,29 @@ contract AttackPatternsTest is TestBase {
     // ---- D25: a winner's hook cannot make settlement fail, whatever it returns ----
 
     function testWinnerHookCannotMakeSettlementFail() public {
-        // Sizes up to what the 500,000-gas delivery can build and pass back. The band from 150 KB to
-        // 260 KB is where the revert data is as large as it can be and still reach settle(): a settle
-        // that copied it would run out of gas there.
-        uint256[16] memory sizes = [
+        // Sizes up to what the 1,000,000-gas delivery can build and pass back (about 358 KB), and past
+        // it. The band from 316 KB to 358 KB is where the revert data is as large as it can be and
+        // still reach settle(): a settle that copied it would run out of gas there (measured on 12
+        // October 2026 against a copy of the auction whose catch copies the data). Each size up to
+        // 355 KB is checked to come back from the delivery whole; from 360 KB on it cannot.
+        uint256[17] memory sizes = [
             uint256(0),
             1_000,
             100_000,
-            150_000,
-            160_000,
-            170_000,
-            180_000,
-            190_000,
             200_000,
-            210_000,
-            220_000,
-            230_000,
-            240_000,
-            250_000,
-            260_000,
-            450_000
+            300_000,
+            316_000,
+            320_000,
+            325_000,
+            330_000,
+            335_000,
+            340_000,
+            345_000,
+            350_000,
+            355_000,
+            360_000,
+            400_000,
+            900_000
         ];
         for (uint256 wrong; wrong < 2; ++wrong) {
             for (uint256 i; i < sizes.length; ++i) {
@@ -469,13 +474,14 @@ contract AttackPatternsTest is TestBase {
                 // Estimated while the winner accepts, with no margin.
                 uint256 limit = _estimateSettle();
                 winner.setNft(sizes[i], wrong == 1);
+                if (sizes[i] != 0) assertTrue(_deliveryPassesBack(sizes[i]) == (sizes[i] <= 355_000));
                 uint256 before = gasleft();
                 (bool ok,) = address(auction).call{gas: limit}(abi.encodeCall(auction.settle, ()));
                 uint256 used = before - gasleft();
                 assertTrue(ok);
                 assertTrue(auction.settled());
                 assertTrue(!auction.prizeClaimed());
-                assertTrue(used < 600_000);
+                assertTrue(used < PRIZE_GAS + 100_000);
                 vm.prank(TREASURY);
                 auction.withdrawProceeds(TREASURY);
                 // The winner still gets the 1/1 by naming an address that accepts it.
@@ -484,6 +490,17 @@ contract AttackPatternsTest is TestBase {
                 vm.revertToState(snap);
             }
         }
+    }
+
+    /// @dev Whether the delivery, given PRIZE_GAS as settlement gives it, hands the winner's revert data of
+    ///      `size` bytes back to the auction whole. Changes nothing.
+    function _deliveryPassesBack(uint256 size) private returns (bool whole) {
+        uint256 snap = vm.snapshotState();
+        vm.prank(address(auction));
+        (bool ok, bytes memory data) =
+            address(auction).call{gas: PRIZE_GAS}(abi.encodeCall(auction.deliverPrize, ()));
+        whole = !ok && data.length == size;
+        vm.revertToState(snap);
     }
 
     // ---- E29: one actor can fill the gate in one transaction (accepted; recorded) ----
@@ -700,8 +717,8 @@ contract AttackPatternsTest is TestBase {
         emit log_named_uint("slots updated inside the prize delivery", updatedInDelivery);
 
         // The most gas a winner's hook can use today and still be delivered.
-        uint256 lo = 300_000;
-        uint256 hi = 500_000;
+        uint256 lo = 800_000;
+        uint256 hi = PRIZE_GAS;
         while (hi - lo > 1_000) {
             uint256 mid = (lo + hi) / 2;
             uint256 s2 = vm.snapshotState();
@@ -717,15 +734,23 @@ contract AttackPatternsTest is TestBase {
             if (delivered) lo = mid;
             else hi = mid;
         }
-        uint256 overheadToday = 500_000 - lo;
+        uint256 overheadToday = PRIZE_GAS - lo;
         uint256 overheadAfter =
             overheadToday + freshInDelivery * NEW_SLOT_EXTRA + updatedInDelivery * UPDATE_EXTRA;
         emit log_named_uint("gas a winner's hook may use today", lo);
         emit log_named_uint("delivery overhead today", overheadToday);
         emit log_named_uint("delivery overhead at Glamsterdam prices", overheadAfter);
-        // The fixed 500,000 must still deliver to an ordinary wallet after the repricing.
-        assertTrue(overheadAfter < 500_000);
-        emit log_named_uint("gas left for a winner's hook at Glamsterdam prices", 500_000 - overheadAfter);
+        // The fixed 1,000,000 must still deliver to an ordinary wallet after the repricing, and leave a
+        // winner's hook room for four new slots of its own at the new price.
+        assertTrue(overheadAfter < PRIZE_GAS);
+        emit log_named_uint("gas left for a winner's hook at Glamsterdam prices", PRIZE_GAS - overheadAfter);
+        assertTrue(PRIZE_GAS - overheadAfter > 4 * (22_100 + NEW_SLOT_EXTRA));
+        // 500,000 failed every winner once a new slot cost about 10% more than the scheduled price
+        // (audit of 12 October 2026, ETH-1). 1,000,000 still delivers to an ordinary wallet at twice it.
+        uint256 overheadAtTwice = overheadToday + freshInDelivery * (2 * NEW_SLOT_EXTRA + 22_100)
+            + updatedInDelivery * (2 * UPDATE_EXTRA + 5_000);
+        emit log_named_uint("delivery overhead at twice the Glamsterdam prices", overheadAtTwice);
+        assertTrue(overheadAtTwice < PRIZE_GAS);
     }
 }
 

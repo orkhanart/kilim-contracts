@@ -1,0 +1,44 @@
+2026-10-11T20:39:11.563Z  swarm: pool 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 holds 0.042240556205467205 ETH; auction 0xf8301C81906512090f663bA474B59Cc186BD2e66
+2026-10-11T20:39:12.847Z  refusals before registration: simulated
+2026-10-11T20:39:12.847Z  check-ins: 3 relays of 34
+2026-10-11T20:39:25.590Z  FAIL relay 3 robot 69 balance: 0.0102
+2026-10-11T20:40:09.168Z  swarm: pool 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 holds 0.011639328597487805 ETH; auction 0xf8301C81906512090f663bA474B59Cc186BD2e66
+2026-10-11T20:40:10.038Z  check-ins: 3 relays of 34
+2026-10-11T20:43:21.284Z  FAIL relay 3: insufficient funds for gas * price + value: balance 0, tx cost 428129565612, overshot 428129565612
+2026-10-11T20:43:21.917Z  FAIL relay 1: insufficient funds for gas * price + value: balance 0, tx cost 428129565612, overshot 428129565612
+2026-10-11T20:44:08.614Z  swarm: pool 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 holds 0.011638719597529331 ETH; auction 0xf8301C81906512090f663bA474B59Cc186BD2e66
+2026-10-11T20:44:09.548Z  check-ins: 3 relays of 34
+2026-10-11T20:46:25.478Z  check-ins: 30 of 100
+2026-10-11T20:51:45.494Z  swarm: pool 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 holds 0.011637501597460134 ETH; auction 0xf8301C81906512090f663bA474B59Cc186BD2e66
+2026-10-11T20:51:46.447Z  check-ins: 3 relays of 34
+2026-10-11T20:55:37.734Z  check-ins: 70 of 100
+2026-10-11T20:55:38.105Z  check-ins: 70 of 100
+2026-10-11T20:55:38.341Z  check-ins: 70 of 100
+2026-10-11T20:58:51.778Z  check-ins: 90 of 100
+2026-10-11T20:58:51.835Z  check-ins: 90 of 100
+2026-10-11T20:58:53.338Z  check-ins: 90 of 100
+2026-10-11T21:01:01.530Z  check-ins: 100 of 100
+2026-10-11T21:01:17.637Z  check-ins: 100 of 100; bidding is open
+2026-10-11T21:01:18.037Z  waiting for the artist's opening bid until 2026-10-12T00:01:12.000Z; after that the swarm opens
+2026-10-11T21:08:32.322Z  swarm: pool 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 holds 0.042114245951410508 ETH; auction 0xf8301C81906512090f663bA474B59Cc186BD2e66
+2026-10-11T21:09:03.587Z  the auction was opened by 0x24c6bc2DEc66cA19Cb6Ea3E0781c40C5fBC35853 (not a robot): 0.01 ETH
+2026-10-11T21:09:05.655Z  refusals while bidding: simulated
+2026-10-11T21:19:26.233Z  b2-1: B2 bid 0.013 ETH through the site, motifs #22-#34, close 2026-10-12T21:08:48.000Z
+2026-10-11T21:20:02.957Z  contract wallet SwarmBidder at 0x97b7a8adeE760523d267f407bb34B3659767e2Bd (owner B3 0x3664Bc4373589BeCA3624B76327D8E44891ef325)
+2026-10-11T21:20:25.025Z  cw-1: the contract wallet bid 0.015 ETH
+2026-10-11T21:21:49.305Z  b1-2: B1 bid 0.017 ETH through the site, motifs #50-#66, close 2026-10-12T21:08:48.000Z
+2026-10-11T21:22:37.995Z  the contract wallet's deferred refund of 0.015 ETH withdrawn to the pool
+2026-10-12T09:08:58.001Z  skip b2-mid: the ETH is kept for the two late bids
+2026-10-12T21:05:13.252Z  late-1: B1 bid 0.019 ETH through the site, motifs #67-#85, close 2026-10-12T21:15:12.000Z
+2026-10-12T21:13:49.316Z  late-2: B2 bid 0.021 ETH through the site, motifs #86-#106, close 2026-10-12T21:23:48.000Z
+2026-10-12T21:25:01.843Z  settled by B3 (not the treasury): AuctionSettled, Transfer, PrizeClaimed
+2026-10-12T21:25:13.783Z  B1 claimed 36 motifs to B3
+2026-10-12T21:25:16.114Z  step error step: Error: failed with 199999809 gas: insufficient funds for gas * price + value: address 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 have 1003726966558904 want 1898683879481475
+2026-10-12T21:26:15.760Z  step error step: Error: EVM error: OutOfFunds
+2026-10-12T21:26:57.794Z  step error step: Error: failed with 200000000 gas: insufficient funds for gas * price + value: address 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 have 1003726966558904 want 1898683879481475
+2026-10-12T21:27:38.715Z  step error step: Error: failed with 200000000 gas: insufficient funds for gas * price + value: address 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 have 1003726966558904 want 1898683879481475
+2026-10-12T21:28:20.693Z  step error step: Error: failed with 199804689 gas: insufficient funds for gas * price + value: address 0x9f0f8c6760Cf5A9c2ecBcBDA481e3a9b51dC6756 have 1003726966558904 want 1898683879481475
+2026-10-12T21:29:25.928Z  B2 claimed 34 motifs through the site
+2026-10-12T21:30:26.394Z  sweep 0xE3fA0855351a961B7BaCA9a3697FC0f04186b117: nonce too low: next nonce 5, tx nonce 4
+2026-10-12T21:30:51.223Z  pool holds 0.01808098453855216 ETH after the sweep
+2026-10-12T21:30:51.903Z  swarm finished: verdict PASS; record in /Users/orkhan/Documents/ChatGPT/kilim/contracts/audit/sepolia-swarm

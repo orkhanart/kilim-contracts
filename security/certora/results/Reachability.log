@@ -1,0 +1,574 @@
+WARNING: Note: attribute packages value in CLI (@openzeppelin/contracts=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../node_modules/@openzeppelin/contracts kilim=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../src) overrides value stored in conf file (@openzeppelin/contracts=../../node_modules/@openzeppelin/contracts kilim=../../src)
+WARNING: Note: attribute solc_allow_path value in CLI (/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../..) overrides value stored in conf file (../..)
+WARNING: Build cache is used with a local certora-cli script version. Beware of false hits and unexpected behaviors!
+Reports in /Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/Reachability/emv-1-certora-12-Oct--11-17/Reports
+Start Mon Oct 12 11:17:29 EDT 2026
+Warning: Pointer analysis for optimization failed in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness).  Error code 1277565207
+The scene contains 2 contracts:
+KilimAuctionHarness : 0xce4604a000000000000000000000003d,
+OneOfOneMock : 0xce4604a000000000000000000000003f
+Running initial transformations
+Warning: Pointer analysis failed, could pose a linking issue in a caller in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness).  Error code 1277565207
+Warning: Memory partitioning failed while analyzing contract KilimAuctionHarness, function eip712Domain().  This can lead to longer running times. 
+Has CVL checks.
+Checking CVL security/certora/work/Reachability/specs/Reachability.spec for contract KilimAuctionHarness
+Unrolling loops 3 times, unwinding condition is assumed
+Checking rule witnessSettleDelivers (3 out of 10)...
+Checking rule witnessWithdrawRefund (6 out of 10)...
+Checking rule witnessRegisterFor (8 out of 10)...
+Checking rule witnessSettleDeliveryFails (4 out of 10)...
+Checking rule witnessWithdrawProceeds (7 out of 10)...
+Checking rule witnessClaimAcrossTwoRanges (5 out of 10)...
+Checking rule witnessHundredthRegistrationThenBid (9 out of 10)...
+Checking rule envfreeFuncsStaticCheck (10 out of 10)...
+Checking rule witnessRefundDeferred (2 out of 10)...
+Checking rule witnessRefundPaidDirectly (1 out of 10)...
+Result for envfreeFuncsStaticCheck: envfreeFuncsStaticCheck: motifCredits(address): SUCCESS
+startsAt(): SUCCESS
+highestBidMotifs(): SUCCESS
+extensionWindow(): SUCCESS
+minimumBid(): SUCCESS
+liabilities(): SUCCESS
+registered(address): SUCCESS
+motifsAllocated(): SUCCESS
+incrementBps(): SUCCESS
+oneOfOne(): SUCCESS
+harnessGuardEntered(): SUCCESS
+harnessIsNewWinningBid(uint256): SUCCESS
+proceedsDue(): SUCCESS
+motifs(): SUCCESS
+treasury(): SUCCESS
+duration(): SUCCESS
+refunds(address): SUCCESS
+settled(): SUCCESS
+motifsClaimed(): SUCCESS
+maxMotifsPerBid(): SUCCESS
+motifCap(): SUCCESS
+endsAt(): SUCCESS
+rewardForBid(uint256): SUCCESS
+registrationCount(): SUCCESS
+highestBidder(): SUCCESS
+reservePrice(): SUCCESS
+refundLiability(): SUCCESS
+prizeClaimed(): SUCCESS
+highestBid(): SUCCESS
+Starting to run on rule witnessWithdrawProceeds-Satisfy_true_(Reachability_spec_76_5)
+Starting to run on rule witnessWithdrawRefund-Satisfy_to_mathintnativeBalancescurrentContract__balance__owed_(Reachability_spec_69_5)
+Starting to run on rule witnessRegisterFor-Satisfy_KilimAuctionHarness_registeredwallet_(Reachability_spec_83_5)
+Starting to run on rule witnessSettleDelivers-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_42_5)
+Starting to run on rule witnessSettleDeliveryFails-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_50_5)
+Starting to run on rule witnessRefundPaidDirectly-Satisfy_KilimAuctionHarness_refundsprev__prevRefund__to_mathintnativeBalancescurrentContract__balance__amount__prevBid_(Reachability_spec_19_5)
+Starting to run on rule witnessRefundDeferred-Satisfy_to_mathintKilimAuctionHarness_refundsprev__prevRefund__prevBid__prevBid__0_(Reachability_spec_34_5)
+Starting to run on rule witnessHundredthRegistrationThenBid-Satisfy_KilimAuctionHarness_highestBidder__e2_msg_sender_(Reachability_spec_94_5)
+Starting to run on rule witnessClaimAcrossTwoRanges-Satisfy_ghostMintCalls__calls__2_(Reachability_spec_59_5)
+Total time for witnessSettleDelivers-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_42_5): 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 1 seconds
+Total time for witnessSettleDeliveryFails-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_50_5): 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 1 seconds
+Verified: witnessSettleDelivers-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_42_5)
+witnessSettleDelivers-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_42_5): Properties successfully verified on all inputs
+Verified: witnessSettleDeliveryFails-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_50_5)
+witnessSettleDeliveryFails-Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_50_5): Properties successfully verified on all inputs
+Total time for witnessWithdrawProceeds-Satisfy_true_(Reachability_spec_76_5): 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Verified: witnessWithdrawProceeds-Satisfy_true_(Reachability_spec_76_5)
+witnessWithdrawProceeds-Satisfy_true_(Reachability_spec_76_5): Properties successfully verified on all inputs
+Total time for witnessWithdrawRefund-Satisfy_to_mathintnativeBalancescurrentContract__balance__owed_(Reachability_spec_69_5): 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Verified: witnessWithdrawRefund-Satisfy_to_mathintnativeBalancescurrentContract__balance__owed_(Reachability_spec_69_5)
+witnessWithdrawRefund-Satisfy_to_mathintnativeBalancescurrentContract__balance__owed_(Reachability_spec_69_5): Properties successfully verified on all inputs
+received `signalSkip` for rule witnessSettleDelivers-rule_not_vacuous
+Result for witnessSettleDelivers: witnessSettleDelivers: Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_42_5): FAIL: KilimAuctionHarness.prizeClaimed()
+received `signalSkip` for rule witnessSettleDeliveryFails-rule_not_vacuous
+Result for witnessSettleDeliveryFails: witnessSettleDeliveryFails: Satisfy_KilimAuctionHarness_prizeClaimed_(Reachability_spec_50_5): FAIL: !(KilimAuctionHarness.prizeClaimed())
+received `signalSkip` for rule witnessWithdrawProceeds-rule_not_vacuous
+Result for witnessWithdrawProceeds: witnessWithdrawProceeds: Satisfy_true_(Reachability_spec_76_5): FAIL: true
+received `signalSkip` for rule witnessWithdrawRefund-rule_not_vacuous
+Result for witnessWithdrawRefund: witnessWithdrawRefund: Satisfy_to_mathintnativeBalancescurrentContract__balance__owed_(Reachability_spec_69_5): FAIL: to_mathint(nativeBalances[currentContrac...
+Total time for witnessRegisterFor-Satisfy_KilimAuctionHarness_registeredwallet_(Reachability_spec_83_5): 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 3 seconds
+Verified: witnessRegisterFor-Satisfy_KilimAuctionHarness_registeredwallet_(Reachability_spec_83_5)
+witnessRegisterFor-Satisfy_KilimAuctionHarness_registeredwallet_(Reachability_spec_83_5): Properties successfully verified on all inputs
+received `signalSkip` for rule witnessRegisterFor-rule_not_vacuous
+Result for witnessRegisterFor: witnessRegisterFor: Satisfy_KilimAuctionHarness_registeredwallet_(Reachability_spec_83_5): FAIL: KilimAuctionHarness.registered(wallet)
+Total time for witnessHundredthRegistrationThenBid-Satisfy_KilimAuctionHarness_highestBidder__e2_msg_sender_(Reachability_spec_94_5): 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 1 seconds
+Verified: witnessHundredthRegistrationThenBid-Satisfy_KilimAuctionHarness_highestBidder__e2_msg_sender_(Reachability_spec_94_5)
+witnessHundredthRegistrationThenBid-Satisfy_KilimAuctionHarness_highestBidder__e2_msg_sender_(Reachability_spec_94_5): Properties successfully verified on all inputs
+received `signalSkip` for rule witnessHundredthRegistrationThenBid-rule_not_vacuous
+Result for witnessHundredthRegistrationThenBid: witnessHundredthRegistrationThenBid: Satisfy_KilimAuctionHarness_highestBidder__e2_msg_sender_(Reachability_spec_94_5): FAIL: KilimAuctionHarness.highestBidder() == e...
+Total time for witnessClaimAcrossTwoRanges-Satisfy_ghostMintCalls__calls__2_(Reachability_spec_59_5): 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Verified: witnessClaimAcrossTwoRanges-Satisfy_ghostMintCalls__calls__2_(Reachability_spec_59_5)
+witnessClaimAcrossTwoRanges-Satisfy_ghostMintCalls__calls__2_(Reachability_spec_59_5): Properties successfully verified on all inputs
+Total time for witnessRefundDeferred-Satisfy_to_mathintKilimAuctionHarness_refundsprev__prevRefund__prevBid__prevBid__0_(Reachability_spec_34_5): 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 3 seconds
+Verified: witnessRefundDeferred-Satisfy_to_mathintKilimAuctionHarness_refundsprev__prevRefund__prevBid__prevBid__0_(Reachability_spec_34_5)
+witnessRefundDeferred-Satisfy_to_mathintKilimAuctionHarness_refundsprev__prevRefund__prevBid__prevBid__0_(Reachability_spec_34_5): Properties successfully verified on all inputs
+received `signalSkip` for rule witnessClaimAcrossTwoRanges-rule_not_vacuous
+Total time for witnessRefundPaidDirectly-Satisfy_KilimAuctionHarness_refundsprev__prevRefund__to_mathintnativeBalancescurrentContract__balance__amount__prevBid_(Reachability_spec_19_5): 3 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 2 seconds
+Result for witnessClaimAcrossTwoRanges: witnessClaimAcrossTwoRanges: Satisfy_ghostMintCalls__calls__2_(Reachability_spec_59_5): FAIL: ghostMintCalls == calls + 2
+Verified: witnessRefundPaidDirectly-Satisfy_KilimAuctionHarness_refundsprev__prevRefund__to_mathintnativeBalancescurrentContract__balance__amount__prevBid_(Reachability_spec_19_5)
+witnessRefundPaidDirectly-Satisfy_KilimAuctionHarness_refundsprev__prevRefund__to_mathintnativeBalancescurrentContract__balance__amount__prevBid_(Reachability_spec_19_5): Properties successfully verified on all inputs
+received `signalSkip` for rule witnessRefundDeferred-rule_not_vacuous
+Result for witnessRefundDeferred: witnessRefundDeferred: Satisfy_to_mathintKilimAuctionHarness_refundsprev__prevRefund__prevBid__prevBid__0_(Reachability_spec_34_5): FAIL: to_mathint(KilimAuctionHarness.refunds(p...
+received `signalSkip` for rule witnessRefundPaidDirectly-rule_not_vacuous
+Result for witnessRefundPaidDirectly: witnessRefundPaidDirectly: Satisfy_KilimAuctionHarness_refundsprev__prevRefund__to_mathintnativeBalancescurrentContract__balance__amount__prevBid_(Reachability_spec_19_5): FAIL: KilimAuctionHarness.refunds(prev) == pre...
+Results for envfreeFuncsStaticCheck:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|motifCredits(address)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|startsAt()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidMotifs()                      |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|extensionWindow()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|minimumBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|liabilities()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registered(address)                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsAllocated()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|incrementBps()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|oneOfOne()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessGuardEntered()                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessIsNewWinningBid(uint256)         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|proceedsDue()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifs()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|treasury()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|duration()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refunds(address)                        |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|settled()                               |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsClaimed()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|maxMotifsPerBid()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifCap()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|endsAt()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rewardForBid(uint256)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registrationCount()                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidder()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|reservePrice()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refundLiability()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|prizeClaimed()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessSettleDelivers:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_KilimAuctionHarness_prizeClaimed|Not violated |4         |Assert message: KilimAuctionHarness.prizeClaimed()          |KilimAuctionHarness=10040                         |
+|_(Reachability_spec_42_5)               |(sat)        |          |                                                            |OneOfOneMock=10041                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x2737                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessSettleDeliveryFails:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_KilimAuctionHarness_prizeClaimed|Not violated |4         |Assert message: !(KilimAuctionHarness.prizeClaimed())       |KilimAuctionHarness=17723                         |
+|_(Reachability_spec_50_5)               |(sat)        |          |                                                            |OneOfOneMock=17720                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x3db3                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessWithdrawProceeds:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_true_(Reachability_spec_76_5)   |Not violated |5         |Assert message: true                                        |KilimAuctionHarness=2745                          |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=15                                   |
+|                                        |             |          |                                                            |e.block.basefee=9                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=8                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0xab7                                |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |to=0xaba                                          |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessWithdrawRefund:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_to_mathintnativeBalancescurrentC|Not violated |5         |Assert message: to_mathint(nativeBalances[currentContrac... |KilimAuctionHarness=9995                          |
+|ontract__balance__owed_(Reachability_spe|(sat)        |          |                                                            |OneOfOneMock=8                                    |
+|c_69_5)                                 |             |          |                                                            |balance=15                                        |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=10                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270c                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |owed=12                                           |
+|                                        |             |          |                                                            |to=0x270f                                         |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessRegisterFor:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_KilimAuctionHarness_registeredwa|Not violated |6         |Assert message: KilimAuctionHarness.registered(wallet)      |KilimAuctionHarness=15                            |
+|llet_(Reachability_spec_83_5)           |(sat)        |          |                                                            |OneOfOneMock=13                                   |
+|                                        |             |          |                                                            |deadline=12                                       |
+|                                        |             |          |                                                            |e.block.basefee=10                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=9                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=8                              |
+|                                        |             |          |                                                            |e.block.gaslimit=7                                |
+|                                        |             |          |                                                            |e.block.number=6                                  |
+|                                        |             |          |                                                            |e.block.slotnum=5                                 |
+|                                        |             |          |                                                            |e.block.timestamp=4                               |
+|                                        |             |          |                                                            |e.msg.sender=0x29df                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x101f                                |
+|                                        |             |          |                                                            |signature=                                        |
+|                                        |             |          |                                                            |signature.length=11                               |
+|                                        |             |          |                                                            |wallet=0x29e0                                     |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessHundredthRegistrationThenBid:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_KilimAuctionHarness_highestBidde|Not violated |5         |Assert message: KilimAuctionHarness.highestBidder() == e... |KilimAuctionHarness=14681                         |
+|r__e2_msg_sender_(Reachability_spec_94_5|(sat)        |          |                                                            |OneOfOneMock=10001                                |
+|)                                       |             |          |                                                            |amount=0x566017061a08000                          |
+|                                        |             |          |                                                            |e1.block.basefee=0                                |
+|                                        |             |          |                                                            |e1.block.blobbasefee=0                            |
+|                                        |             |          |                                                            |e1.block.coinbase=0x0                             |
+|                                        |             |          |                                                            |e1.block.difficulty=0                             |
+|                                        |             |          |                                                            |e1.block.gaslimit=0                               |
+|                                        |             |          |                                                            |e1.block.number=0                                 |
+|                                        |             |          |                                                            |e1.block.slotnum=0                                |
+|                                        |             |          |                                                            |e1.block.timestamp=0                              |
+|                                        |             |          |                                                            |e1.msg.sender=0x3958                              |
+|                                        |             |          |                                                            |e1.msg.value=0                                    |
+|                                        |             |          |                                                            |e1.tx.origin=0x0                                  |
+|                                        |             |          |                                                            |e2.block.basefee=0                                |
+|                                        |             |          |                                                            |e2.block.blobbasefee=0                            |
+|                                        |             |          |                                                            |e2.block.coinbase=0x0                             |
+|                                        |             |          |                                                            |e2.block.difficulty=0                             |
+|                                        |             |          |                                                            |e2.block.gaslimit=0                               |
+|                                        |             |          |                                                            |e2.block.number=0                                 |
+|                                        |             |          |                                                            |e2.block.slotnum=0                                |
+|                                        |             |          |                                                            |e2.block.timestamp=0                              |
+|                                        |             |          |                                                            |e2.msg.sender=0x395a                              |
+|                                        |             |          |                                                            |e2.msg.value=0x566017061a08000                    |
+|                                        |             |          |                                                            |e2.tx.origin=0x0                                  |
+|                                        |             |          |                                                            |expectedFirst=841                                 |
+|                                        |             |          |                                                            |minReward=0                                       |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessClaimAcrossTwoRanges:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_ghostMintCalls__calls__2_(Reacha|Not violated |6         |Assert message: ghostMintCalls == calls + 2                 |KilimAuctionHarness=56560                         |
+|bility_spec_59_5)                       |(sat)        |          |                                                            |OneOfOneMock=12                                   |
+|                                        |             |          |                                                            |calls=-1                                          |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=10                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x502f                           |
+|                                        |             |          |                                                            |e.block.difficulty=9                              |
+|                                        |             |          |                                                            |e.block.gaslimit=8                                |
+|                                        |             |          |                                                            |e.block.number=7                                  |
+|                                        |             |          |                                                            |e.block.slotnum=6                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0xbe1a                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x1a30                                |
+|                                        |             |          |                                                            |quantity=5                                        |
+|                                        |             |          |                                                            |to=0x401                                          |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessRefundDeferred:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_to_mathintKilimAuctionHarness_re|Not violated |6         |Assert message: to_mathint(KilimAuctionHarness.refunds(p... |KilimAuctionHarness=10004                         |
+|fundsprev__prevRefund__prevBid__prevBid_|(sat)        |          |                                                            |OneOfOneMock=7                                    |
+|_0_(Reachability_spec_34_5)             |             |          |                                                            |amount=0x38d7ea4c68000                            |
+|                                        |             |          |                                                            |e.block.basefee=14                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=13                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=12                             |
+|                                        |             |          |                                                            |e.block.gaslimit=11                               |
+|                                        |             |          |                                                            |e.block.number=10                                 |
+|                                        |             |          |                                                            |e.block.slotnum=6                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270f                               |
+|                                        |             |          |                                                            |e.msg.value=0x38d7ea4c68000                       |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |expectedFirst=0                                   |
+|                                        |             |          |                                                            |minReward=0                                       |
+|                                        |             |          |                                                            |prev=0x270e                                       |
+|                                        |             |          |                                                            |prevBid=15                                        |
+|                                        |             |          |                                                            |prevRefund=0                                      |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for witnessRefundPaidDirectly:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Satisfy_KilimAuctionHarness_refundsprev_|Not violated |6         |Assert message: KilimAuctionHarness.refunds(prev) == pre... |KilimAuctionHarness=9997                          |
+|_prevRefund__to_mathintnativeBalancescur|(sat)        |          |                                                            |OneOfOneMock=15                                   |
+|rentContract__balance__amount__prevBid_(|             |          |                                                            |amount=0x1550f7dca70000                           |
+|Reachability_spec_19_5)                 |             |          |                                                            |balance=5                                         |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=10                                |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270f                               |
+|                                        |             |          |                                                            |e.msg.value=0x1550f7dca70000                      |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |expectedFirst=8                                   |
+|                                        |             |          |                                                            |minReward=6                                       |
+|                                        |             |          |                                                            |prev=0x270e                                       |
+|                                        |             |          |                                                            |prevBid=1                                         |
+|                                        |             |          |                                                            |prevRefund=1                                      |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for all:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|envfreeFuncsStaticCheck                 |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_KilimAuctionHarness_prizeClaimed|Not violated |4         |Assert message: KilimAuctionHarness.prizeClaimed()          |KilimAuctionHarness=10040                         |
+|_(Reachability_spec_42_5)               |(sat)        |          |                                                            |OneOfOneMock=10041                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x2737                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|witnessSettleDelivers                   |Not violated |4         |Assert message: KilimAuctionHarness.prizeClaimed()          |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_KilimAuctionHarness_prizeClaimed|Not violated |4         |Assert message: !(KilimAuctionHarness.prizeClaimed())       |KilimAuctionHarness=17723                         |
+|_(Reachability_spec_50_5)               |(sat)        |          |                                                            |OneOfOneMock=17720                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x3db3                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|witnessSettleDeliveryFails              |Not violated |4         |Assert message: !(KilimAuctionHarness.prizeClaimed())       |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_true_(Reachability_spec_76_5)   |Not violated |5         |Assert message: true                                        |KilimAuctionHarness=2745                          |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=15                                   |
+|                                        |             |          |                                                            |e.block.basefee=9                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=8                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0xab7                                |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |to=0xaba                                          |
+|witnessWithdrawProceeds                 |Not violated |5         |Assert message: true                                        |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_to_mathintnativeBalancescurrentC|Not violated |5         |Assert message: to_mathint(nativeBalances[currentContrac... |KilimAuctionHarness=9995                          |
+|ontract__balance__owed_(Reachability_spe|(sat)        |          |                                                            |OneOfOneMock=8                                    |
+|c_69_5)                                 |             |          |                                                            |balance=15                                        |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=10                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270c                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |owed=12                                           |
+|                                        |             |          |                                                            |to=0x270f                                         |
+|witnessWithdrawRefund                   |Not violated |5         |Assert message: to_mathint(nativeBalances[currentContrac... |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_KilimAuctionHarness_registeredwa|Not violated |6         |Assert message: KilimAuctionHarness.registered(wallet)      |KilimAuctionHarness=15                            |
+|llet_(Reachability_spec_83_5)           |(sat)        |          |                                                            |OneOfOneMock=13                                   |
+|                                        |             |          |                                                            |deadline=12                                       |
+|                                        |             |          |                                                            |e.block.basefee=10                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=9                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=8                              |
+|                                        |             |          |                                                            |e.block.gaslimit=7                                |
+|                                        |             |          |                                                            |e.block.number=6                                  |
+|                                        |             |          |                                                            |e.block.slotnum=5                                 |
+|                                        |             |          |                                                            |e.block.timestamp=4                               |
+|                                        |             |          |                                                            |e.msg.sender=0x29df                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x101f                                |
+|                                        |             |          |                                                            |signature=                                        |
+|                                        |             |          |                                                            |signature.length=11                               |
+|                                        |             |          |                                                            |wallet=0x29e0                                     |
+|witnessRegisterFor                      |Not violated |6         |Assert message: KilimAuctionHarness.registered(wallet)      |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_KilimAuctionHarness_highestBidde|Not violated |5         |Assert message: KilimAuctionHarness.highestBidder() == e... |KilimAuctionHarness=14681                         |
+|r__e2_msg_sender_(Reachability_spec_94_5|(sat)        |          |                                                            |OneOfOneMock=10001                                |
+|)                                       |             |          |                                                            |amount=0x566017061a08000                          |
+|                                        |             |          |                                                            |e1.block.basefee=0                                |
+|                                        |             |          |                                                            |e1.block.blobbasefee=0                            |
+|                                        |             |          |                                                            |e1.block.coinbase=0x0                             |
+|                                        |             |          |                                                            |e1.block.difficulty=0                             |
+|                                        |             |          |                                                            |e1.block.gaslimit=0                               |
+|                                        |             |          |                                                            |e1.block.number=0                                 |
+|                                        |             |          |                                                            |e1.block.slotnum=0                                |
+|                                        |             |          |                                                            |e1.block.timestamp=0                              |
+|                                        |             |          |                                                            |e1.msg.sender=0x3958                              |
+|                                        |             |          |                                                            |e1.msg.value=0                                    |
+|                                        |             |          |                                                            |e1.tx.origin=0x0                                  |
+|                                        |             |          |                                                            |e2.block.basefee=0                                |
+|                                        |             |          |                                                            |e2.block.blobbasefee=0                            |
+|                                        |             |          |                                                            |e2.block.coinbase=0x0                             |
+|                                        |             |          |                                                            |e2.block.difficulty=0                             |
+|                                        |             |          |                                                            |e2.block.gaslimit=0                               |
+|                                        |             |          |                                                            |e2.block.number=0                                 |
+|                                        |             |          |                                                            |e2.block.slotnum=0                                |
+|                                        |             |          |                                                            |e2.block.timestamp=0                              |
+|                                        |             |          |                                                            |e2.msg.sender=0x395a                              |
+|                                        |             |          |                                                            |e2.msg.value=0x566017061a08000                    |
+|                                        |             |          |                                                            |e2.tx.origin=0x0                                  |
+|                                        |             |          |                                                            |expectedFirst=841                                 |
+|                                        |             |          |                                                            |minReward=0                                       |
+|witnessHundredthRegistrationThenBid     |Not violated |5         |Assert message: KilimAuctionHarness.highestBidder() == e... |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_ghostMintCalls__calls__2_(Reacha|Not violated |6         |Assert message: ghostMintCalls == calls + 2                 |KilimAuctionHarness=56560                         |
+|bility_spec_59_5)                       |(sat)        |          |                                                            |OneOfOneMock=12                                   |
+|                                        |             |          |                                                            |calls=-1                                          |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=10                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x502f                           |
+|                                        |             |          |                                                            |e.block.difficulty=9                              |
+|                                        |             |          |                                                            |e.block.gaslimit=8                                |
+|                                        |             |          |                                                            |e.block.number=7                                  |
+|                                        |             |          |                                                            |e.block.slotnum=6                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0xbe1a                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x1a30                                |
+|                                        |             |          |                                                            |quantity=5                                        |
+|                                        |             |          |                                                            |to=0x401                                          |
+|witnessClaimAcrossTwoRanges             |Not violated |6         |Assert message: ghostMintCalls == calls + 2                 |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_to_mathintKilimAuctionHarness_re|Not violated |6         |Assert message: to_mathint(KilimAuctionHarness.refunds(p... |KilimAuctionHarness=10004                         |
+|fundsprev__prevRefund__prevBid__prevBid_|(sat)        |          |                                                            |OneOfOneMock=7                                    |
+|_0_(Reachability_spec_34_5)             |             |          |                                                            |amount=0x38d7ea4c68000                            |
+|                                        |             |          |                                                            |e.block.basefee=14                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=13                            |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=12                             |
+|                                        |             |          |                                                            |e.block.gaslimit=11                               |
+|                                        |             |          |                                                            |e.block.number=10                                 |
+|                                        |             |          |                                                            |e.block.slotnum=6                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270f                               |
+|                                        |             |          |                                                            |e.msg.value=0x38d7ea4c68000                       |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |expectedFirst=0                                   |
+|                                        |             |          |                                                            |minReward=0                                       |
+|                                        |             |          |                                                            |prev=0x270e                                       |
+|                                        |             |          |                                                            |prevBid=15                                        |
+|                                        |             |          |                                                            |prevRefund=0                                      |
+|witnessRefundDeferred                   |Not violated |6         |Assert message: to_mathint(KilimAuctionHarness.refunds(p... |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Satisfy_KilimAuctionHarness_refundsprev_|Not violated |6         |Assert message: KilimAuctionHarness.refunds(prev) == pre... |KilimAuctionHarness=9997                          |
+|_prevRefund__to_mathintnativeBalancescur|(sat)        |          |                                                            |OneOfOneMock=15                                   |
+|rentContract__balance__amount__prevBid_(|             |          |                                                            |amount=0x1550f7dca70000                           |
+|Reachability_spec_19_5)                 |             |          |                                                            |balance=5                                         |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=10                                |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x270f                               |
+|                                        |             |          |                                                            |e.msg.value=0x1550f7dca70000                      |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |expectedFirst=8                                   |
+|                                        |             |          |                                                            |minReward=6                                       |
+|                                        |             |          |                                                            |prev=0x270e                                       |
+|                                        |             |          |                                                            |prevBid=1                                         |
+|                                        |             |          |                                                            |prevRefund=1                                      |
+|witnessRefundPaidDirectly               |Not violated |6         |Assert message: KilimAuctionHarness.refunds(prev) == pre... |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Done 0m
+Event reporter: all events were sent without errors
+Reports in file:///Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/Reachability/emv-1-certora-12-Oct--11-17/Reports
+Final report in emv-1-certora-12-Oct--11-17/Reports/FinalResults.html
+Compiling harness/KilimAuctionHarness.sol...
+Compiling harness/KilimAuctionHarness.sol to expose internal function information and local variables...
+Compiling harness/OneOfOneMock.sol...
+Compiling harness/OneOfOneMock.sol to expose internal function information and local variables...
+Verifier run command:
+ java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_17_22_7416110513
+[32mFinished running verifier:[0m
+	java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_17_22_7416110513

@@ -77,10 +77,10 @@ Registration opens at `startsAt`. Bidding is closed until exactly 100 wallets ha
 
 ## Closing and settlement
 
-- [ ] After `endsAt`, anyone calls `settle()`. The site's button or the team can do it. Send it with a generous gas limit (the site sends 1,200,000; a transaction needs about 607,000): with too little it reverts with `InsufficientGas`, nothing is settled, and it can be sent again.
+- [ ] After `endsAt`, anyone calls `settle()`. The site's button or the team can do it. Send it with a generous gas limit (the site sends 1,400,000; a transaction needs about 1,125,700 today and about 1,227,800 after Glamsterdam): with too little it reverts with `InsufficientGas`, nothing is settled, and it can be sent again.
 - [ ] Check what settlement did with the 1/1:
   - `PrizeClaimed(winner, winner)`, `oneOfOne.minted() == true` and `oneOfOne.ownerOf(1) == winner`: delivered, nothing more to do;
-  - `PrizeDeliveryFailed(winner)`: the winner's wallet rejected it or needed more than 500,000 gas. Help the winner call `claimPrize(to)`: to its own address with a higher gas limit if it only needed more gas, or to another address that accepts it. Only the winner can.
+  - `PrizeDeliveryFailed(winner)`: the winner's wallet rejected it or needed more than 1,000,000 gas. Help the winner call `claimPrize(to)`: to its own address with a higher gas limit if it only needed more gas, or to another address that accepts it. Only the winner can.
 - [ ] Read `oneOfOne.tokenURI(1)` with an explicit gas value (about 4.5M is needed; send 8M) and confirm its sha256 is the page manifest's golden. Check the token on the marketplace: the still, then the page.
 - [ ] The treasury calls `withdrawProceeds(to)` to the pre-chosen address. Confirm the ETH arrives and `proceedsDue` reads 0.
 - [ ] Give the winner what the terms promise: The Unwoven Kilim's page is served from the chain, and the way to open it full-window is the `animation_url` of `tokenURI(1)` saved as an `.html` file. (With no bids the auction never ends, so there is nothing to settle.)

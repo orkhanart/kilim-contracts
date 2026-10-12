@@ -1,0 +1,568 @@
+WARNING: Note: attribute packages value in CLI (@openzeppelin/contracts=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../../node_modules/@openzeppelin/contracts kilim=/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutants/proceeds-not-zeroed/src) overrides value stored in conf file (@openzeppelin/contracts=../../node_modules/@openzeppelin/contracts kilim=../../src)
+WARNING: Note: attribute solc_allow_path value in CLI (/Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/../..) overrides value stored in conf file (../..)
+WARNING: Note: attribute msg value in CLI (mutant proceeds-not-zeroed) overrides value stored in conf file (Kilim auction: solvency, ledger and lifecycle invariants)
+WARNING: Build cache is used with a local certora-cli script version. Beware of false hits and unexpected behaviors!
+Reports in /Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutant-proceeds-not-zeroed/emv-1-certora-12-Oct--11-26/Reports
+Start Mon Oct 12 11:26:45 EDT 2026
+Warning: Pointer analysis for optimization failed in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 1277565207
+The scene contains 2 contracts:
+KilimAuctionHarness : 0xce4604a000000000000000000000003d,
+OneOfOneMock : 0xce4604a000000000000000000000003f
+Running initial transformations
+Warning: Pointer analysis failed, could pose a linking issue in a caller in internal function ShortStrings.toString(ShortString sstr) returns (string) (when called from external function eip712Domain() of contract KilimAuctionHarness). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. Error code 1277565207
+Warning: Memory partitioning failed while analyzing contract KilimAuctionHarness, function eip712Domain(). No precise source code information available for the location, range information points to the next enclosing external method that inlined the call. I.e. inspect the highlighted method and any of it's potentially inlined callees. This can lead to longer running times. 
+Has CVL checks.
+Checking CVL security/certora/work/mutant-proceeds-not-zeroed/specs/Solvency.spec for contract KilimAuctionHarness
+Unrolling loops 3 times, unwinding condition is assumed
+Checking rule solvency (1 out of 2)...
+Checking rule envfreeFuncsStaticCheck (2 out of 2)...
+Result for envfreeFuncsStaticCheck: envfreeFuncsStaticCheck: motifCredits(address): SUCCESS
+startsAt(): SUCCESS
+highestBidMotifs(): SUCCESS
+extensionWindow(): SUCCESS
+minimumBid(): SUCCESS
+liabilities(): SUCCESS
+registered(address): SUCCESS
+motifsAllocated(): SUCCESS
+incrementBps(): SUCCESS
+oneOfOne(): SUCCESS
+harnessGuardEntered(): SUCCESS
+harnessIsNewWinningBid(uint256): SUCCESS
+proceedsDue(): SUCCESS
+motifs(): SUCCESS
+treasury(): SUCCESS
+duration(): SUCCESS
+refunds(address): SUCCESS
+settled(): SUCCESS
+motifsClaimed(): SUCCESS
+maxMotifsPerBid(): SUCCESS
+motifCap(): SUCCESS
+endsAt(): SUCCESS
+rewardForBid(uint256): SUCCESS
+registrationCount(): SUCCESS
+highestBidder(): SUCCESS
+reservePrice(): SUCCESS
+refundLiability(): SUCCESS
+prizeClaimed(): SUCCESS
+highestBid(): SUCCESS
+Starting to run on rule solvency-Induction base: After the constructor
+Starting to run on rule solvency-Using general requirements-withdrawProceeds(address)
+Starting to run on rule solvency-Using general requirements-register()
+Starting to run on rule solvency-Using general requirements-withdrawRefund(address)
+Starting to run on rule solvency-Using general requirements-registerFor(address,uint256,bytes)
+Starting to run on rule solvency-Using general requirements-claimPrize(address)
+Starting to run on rule solvency-Using general requirements-settle()
+Starting to run on rule solvency-Using general requirements-bid(uint256,uint256,uint256)
+Verified: solvency-Induction base: After the constructor
+solvency-Induction base: After the constructor: Properties successfully verified on all inputs
+Starting to run on rule solvency-Induction base: After the constructor-invariant_not_trivial_postcondition
+Starting to run on rule solvency-Using general requirements-claimMotifs(uint256,address)
+Starting to run on rule solvency-Induction base: After the constructor-rule_not_vacuous
+Total time for solvency-Induction base: After the constructor-invariant_not_trivial_postcondition: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Induction base: After the constructor-invariant_not_trivial_postcondition
+solvency-Induction base: After the constructor-invariant_not_trivial_postcondition: A property is violated
+Total time for solvency-Using general requirements-register(): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-register()
+solvency-Using general requirements-register(): Properties successfully verified on all inputs
+Total time for solvency-Using general requirements-claimPrize(address): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-claimPrize(address)
+solvency-Using general requirements-claimPrize(address): Properties successfully verified on all inputs
+Total time for solvency-Using general requirements-withdrawRefund(address): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-withdrawRefund(address)
+solvency-Using general requirements-withdrawRefund(address): Properties successfully verified on all inputs
+Total time for solvency-Using general requirements-registerFor(address,uint256,bytes): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-registerFor(address,uint256,bytes)
+solvency-Using general requirements-registerFor(address,uint256,bytes): Properties successfully verified on all inputs
+Total time for solvency-Using general requirements-settle(): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-settle()
+solvency-Using general requirements-settle(): Properties successfully verified on all inputs
+Starting to run on rule solvency-Using general requirements-register()-rule_not_vacuous
+Total time for solvency-Induction base: After the constructor-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Induction base: After the constructor-rule_not_vacuous
+solvency-Induction base: After the constructor-rule_not_vacuous: A property is violated
+Starting to run on rule solvency-Using general requirements-withdrawRefund(address)-rule_not_vacuous
+Starting to run on rule solvency-Using general requirements-claimPrize(address)-rule_not_vacuous
+Total time for solvency-Using general requirements-withdrawProceeds(address): 2 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 1 seconds
+Violated: solvency-Using general requirements-withdrawProceeds(address)
+solvency-Using general requirements-withdrawProceeds(address): A property is violated
+Starting to run on rule solvency-Using general requirements-registerFor(address,uint256,bytes)-rule_not_vacuous
+Starting to run on rule solvency-Using general requirements-settle()-rule_not_vacuous
+Total time for solvency-Using general requirements-bid(uint256,uint256,uint256): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-bid(uint256,uint256,uint256)
+solvency-Using general requirements-bid(uint256,uint256,uint256): Properties successfully verified on all inputs
+Total time for solvency-Using general requirements-claimMotifs(uint256,address): 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Verified: solvency-Using general requirements-claimMotifs(uint256,address)
+solvency-Using general requirements-claimMotifs(uint256,address): Properties successfully verified on all inputs
+Starting to run on rule solvency-Using general requirements-bid(uint256,uint256,uint256)-rule_not_vacuous
+Total time for solvency-Using general requirements-register()-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-register()-rule_not_vacuous
+solvency-Using general requirements-register()-rule_not_vacuous: A property is violated
+Total time for solvency-Using general requirements-claimPrize(address)-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-claimPrize(address)-rule_not_vacuous
+solvency-Using general requirements-claimPrize(address)-rule_not_vacuous: A property is violated
+Total time for solvency-Using general requirements-withdrawRefund(address)-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-withdrawRefund(address)-rule_not_vacuous
+solvency-Using general requirements-withdrawRefund(address)-rule_not_vacuous: A property is violated
+Starting to run on rule solvency-Using general requirements-claimMotifs(uint256,address)-rule_not_vacuous
+Total time for solvency-Using general requirements-registerFor(address,uint256,bytes)-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-registerFor(address,uint256,bytes)-rule_not_vacuous
+solvency-Using general requirements-registerFor(address,uint256,bytes)-rule_not_vacuous: A property is violated
+Total time for solvency-Using general requirements-settle()-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-settle()-rule_not_vacuous
+solvency-Using general requirements-settle()-rule_not_vacuous: A property is violated
+Total time for solvency-Using general requirements-bid(uint256,uint256,uint256)-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-bid(uint256,uint256,uint256)-rule_not_vacuous
+solvency-Using general requirements-bid(uint256,uint256,uint256)-rule_not_vacuous: A property is violated
+Total time for solvency-Using general requirements-claimMotifs(uint256,address)-rule_not_vacuous: 0 seconds ; Split time: 0 seconds ; Number of problems: 1 ; Solver time : 0 seconds
+Violated: solvency-Using general requirements-claimMotifs(uint256,address)-rule_not_vacuous
+solvency-Using general requirements-claimMotifs(uint256,address)-rule_not_vacuous: A property is violated
+received `signalSkip` for rule solvency-Using general requirements-settle()-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-claimPrize(address)-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-withdrawProceeds(address)-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-registerFor(address,uint256,bytes)-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-register()-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-withdrawProceeds(address)-rule_not_vacuous
+received `signalSkip` for rule solvency-Using general requirements-withdrawRefund(address)-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-claimMotifs(uint256,address)-invariant_not_trivial_postcondition
+received `signalSkip` for rule solvency-Using general requirements-bid(uint256,uint256,uint256)-invariant_not_trivial_postcondition
+Result for solvency: solvency: Induction base: After the constructor: SUCCESS
+Induction step: after external (non-view) methods: Using general requirements: claimMotifs(uint256,address): SUCCESS
+claimPrize(address): SUCCESS
+registerFor(address,uint256,bytes): SUCCESS
+bid(uint256,uint256,uint256): SUCCESS
+register(): SUCCESS
+settle(): SUCCESS
+withdrawProceeds(address): FAIL: assert weak invariant in post-state
+withdrawRefund(address): SUCCESS
+Results for envfreeFuncsStaticCheck:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|motifCredits(address)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|startsAt()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidMotifs()                      |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|extensionWindow()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|minimumBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|liabilities()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registered(address)                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsAllocated()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|incrementBps()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|oneOfOne()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessGuardEntered()                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|harnessIsNewWinningBid(uint256)         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|proceedsDue()                           |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifs()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|treasury()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|duration()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refunds(address)                        |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|settled()                               |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifsClaimed()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|maxMotifsPerBid()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|motifCap()                              |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|endsAt()                                |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rewardForBid(uint256)                   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registrationCount()                     |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBidder()                         |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|reservePrice()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|refundLiability()                       |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|prizeClaimed()                          |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|highestBid()                            |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for Using general requirements:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|claimMotifs(uint256,address)            |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|claimPrize(address)                     |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registerFor(address,uint256,bytes)      |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|bid(uint256,uint256,uint256)            |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|register()                              |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|settle()                                |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|withdrawProceeds(address)               |Violated     |3         |Assert message: assert weak invariant in post-state         |KilimAuctionHarness=10                            |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=9                                    |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=8                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x403                                |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=1                             |
+|                                        |             |          |                                                            |f.selector=1652624513                             |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=37                       |
+|withdrawRefund(address)                 |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for Induction step: after external (non-view) methods:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Using general requirements              |Violated     |6         |Assert message: assert weak invariant in post-state         |no local variables                                |
+|                                        |(sat)        |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for solvency:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|Induction base: After the constructor   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Induction step: after external          |Violated     |6         |Assert message: assert weak invariant in post-state         |no local variables                                |
+|(non-view) methods                      |(sat)        |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Results for all:
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+|Rule name                               |Verified     |Time (sec)|Description                                                 |Local vars                                        |
+|----------------------------------------|-------------|----------|------------------------------------------------------------|--------------------------------------------------|
+|envfreeFuncsStaticCheck                 |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|Induction base: After the constructor   |Not violated |0         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|invariant_not_trivial_postcondition     |Violated     |1         |Assert message: assert weak invariant in post-state         |KilimAuctionHarness=10002                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=10001                                |
+|                                        |             |          |                                                            |initCalldata=...                                  |
+|                                        |             |          |                                                            |initCalldata.length=...                           |
+|                                        |             |          |                                                            |initEnv.block.basefee=0                           |
+|                                        |             |          |                                                            |initEnv.block.blobbasefee=0                       |
+|                                        |             |          |                                                            |initEnv.block.coinbase=0x0                        |
+|                                        |             |          |                                                            |initEnv.block.difficulty=0                        |
+|                                        |             |          |                                                            |initEnv.block.gaslimit=0                          |
+|                                        |             |          |                                                            |initEnv.block.number=0                            |
+|                                        |             |          |                                                            |initEnv.block.slotnum=0                           |
+|                                        |             |          |                                                            |initEnv.block.timestamp=0                         |
+|                                        |             |          |                                                            |initEnv.msg.sender=0x0                            |
+|                                        |             |          |                                                            |initEnv.msg.value=0                               |
+|                                        |             |          |                                                            |initEnv.tx.origin=0x0                             |
+|register()                              |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|claimPrize(address)                     |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|withdrawRefund(address)                 |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|registerFor(address,uint256,bytes)      |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|settle()                                |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Induction base: Af... |KilimAuctionHarness=0xffffffffffffffffffffffffffff|
+|                                        |(sat)        |          |                                                            |ffffffffddd4                                      |
+|                                        |             |          |                                                            |OneOfOneMock=34389                                |
+|                                        |             |          |                                                            |initCalldata=                                     |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |initCalldata.length=292                           |
+|                                        |             |          |                                                            |initEnv.block.basefee=0                           |
+|                                        |             |          |                                                            |initEnv.block.blobbasefee=0                       |
+|                                        |             |          |                                                            |initEnv.block.coinbase=0x0                        |
+|                                        |             |          |                                                            |initEnv.block.difficulty=0                        |
+|                                        |             |          |                                                            |initEnv.block.gaslimit=0                          |
+|                                        |             |          |                                                            |initEnv.block.number=0                            |
+|                                        |             |          |                                                            |initEnv.block.slotnum=0                           |
+|                                        |             |          |                                                            |initEnv.block.timestamp=0                         |
+|                                        |             |          |                                                            |initEnv.msg.sender=0x5492                         |
+|                                        |             |          |                                                            |initEnv.msg.value=0                               |
+|                                        |             |          |                                                            |initEnv.tx.origin=0x0                             |
+|withdrawProceeds(address)               |Violated     |3         |Assert message: assert weak invariant in post-state         |KilimAuctionHarness=10                            |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=9                                    |
+|                                        |             |          |                                                            |e.block.basefee=11                                |
+|                                        |             |          |                                                            |e.block.blobbasefee=8                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x401                            |
+|                                        |             |          |                                                            |e.block.difficulty=7                              |
+|                                        |             |          |                                                            |e.block.gaslimit=6                                |
+|                                        |             |          |                                                            |e.block.number=5                                  |
+|                                        |             |          |                                                            |e.block.slotnum=4                                 |
+|                                        |             |          |                                                            |e.block.timestamp=3                               |
+|                                        |             |          |                                                            |e.msg.sender=0x403                                |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x402                                 |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=1                             |
+|                                        |             |          |                                                            |f.selector=1652624513                             |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=37                       |
+|bid(uint256,uint256,uint256)            |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|claimMotifs(uint256,address)            |Not violated |2         |                                                            |no local variables                                |
+|                                        |(unsat)      |          |                                                            |                                                  |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=35193                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=35192                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=OneOfOneMock                         |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=0                             |
+|                                        |             |          |                                                            |f.selector=446930952                              |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |invariantCalldata.length=4                        |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=17721                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=17720                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x3db7                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=1                             |
+|                                        |             |          |                                                            |f.selector=2708244215                             |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=36                       |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=17720                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=17722                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x4539                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=1                             |
+|                                        |             |          |                                                            |f.selector=3857299041                             |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=36                       |
+|rule_not_vacuous                        |Not violated |2         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=0xffffffffffffffffffffffffffff|
+|                                        |(sat)        |          |                                                            |ffffffffed3b                                      |
+|                                        |             |          |                                                            |OneOfOneMock=10002                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x3ee5                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=3                             |
+|                                        |             |          |                                                            |f.selector=1206869697                             |
+|                                        |             |          |                                                            |invariantCalldata=(invalid UTF-8)                 |
+|                                        |             |          |                                                            |invariantCalldata.length=132                      |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=18944                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=18941                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x4a01                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=0                             |
+|                                        |             |          |                                                            |f.selector=299524276                              |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |invariantCalldata.length=4                        |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=10003                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=10001                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x2712                               |
+|                                        |             |          |                                                            |e.msg.value=0x2386f26fc10000                      |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=true                                  |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=3                             |
+|                                        |             |          |                                                            |f.selector=717864713                              |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=100                      |
+|rule_not_vacuous                        |Not violated |1         |Assert message: sanity check for rule Using general requ... |KilimAuctionHarness=23069                         |
+|                                        |(sat)        |          |                                                            |OneOfOneMock=23070                                |
+|                                        |             |          |                                                            |e.block.basefee=0                                 |
+|                                        |             |          |                                                            |e.block.blobbasefee=0                             |
+|                                        |             |          |                                                            |e.block.coinbase=0x0                              |
+|                                        |             |          |                                                            |e.block.difficulty=0                              |
+|                                        |             |          |                                                            |e.block.gaslimit=0                                |
+|                                        |             |          |                                                            |e.block.number=0                                  |
+|                                        |             |          |                                                            |e.block.slotnum=0                                 |
+|                                        |             |          |                                                            |e.block.timestamp=0                               |
+|                                        |             |          |                                                            |e.msg.sender=0x5a1c                               |
+|                                        |             |          |                                                            |e.msg.value=0                                     |
+|                                        |             |          |                                                            |e.tx.origin=0x0                                   |
+|                                        |             |          |                                                            |f.contract=KilimAuctionHarness                    |
+|                                        |             |          |                                                            |f.isFallback=false                                |
+|                                        |             |          |                                                            |f.isPayable=false                                 |
+|                                        |             |          |                                                            |f.isPure=false                                    |
+|                                        |             |          |                                                            |f.isView=false                                    |
+|                                        |             |          |                                                            |f.numberOfArguments=2                             |
+|                                        |             |          |                                                            |f.selector=1808055094                             |
+|                                        |             |          |                                                            |invariantCalldata=                                |
+|                                        |             |          |                                                            |                                                  |
+|                                        |             |          |                                                            |invariantCalldata.length=68                       |
+|solvency                                |Violated     |8         |Assert message: assert weak invariant in post-state         |no local variables                                |
+|                                        |(sat)        |          |                                                            |                                                  |
+*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*
+
+Failures summary:
+Failed on invariant_not_trivial_postcondition:
+Assert message: assert weak invariant in post-state
+
+ sanity check (trivial invariant) for rule Induction base: After the constructor
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Induction base: Af...
+
+sanity check (vacuity of rule) for rule Induction base: After the constructor
+Failed on withdrawProceeds(address):
+Assert message: assert weak invariant in post-state
+
+Invariant breached
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on rule_not_vacuous:
+Assert message: sanity check for rule Using general requ...
+
+sanity check (vacuity of rule) for rule Using general requirements
+Failed on solvency:
+Assert message: assert weak invariant in post-state
+Violated for: 
+withdrawProceeds(address)
+
+
+Done 0m
+Event reporter: all events were sent without errors
+Reports in file:///Users/orkhan/Documents/ChatGPT/kilim/contracts/security/certora/work/mutant-proceeds-not-zeroed/emv-1-certora-12-Oct--11-26/Reports
+Final report in emv-1-certora-12-Oct--11-26/Reports/FinalResults.html
+Compiling harness/KilimAuctionHarness.sol...
+Compiling harness/KilimAuctionHarness.sol to expose internal function information and local variables...
+Compiling harness/OneOfOneMock.sol...
+Compiling harness/OneOfOneMock.sol to expose internal function information and local variables...
+Verifier run command:
+ java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -rule solvency -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_26_39_54319612eb
+ERROR: Execution of command "java -Xmx32g -jar /Users/orkhan/.local/certora/install/emv.jar -b 3 -assumeUnwindCond -rule solvency -ruleSanityChecks basic -enableEventReporting false -buildDirectory .certora_internal/26_10_12_11_26_39_54319612eb" terminated with exitcode 100.
+
+Certora Prover run failed (code 1)
+

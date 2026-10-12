@@ -1,0 +1,10 @@
+SUCCESS      witnessClaimAcrossTwoRanges
+SUCCESS      witnessHundredthRegistrationThenBid
+SUCCESS      witnessRefundDeferred
+SUCCESS      witnessRefundPaidDirectly
+SUCCESS      witnessRegisterFor
+SUCCESS      witnessSettleDelivers
+SUCCESS      witnessSettleDeliveryFails
+SUCCESS      witnessWithdrawProceeds
+SUCCESS      witnessWithdrawRefund
+totals: SUCCESS=9

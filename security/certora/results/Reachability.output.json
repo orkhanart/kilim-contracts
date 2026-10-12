@@ -1,0 +1,46 @@
+{
+	"rules": {
+		"envfreeFuncsStaticCheck": {
+			"SUCCESS": [
+				"duration()",
+				"endsAt()",
+				"extensionWindow()",
+				"harnessGuardEntered()",
+				"harnessIsNewWinningBid(uint256)",
+				"highestBid()",
+				"highestBidMotifs()",
+				"highestBidder()",
+				"incrementBps()",
+				"liabilities()",
+				"maxMotifsPerBid()",
+				"minimumBid()",
+				"motifCap()",
+				"motifCredits(address)",
+				"motifs()",
+				"motifsAllocated()",
+				"motifsClaimed()",
+				"oneOfOne()",
+				"prizeClaimed()",
+				"proceedsDue()",
+				"refundLiability()",
+				"refunds(address)",
+				"registered(address)",
+				"registrationCount()",
+				"reservePrice()",
+				"rewardForBid(uint256)",
+				"settled()",
+				"startsAt()",
+				"treasury()"
+			]
+		},
+		"witnessClaimAcrossTwoRanges": "SUCCESS",
+		"witnessHundredthRegistrationThenBid": "SUCCESS",
+		"witnessRefundDeferred": "SUCCESS",
+		"witnessRefundPaidDirectly": "SUCCESS",
+		"witnessRegisterFor": "SUCCESS",
+		"witnessSettleDelivers": "SUCCESS",
+		"witnessSettleDeliveryFails": "SUCCESS",
+		"witnessWithdrawProceeds": "SUCCESS",
+		"witnessWithdrawRefund": "SUCCESS"
+	}
+}

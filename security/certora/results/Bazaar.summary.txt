@@ -1,0 +1,8 @@
+SUCCESS      fixedRankIsHighestCostReached
+SUCCESS      ladderAgreesWithRankFor
+SUCCESS      masterExactlyAtTop
+SUCCESS      rankForRevertsBeforeSettlement
+SUCCESS      rankMonotone
+SUCCESS      rankZeroOnlyUnderFloor
+SUCCESS      sealOnlySeals
+totals: SUCCESS=7

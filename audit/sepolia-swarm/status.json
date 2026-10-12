@@ -1,0 +1,208 @@
+{
+ "done": {
+  "refusalsBefore": "2026-10-11T20:39:12.847Z",
+  "open": "opened by 0x24c6bc2DEc66cA19Cb6Ea3E0781c40C5fBC35853",
+  "refusalsDuring": "2026-10-11T21:09:05.655Z",
+  "b2-1": "2026-10-11T21:19:26.289Z",
+  "cw-1": "2026-10-11T21:20:25.067Z",
+  "b1-2": "2026-10-11T21:21:49.338Z",
+  "cw-withdraw": "2026-10-11T21:22:37.995Z",
+  "b2-mid": "skipped (keeps the ETH for the late bids) 2026-10-12T09:08:58.000Z",
+  "late-1": "2026-10-12T21:05:13.291Z",
+  "late-2": "2026-10-12T21:13:49.351Z",
+  "settle": "2026-10-12T21:25:01.843Z",
+  "prizeChecked": "2026-10-12T21:25:02.933Z",
+  "claimToOther": "2026-10-12T21:25:13.783Z",
+  "holder": "2026-10-12T21:30:26.096Z",
+  "claims": "2026-10-12T21:30:26.219Z"
+ },
+ "gas": {
+  "relay the 0.01 on": {
+   "n": 76,
+   "min": 21000,
+   "max": 204600,
+   "sum": 8756400
+  },
+  "register (site)": {
+   "n": 35,
+   "min": 142341,
+   "max": 142341,
+   "sum": 4981935
+  },
+  "registerFor (sponsored)": {
+   "n": 4,
+   "min": 152249,
+   "max": 152249,
+   "sum": 608996
+  },
+  "return to pool": {
+   "n": 3,
+   "min": 21000,
+   "max": 21000,
+   "sum": 63000
+  },
+  "fund B2 for b2-1": {
+   "n": 1,
+   "min": 204600,
+   "max": 204600,
+   "sum": 204600
+  },
+  "bid (site, outbid)": {
+   "n": 4,
+   "min": 229075,
+   "max": 648155,
+   "sum": 1546778
+  },
+  "fund B3 for the contract wallet": {
+   "n": 1,
+   "min": 204600,
+   "max": 204600,
+   "sum": 204600
+  },
+  "deploy SwarmBidder": {
+   "n": 1,
+   "min": 1540520,
+   "max": 1540520,
+   "sum": 1540520
+  },
+  "fund B3 for cw-1": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "bid (contract wallet)": {
+   "n": 1,
+   "min": 441399,
+   "max": 441399,
+   "sum": 441399
+  },
+  "consolidate to pool": {
+   "n": 2,
+   "min": 21000,
+   "max": 21000,
+   "sum": 42000
+  },
+  "fund B1 for b1-2": {
+   "n": 1,
+   "min": 204600,
+   "max": 204600,
+   "sum": 204600
+  },
+  "fund B3 to withdraw for the contract wallet": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "withdrawRefund (contract wallet)": {
+   "n": 1,
+   "min": 57694,
+   "max": 57694,
+   "sum": 57694
+  },
+  "fund B1 for late-1": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "fund B2 for late-2": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "fund B3 to settle": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "settle (site)": {
+   "n": 1,
+   "min": 599508,
+   "max": 599508,
+   "sum": 599508
+  },
+  "claimMotifs (site, to another address)": {
+   "n": 1,
+   "min": 4422673,
+   "max": 4422673,
+   "sum": 4422673
+  },
+  "fund B2 to claim": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "fund B3 to claim for the contract wallet": {
+   "n": 1,
+   "min": 21000,
+   "max": 21000,
+   "sum": 21000
+  },
+  "claimMotifs (contract wallet, to itself)": {
+   "n": 1,
+   "min": 2033654,
+   "max": 2033654,
+   "sum": 2033654
+  },
+  "motif transferFrom": {
+   "n": 1,
+   "min": 58589,
+   "max": 58589,
+   "sum": 58589
+  },
+  "motif approve": {
+   "n": 1,
+   "min": 130661,
+   "max": 130661,
+   "sum": 130661
+  },
+  "motif burn by its owner": {
+   "n": 1,
+   "min": 254170,
+   "max": 254170,
+   "sum": 254170
+  }
+ },
+ "notes": [
+  "b2-mid skipped to keep the ETH for the late bids"
+ ],
+ "robots": {
+  "B1": "0xE3fA0855351a961B7BaCA9a3697FC0f04186b117",
+  "B2": "0x48b10D6d55B3d33EE62bA1B8a1B28ebf2436e078",
+  "B3": "0x3664Bc4373589BeCA3624B76327D8E44891ef325",
+  "R1": "0x85939eF48d1b0772b1858a6e0cF2b1dF7Dd6a102",
+  "R100": "0x6D2feA0AEF245c9C60AB33779Af952fF81fe264d"
+ },
+ "fullAt": 1791752472,
+ "notedWait": true,
+ "startedAt": 1791752928,
+ "openedBy": "0x24c6bc2DEc66cA19Cb6Ea3E0781c40C5fBC35853",
+ "closes": {
+  "b2-1": {
+   "before": "1791839328",
+   "after": "1791839328"
+  },
+  "cw-1": {
+   "before": "1791839328",
+   "after": "1791839328"
+  },
+  "b1-2": {
+   "before": "1791839328",
+   "after": "1791839328"
+  },
+  "late-1": {
+   "before": "1791839328",
+   "after": "1791839712"
+  },
+  "late-2": {
+   "before": "1791839712",
+   "after": "1791840228"
+  }
+ },
+ "cw": "0x97b7a8adeE760523d267f407bb34B3659767e2Bd"
+}

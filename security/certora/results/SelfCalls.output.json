@@ -1,0 +1,54 @@
+{
+	"rules": {
+		"deliverPrizeOnlyBySelf": "SUCCESS",
+		"envfreeFuncsStaticCheck": {
+			"SUCCESS": [
+				"duration()",
+				"endsAt()",
+				"extensionWindow()",
+				"harnessGuardEntered()",
+				"harnessIsNewWinningBid(uint256)",
+				"highestBid()",
+				"highestBidMotifs()",
+				"highestBidder()",
+				"incrementBps()",
+				"liabilities()",
+				"maxMotifsPerBid()",
+				"minimumBid()",
+				"motifCap()",
+				"motifCredits(address)",
+				"motifs()",
+				"motifsAllocated()",
+				"motifsClaimed()",
+				"oneOfOne()",
+				"prizeClaimed()",
+				"proceedsDue()",
+				"refundLiability()",
+				"refunds(address)",
+				"registered(address)",
+				"registrationCount()",
+				"reservePrice()",
+				"rewardForBid(uint256)",
+				"settled()",
+				"startsAt()",
+				"treasury()"
+			]
+		},
+		"payOutbidRefundMovesOnlyAmount": "SUCCESS",
+		"payOutbidRefundOnlyBySelf": "SUCCESS",
+		"reentryReverts": {
+			"SUCCESS": [
+				"bid(uint256,uint256,uint256)",
+				"claimMotifs(uint256,address)",
+				"claimPrize(address)",
+				"deliverPrize()",
+				"payOutbidRefund(address,uint256)",
+				"register()",
+				"registerFor(address,uint256,bytes)",
+				"settle()",
+				"withdrawProceeds(address)",
+				"withdrawRefund(address)"
+			]
+		}
+	}
+}

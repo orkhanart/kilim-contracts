@@ -51,7 +51,7 @@ Source: [audit/full-audit-2026-10-09.md](audit/full-audit-2026-10-09.md), with e
 | F-01 | High | The current top bidder could make a rival's bid run out of gas by switching its refund receiver between cheap and gas-burning after the rival's wallet had estimated gas. | `_refundOutbid` reverts with `InsufficientGas` unless the bid still carries `REFUND_GAS + REFUND_GAS / 63 + 60_000` gas. The gas a bid needs no longer depends on the outbid wallet's code. | `test/GasFloors.t.sol`: `testLeaderCannotMakeARivalsBidRunOutOfGas`, `testABidWithTooLittleGasFailsTheSameWayWhateverTheLeaderDoes` |
 | F-02 | Medium | A `settle()` call with little gas skipped sending the 1/1. A contract winner that cannot call `claimPrize` would have lost it. | `_afterSettle` reverts with `InsufficientGas` unless `PRIZE_GAS + PRIZE_GAS / 63 + 50_000` gas is left. The revert undoes the settlement and anyone can call `settle()` again. | `test/GasFloors.t.sol`: `testLowGasSettleCannotSkipThePrize` |
 
-`REFUND_GAS` is 150,000 and `PRIZE_GAS` is 500,000.
+`REFUND_GAS` is 150,000 and `PRIZE_GAS` is 500,000. (`PRIZE_GAS` is 1,000,000 since 12 October 2026: see the last section.)
 
 ### Accepted by the artist on October 9
 
@@ -167,7 +167,7 @@ Still required before funding:
 
 Location: `EnglishAuction._refundOutbid()` / `payOutbidRefund()`, `KilimAuction._afterSettle()` / `deliverPrize()`.
 
-An outbid bid is paid back inside the bid that beats it, through a call the auction makes to itself with 150,000 gas. Any failure (a wallet that rejects ETH, a receiver that burns the gas) is caught: the amount is recorded in `refunds`, `RefundDeferred` is emitted and the bidder calls `withdrawRefund(to)`. An address that cannot receive ETH therefore never blocks bidding. Settlement sends the 1/1 to the winner through a self-call with 500,000 gas; if the winner's wallet rejects it, `settle()` still succeeds, `PrizeDeliveryFailed` is emitted and the winner calls `claimPrize(to)`.
+An outbid bid is paid back inside the bid that beats it, through a call the auction makes to itself with 150,000 gas. Any failure (a wallet that rejects ETH, a receiver that burns the gas) is caught: the amount is recorded in `refunds`, `RefundDeferred` is emitted and the bidder calls `withdrawRefund(to)`. An address that cannot receive ETH therefore never blocks bidding. Settlement sends the 1/1 to the winner through a self-call with 1,000,000 gas (500,000 until 12 October 2026, and on the Sepolia rehearsal); if the winner's wallet rejects it, `settle()` still succeeds, `PrizeDeliveryFailed` is emitted and the winner calls `claimPrize(to)`.
 
 Both self-calls are external functions callable only by the auction (`Unauthorized` otherwise), and every state-changing entry point is `nonReentrant`. Both now have a gas floor (F-01, F-02).
 
@@ -611,7 +611,7 @@ The pre-mainnet audit (21 agents: five reviewers, a skeptic on every finding rat
 - **The rest of the audit:**
   - The runbook items are written into checklists 0 and 2: a creation still pending, never Cancel, the fork check repeated before the contracts, a clean checkout of the frozen tag.
   - The site items went to the web session: six fixed, the quote cross-check kept by design (W-05).
-  - Still to decide: PRIZE_GAS headroom under Glamsterdam (the Sepolia settlement measures it), the bytecode pin in the script, V-13's wording.
+  - Still to decide: the bytecode pin in the script, V-13's wording. PRIZE_GAS headroom under Glamsterdam: decided on 12 October 2026, raised to 1,000,000 (last section); one side effect of it, the winner making Kilim Bazaar's first kilim inside settlement, accepted by the artist on 12 October 2026 (same section).
 
 ### The 30-motif rank is Spinner; the mainnet page re-packed (11 October 2026)
 
@@ -622,3 +622,52 @@ The artist asked for Journeyman to be renamed and let Claude choose. The new nam
 - **The contract:** KilimBazaar's `rankName(2)` is "Spinner". mainnet.json gains its bazaar block: royalty 7.5% to orkhanart.eth; imageBase `https://orkhan.art/kilim/bazaar/image/`, which the site must serve before mainnet; the auction address is to be filled after runContracts.
 - **Sepolia keeps Journeyman.** Its 1/1 page on chain says it, and its Bazaar (0x0A584BaC…) was deployed from d6d10004. deploy/sepolia.json points its bazaar block at `onchain/build-page-sepolia`, a git-ignored snapshot of the page store from before the rename. Regenerate it from mint/artwork.html at 6c9b7770 if needed.
 - **Tests:** forge 411/411, site 97/97, packers 25/25, page 3/3, kilim-page 22/22, `deploy:dry` green.
+
+### PRIZE_GAS raised to 1,000,000 (12 October 2026)
+
+The artist decided the open item "PRIZE_GAS headroom under Glamsterdam" before the freeze: `KilimAuction.PRIZE_GAS` is now 1,000,000 (it was 500,000).
+
+- **Why:** two of the 12 October tool audits measured the headroom: [ETH-1](audit/tools-2026-10-12/ai-ethflow.md) and [CR-3](audit/tools-2026-10-12/ai-credits.md). At the EIP-8037/8038 Last Call prices (a new storage slot 110,020 gas instead of 22,100) the delivery used about 454,000 to 465,000 of its 500,000. A new slot about 10% dearer than that would have made the automatic delivery fail for every winner, EOAs included. Each would then have had to call `claimPrize`, and a winner that can only bid (CR-1) would never get the 1/1.
+- **The delivery now, measured cold on Cancun:** a winner's hook may use 871,637 gas; the delivery itself takes 128,363. At the Last Call prices the delivery takes 480,943 and leaves 519,057. That fits a Safe (37,369 at most) and a hook that writes four new slots of its own. With a hook that does nothing, delivery fails only once a new slot costs about 239,784 gas, about twice the Last Call price.
+- **The settle floor** is `PRIZE_GAS + PRIZE_GAS / 63 + 50_000` = **1,065,873** gas left at the prize step (was 557,936). `settle()` succeeds from 1,104,637 gas on the call, every slot cold as a mainnet transaction meets it (38,764 of its own work before the check), about 1,125,700 as a transaction.
+- **`SETTLE_GAS` in site/chain.js is 1,400,000** (was 1,200,000). Settlement's work before the floor is 59,828 gas as a transaction today and 161,948 at the Last Call prices (one new slot and two first updates), so a transaction needs about 1,227,800 then. 1,400,000 leaves 334,127 for it, about twice that projection. It stays enough until a new slot costs about 282,000, which is past the price at which the delivery itself fails (about 239,784). It is far under the 16,777,216 per-transaction cap (ETH-4).
+- **What a hostile winner can do now:** its hook can cost the settler up to about 1,041,000 gas on the call, about 1,062,000 as a transaction, measured cold: a revert payload of 360 KB or more uses the delivery's whole 1,000,000, plus settlement's own work. It can also build a revert payload of up to about 358 KB that reaches `settle()`. `settle()` ignores that payload without copying it. `testWinnerHookCannotMakeSettlementFail` covers 0 to 900 KB and checks that every size up to 355 KB comes back from the delivery whole. A copy of the auction whose `catch` copies the data runs out of gas from 316 KB to 358 KB at the same gas limit.
+- **New with 1,000,000, accepted by the artist on 12 October 2026: the winner can make Kilim Bazaar's first kilim inside settlement.** A winning contract or EIP-7702 wallet can claim its motifs before the close (`claimMotifs` has no settled check) and approve the Bazaar. When the 1/1 arrives inside whoever's `settle()`, the auction already reads `settled() == true`, so the winner's hook can call `KilimBazaar.make()`. It then always gets Bazaar token #1, number 1 of its rank, before any other holder can act; with a winning bid of at most 0.023 ETH that is the first Master. The settler pays: about 709,000 gas as a transaction for a make of ten, against about 156,000 for an EOA winner, still under the site's 1,400,000. Up to about 23 motifs fit, so never a Spinner (30). With 500,000 the same make (about 526,000 gas) ran out of gas and the delivery rolled back whole. No ETH or token is at risk; it is an ordering advantage paid with someone else's gas. `test/review/WinnerHookMakesFirstKilim.t.sol` pins it. The choices: (a) accept it and say so in the Bazaar spec; (b) have the Bazaar refuse writes while the auction is inside `settle()`, which changes both contracts (for example a view `busy()` on the auction that `_terms()` and `deposit()` check; a check on `prizeClaimed` does not work, it is already true when the hook runs); (c) lower `PRIZE_GAS` back toward 500,000, which gives back the Glamsterdam headroom. After Glamsterdam the window probably closes by itself: the hook's 519,057 at the Last Call prices is already below make(10)'s cost today. **Decision: (a), accepted, no code change.** The artist: whoever gets kilim #1 gets it. The winner pays with their own motifs like anyone else; the only gain is being first, and the settler's extra gas is about 550,000.
+- **Sepolia keeps 500,000.** Its auction (`0xf8301C81…`) was deployed before the change, so its floor stays 557,936. The site's 1,400,000 is more than it needs.
+- **Tests:** the gas tests now measure and assert the new value: `test/AttackPatterns.t.sol`, `test/AuditGaps.t.sol`, `test/GasFloors.t.sol` and `test/review/PrizeGasBudget.t.sol`. GasFloors' heavy pool now writes fifty new slots, because thirty fit in the new budget. Results: forge 414/414 (the 411 before, plus the three of `test/review/WinnerHookMakesFirstKilim.t.sol`), site 97/97 (run with `FOUNDRY_OUT` pointed at an isolated build of the new contract: the site tests deploy what `FOUNDRY_OUT`, or else out/, holds, and out/ still has the 500,000 build).
+- **Done after the live test (12 October, 21:31 UTC):** `pnpm -s build && pnpm -s artifacts` regenerated out/ and audit/build-manifest.json (the ABIs are unchanged: the constant is private); forge 414/414 and the site 97/97 on the rebuilt out/. **Still to do:** after 1 November, re-run the Glamsterdam projections with the final prices (checklist 1).
+
+## 12 October 2026: the Sepolia live test and the tool round
+
+### The 24-hour Sepolia test: VERDICT PASS
+
+The robot swarm (`scripts/sepolia-swarm.mjs`) ran the real Sepolia auction (`0xf8301C81…`) from the first check-in on 11 October to the last claim on 12 October. **VERDICT PASS at block 11,901,595: 16 of 16 items, 0 failed of 470 checks.** Record: [audit/sepolia-swarm/](audit/sepolia-swarm/) (log, events, checks, gas, verdict, NOTES.md).
+
+- 100 check-ins (13 through `registerFor`); the 101st refused; a bid before the 100th refused.
+- The artist opened the bidding from their own wallet through the page (0.01, then 0.011 ETH); robots outbid it and the ETH came back in the outbidding transaction. A contract wallet's refund was deferred, then withdrawn.
+- Two late bids (21:05:13 and 21:13:49 UTC) each moved the close by exactly ten minutes after their block.
+- Settlement by a non-treasury robot delivered the 1/1 inside `settle()` on a Glamsterdam chain, with this contract's `PRIZE_GAS` of 500,000 (599,508 gas in all). The real `tokenURI(1)` equals the golden.
+- Every robot claimed all its motifs; each robot's minted ids are its bids' reserved ranges; the site's `motifOf` port equals the contract.
+- Eight step errors were retried, none from the contracts: three node-lag refusals on 11 October, and five on 12 October when the harness's pool ran out of test ETH (a robot's outbid refund sat in its own wallet until the end-of-run sweep; moved back by hand, see NOTES.md).
+
+### The tool round: no bug found
+
+Records in [audit/tools-2026-10-12/](audit/tools-2026-10-12/); harnesses and PoC tests in `security/` (each folder's README has the exact commands; every run built into `.tools-out/`, never `out/`).
+
+| Tool | Result |
+| --- | --- |
+| Slither 0.11.6 | 3 high and 28 medium, all in KilimBazaar (new since 9 October), all false positives or intended ([triage](audit/tools-2026-10-12/slither-triage.md)) |
+| Aderyn 0.6.8 | 4 high categories, all false positives or intended ([triage](audit/tools-2026-10-12/aderyn-triage.md)) |
+| Halmos 0.3.3 | no bug; solvency proved one call at a time for every entry point, motif credits, the Bazaar's ranks, seal window and lanes; the `minimumBid` arithmetic timed out (Certora proves it) ([report](audit/tools-2026-10-12/halmos.md)) |
+| Medusa 1.5.1 (Chimera layout) | 4 h 10 m, 16,376,447 calls, 69 of 69 tests, 0 failures; line coverage 92–95% of the auction and the Bazaar ([report](audit/tools-2026-10-12/medusa.md)) |
+| Certora Prover 8.19.2, built locally | 68 properties verified, none violated; 15 of 15 hand-made mutants caught ([report](audit/tools-2026-10-12/certora.md)) |
+| AI audit, five lenses with PoC tests | 0 critical, 0 high, 1 medium (SL-1), lows and infos below |
+
+Open from the AI audit, all outside the frozen contracts:
+
+- **SL-1, medium:** an owner can re-roll a kilim's look by withholding the seal and letting it re-arm. Deviation 17 accepted this on the condition that a sealer runs; none existed. To do before mainnet: an always-on sealer that seals every new and re-armed kilim ([ai-seal.md](audit/tools-2026-10-12/ai-seal.md)).
+- **TK-1, low:** on chain 1 the Bazaar script should require `bazaar.auction` to be the auction at the published deployer nonce. **TK-2, low:** the collection link and the Bazaar texts should be pinned in `expected` ([ai-tokens.md](audit/tools-2026-10-12/ai-tokens.md)).
+- **BZ-1, low (site):** size a make or deposit by its gas estimate (about 150 fresh ids under Glamsterdam), not by a fixed 300. **BZ-4 (site):** `to` defaults to the connected account and is shown before signing ([ai-bazaar.md](audit/tools-2026-10-12/ai-bazaar.md)).
+- **Wording:** rule 6's "which nobody else can make" is wrong, since the winning-bid tag follows the ids (CR-2, BZ-3); warn that a plain transfer of the 1/1 to the Bazaar strands it (BZ-2); say that a bidding contract must be able to call `claimPrize` and `claimMotifs` (CR-1).
+- **Note on the deployer:** orkhanart.eth's mainnet nonce is 1,569 since 12 October 15:28 UTC (a WETH unwrap); `deployerNonce` is set again on the wallet-freeze day (checklist 0, step 1).
+

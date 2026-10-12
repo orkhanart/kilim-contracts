@@ -1,0 +1,14 @@
+SUCCESS      deliverPrizeOnlyBySelf
+SUCCESS      payOutbidRefundMovesOnlyAmount
+SUCCESS      payOutbidRefundOnlyBySelf
+SUCCESS      reentryReverts :: bid(uint256,uint256,uint256)
+SUCCESS      reentryReverts :: claimMotifs(uint256,address)
+SUCCESS      reentryReverts :: claimPrize(address)
+SUCCESS      reentryReverts :: deliverPrize()
+SUCCESS      reentryReverts :: payOutbidRefund(address,uint256)
+SUCCESS      reentryReverts :: register()
+SUCCESS      reentryReverts :: registerFor(address,uint256,bytes)
+SUCCESS      reentryReverts :: settle()
+SUCCESS      reentryReverts :: withdrawProceeds(address)
+SUCCESS      reentryReverts :: withdrawRefund(address)
+totals: SUCCESS=13

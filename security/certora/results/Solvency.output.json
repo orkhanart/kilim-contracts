@@ -1,0 +1,258 @@
+{
+	"rules": {
+		"bidsOnlyAfterRegistration": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"envfreeFuncsStaticCheck": {
+			"SUCCESS": [
+				"duration()",
+				"endsAt()",
+				"extensionWindow()",
+				"harnessGuardEntered()",
+				"harnessIsNewWinningBid(uint256)",
+				"highestBid()",
+				"highestBidMotifs()",
+				"highestBidder()",
+				"incrementBps()",
+				"liabilities()",
+				"maxMotifsPerBid()",
+				"minimumBid()",
+				"motifCap()",
+				"motifCredits(address)",
+				"motifs()",
+				"motifsAllocated()",
+				"motifsClaimed()",
+				"oneOfOne()",
+				"prizeClaimed()",
+				"proceedsDue()",
+				"refundLiability()",
+				"refunds(address)",
+				"registered(address)",
+				"registrationCount()",
+				"reservePrice()",
+				"rewardForBid(uint256)",
+				"settled()",
+				"startsAt()",
+				"treasury()"
+			]
+		},
+		"guardIdle": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"highestBidBounded": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"noBidderNoBid": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"prizeMintedAtMostOnce": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"prizeOnlyAfterSettlement": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"proceedsAreTheWinningBid": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"refundAtMostLiability": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"refundLiabilityIsSumOfRefunds": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"registrationCountBounded": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"registrationCountMatchesRegistered": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"settledHasWinner": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		},
+		"solvency": {
+			"Induction base: After the constructor": "SUCCESS",
+			"Induction step: after external (non-view) methods": {
+				"Using general requirements": {
+					"SUCCESS": [
+						"bid(uint256,uint256,uint256)",
+						"claimMotifs(uint256,address)",
+						"claimPrize(address)",
+						"register()",
+						"registerFor(address,uint256,bytes)",
+						"settle()",
+						"withdrawProceeds(address)",
+						"withdrawRefund(address)"
+					]
+				}
+			}
+		}
+	}
+}
