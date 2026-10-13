@@ -1,0 +1,74 @@
+Kilim on Ethereum mainnet: the deployment record. 13 October 2026.
+
+RESULT: deployed. The store (45 chunks) from the store wallet, then the three contracts from orkhanart.eth
+at nonces 1,571 to 1,573, at the predicted addresses; every value read back from the chain matched.
+
+Code: tag mainnet-2026-10-13 (contracts/, onchain/ and the artwork identical to 6d7cb672), deployed from a clean
+worktree with the stores copied in (check:stores passed: gridsHash 0x966b338f..., tokenURI sha256 0x9e08a6db...).
+Mainnet at block 26,181,429 had no Glamsterdam header fields. Base fee about 0.06 gwei.
+
+CONTRACTS (orkhanart.eth 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac, signed in MetaMask through forge --browser)
+  Motif Bazaar       0xf2bf089aa3b9E7D8664147e2Db42e84499717c7e
+  The Unwoven Kilim  0x89c531b660DA287BB16f971023cCDddf302D80A2
+  KilimAuction       0xA3B9b4CeF168D5a23bDDA05C6Cb5F57F0Ef2ED8e   deployBlock 26,181,837
+  startsAt 1791874682 (2026-10-13 06:58:02 UTC): registration opens; minLeadSeconds 600
+
+  tx 0xe0be32914f6c5c052255927359ae904a93d627fee110a0c25ff76e52b14fcf5e  block 26,181,831  gas 3,185,348  status 1
+  tx 0xb7e316ab97439dced026b040684354d566218fea53c30857ac27885386ad3dd1  block 26,181,835  gas 5,856,851  status 1
+  tx 0x0c1e4307c64a5cd7ed01e4c5c9522f3c832609b89889c10d6751176f7daca40a  block 26,181,837  gas 2,493,433  status 1
+  paid 0.000721 ETH
+
+STORE (store wallet 0xdA67F4A8EBF6c6eF1a403d6dE7141E700F436e00, encrypted keystore, the artist typed the password)
+  0xb84f8c5690bc2aa7e0af77e3983a0838912756753b3ce0fd69d50f1cf7515db0  block 26,181,771  gas 5,301,417  status 1
+  0xd8b5a66b85cc29d60266fadaac92091236749578b5a488168957e4fe95a53272  block 26,181,772  gas 1,806,077  status 1
+  0x3cca6306f5d530673dfd383a04e7ad67ffdef8e35a84dc0f2e34e9fc86c67147  block 26,181,773  gas 3,030,091  status 1
+  0x307ebc54ab346bf39540c15a852e916872e4899860f02f96899f1356fa504c6f  block 26,181,774  gas 5,379,458  status 1
+  0xfa789d89f5a9416e25008d0b620a41dc351912ec2da8086a220b8b22981435a1  block 26,181,775  gas 5,379,458  status 1
+  0xe2dd23f9aeb24c39fb33bb45a3bae2c43b1f2d19e49168272c27f0cb4f0af348  block 26,181,777  gas 5,379,458  status 1
+  0xf711493759d3458561299f3848ffa7795b2407a1136f08c5202f36c7bf81a2e2  block 26,181,778  gas 5,379,458  status 1
+  0x25ab5f79caa3a1d33ca94f70451ce2c6197663fe888f8fb55cc92edb0f751389  block 26,181,779  gas 5,379,458  status 1
+  0xb1525cda98cc017d522bdb26e7adec7c955ff3b70190c0f2a97227dc1ecbf162  block 26,181,783  gas 5,379,458  status 1
+  0xec41857337c26fc8d5e5b53ff1c0dd79b3fafd332c8d45d4bafd64d3d21a6ea0  block 26,181,784  gas 173,181  status 1
+  0xbd064594e084662507f370228a1187625602286d5018d2fb70d464809a78b56b  block 26,181,785  gas 96,269  status 1
+  0x81e830c9590fc858a728754441fee516b4167dc5e554ae6fb4c0657945c2559c  block 26,181,786  gas 5,379,458  status 1
+  0x828e39c677d2ffb29b5129b27a1c24224c2cd942c67cf2e487f4d734272b7a4b  block 26,181,787  gas 5,379,458  status 1
+  0xf4ac0570d9a563c741e199cd34b6060de90585e2811cf87df329b16e2b996ea3  block 26,181,788  gas 5,379,458  status 1
+  0xa3e090022d400ce88ff7fc40eb2fe9b78e236d4ba38e307e18681849301d5c87  block 26,181,789  gas 5,379,458  status 1
+  0xe65be8f95ca9b56aecd3a08a412770376d9fb3775e1d2a1f30438f3ff0f3c352  block 26,181,790  gas 5,379,458  status 1
+  0x0b1bcdf1ff41e91136055a2f48ad2d41d805d76892c80bc2f9b0ae919b1bf196  block 26,181,791  gas 5,379,458  status 1
+  0x9dd50343df6882e2fd2c54d6c4f45cd730ee12a8246d01cde491cad520b0c3ea  block 26,181,792  gas 5,379,458  status 1
+  0x2744a8cb171cf6ca9c316e5043a6bd61c3e05358d911a6844f8bb2a0f371ac31  block 26,181,793  gas 5,379,458  status 1
+  0x8b2874e7e8f455dd68f88d21458e42545edb058965f8e20f425be8625a95d4d5  block 26,181,794  gas 5,379,458  status 1
+  0x1dff8e00cd1025f9ed934bd07039c2c4541047409adaffb3b4b79568a1fa7b92  block 26,181,795  gas 5,379,458  status 1
+  0xe511e4864d042f2330d648f4bc586a5172455d8e0eaa8ccd1b6fb43d0744b611  block 26,181,796  gas 5,379,458  status 1
+  0xd90c200fe174f075a73ac7952b778b5ac508c8bd7fe7be425984e3b50997f79f  block 26,181,798  gas 5,379,458  status 1
+  0x90a5933bd5175b6b2a8a683ec5889bfa06de9d4db69fd01e97e986bc8ee5fab6  block 26,181,799  gas 5,379,458  status 1
+  0xc9131182ecaf46f38080aadbd622bf3b3c4371784c7b8b2a81b8c7c8b775128f  block 26,181,800  gas 5,379,458  status 1
+  0x2caa54a14f59d10e8d0df8620a5276d3a14a118fc25645ce1a5a32324b636e74  block 26,181,801  gas 5,379,458  status 1
+  0x4867b2b667e18bf9ccb1e7fe15a2ffa693d3cceab313597da8e117067e8d579a  block 26,181,802  gas 5,379,458  status 1
+  0x04e2d9b48cac89be488785b9b70ea4cfba3df7dc6a653d150557b5699ddda0cb  block 26,181,803  gas 5,379,458  status 1
+  0xe3fdfbb4475fec09877a55ad445a30885e32ac2e7643ab1756b0d1cdce737fbd  block 26,181,805  gas 5,379,458  status 1
+  0x4d5474a08e9c91eaffc66aeed9937b44b10ea4c2f7fa064162de105ac930c148  block 26,181,806  gas 5,379,458  status 1
+  0x5a4d3a5797cd84f2ae0640731768cc6631456933e0201334b2a5d0e8cfefeac6  block 26,181,807  gas 5,379,458  status 1
+  0xc5c3d02ca98bc111d623909d3e1544673bc0be02e7f10bddba0a68e7d3499df9  block 26,181,808  gas 5,379,458  status 1
+  0x47a586b2393a4b4cf81f06f3bc61096981d07cfa487a9539881470f6236cbaba  block 26,181,809  gas 5,379,458  status 1
+  0xf9d94a9f54f960a270ea81cd7be354f46343b6a336d5efe9f14c3305f84d81f8  block 26,181,810  gas 5,379,458  status 1
+  0xe3649902e5d9c0ffd01c4bf153c6d52be9f6294d45014ed68bcfab86c1766ed7  block 26,181,811  gas 5,379,458  status 1
+  0x18cd791b40938e5954ede2811c60f93850825b68d34102683ab3eb60602e0eed  block 26,181,812  gas 5,379,458  status 1
+  0xed0233a95f21c14452a28dffb6dea97440dd62820c213728d2af780cd9efd490  block 26,181,813  gas 5,379,458  status 1
+  0x206207ff94b3a8d40dd1065e58c57a1187d0f0504fd79d2966e54b5e97ea16c9  block 26,181,814  gas 5,379,458  status 1
+  0x3c845c3878322f2627ffe9c344dd05bf5de9c6e547556c98248b5a558be24c7d  block 26,181,815  gas 5,379,458  status 1
+  0xce0208cb6480e29acd01f04a35224b9e91c4c68515232368be69f5e9576893ac  block 26,181,816  gas 5,379,458  status 1
+  0xa2f79095620367132ab0329c71ed99672dc8e408b08ab34aa9e84fb2eca168b6  block 26,181,817  gas 5,379,458  status 1
+  0x3bcb0ed21b9fa873a91b7006a2e032b11fa1c275af3910321d8e68aa084aa71f  block 26,181,818  gas 5,379,458  status 1
+  0xb37a9ef6720962365281c67cf98b8a1293abfb851b319162981a22f59b9ca8f6  block 26,181,819  gas 5,379,458  status 1
+  0x16de20cc2bc68238bef882fac0149e7a0315e98710de8adbe4d7b1980acbb430  block 26,181,820  gas 5,379,458  status 1
+  0xf32606086e29c14bd74f7e24714c5686d1ffe14abd5896b20e01057601f5a152  block 26,181,821  gas 4,815,339  status 1
+  45 chunks, 225,021,236 gas, paid 0.016598 ETH
+
+READ BACK (live, after the deploy): treasury orkhanart.eth; startsAt as above; reserve 0.01 ETH; motifCap and
+maxMotifsPerBid 1,000,000; 0 of 100 registered; not settled; liabilities 0; the auction names both token
+contracts and both name the auction as minter; names Motif Bazaar and The Unwoven Kilim. site-config verified
+the deployment and wrote site/chains/1.json.
+
+Kilim Bazaar: not deployed yet; it waits for its pages, its image service and the sealer (checklist 0, step 11).

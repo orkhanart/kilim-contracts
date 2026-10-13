@@ -1,6 +1,6 @@
 # Kilim contracts
 
-An immutable auction in native ETH for Ethereum mainnet, rehearsed on Sepolia, and the two ERC-721 contracts it mints into: **Motif Bazaar**, the motif collection, and **The Unwoven Kilim**, the 1/1. This is a **development release with an internal security review**, not a certification or a production deployment. Nothing is deployed. Read [AUDIT.md](AUDIT.md) before using real funds.
+An immutable auction in native ETH for Ethereum mainnet, rehearsed on Sepolia, and the two ERC-721 contracts it mints into: **Motif Bazaar**, the motif collection, and **The Unwoven Kilim**, the 1/1. **Deployed on Ethereum mainnet on 13 October 2026** ([audit/mainnet-2026-10-13.txt](audit/mainnet-2026-10-13.txt)): Motif Bazaar `0xf2bf089aa3b9E7D8664147e2Db42e84499717c7e`, The Unwoven Kilim `0x89c531b660DA287BB16f971023cCDddf302D80A2`, the auction `0xA3B9b4CeF168D5a23bDDA05C6Cb5F57F0Ef2ED8e`, from tag `mainnet-2026-10-13`. The review is internal (tests, Sepolia, the tool round of 12 October, multi-agent audits), not a third-party certification: read [AUDIT.md](AUDIT.md).
 
 The design, decided with the artist on 10 October 2026, is [docs/CONTRACTS.md](docs/CONTRACTS.md). OpenZeppelin primitives are reused directly. The auction uses a limited adaptation of thirdweb's English auction flow and its unchanged winning-bid predicate; [REUSE.md](REUSE.md) records the exact audit-reference commit, source hashes, licenses and modifications. The custom escrow, registration and rewards require their own review; the upstream audit does not certify this adaptation.
 
