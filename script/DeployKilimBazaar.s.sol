@@ -5,6 +5,7 @@ import {KilimAuction} from "../src/KilimAuction.sol";
 import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {KilimBazaar} from "../src/KilimBazaar.sol";
+import {KilimTexts} from "./KilimTexts.sol";
 
 interface VmBazaarDeploy {
     function readFile(string calldata) external view returns (string memory);
@@ -26,6 +27,7 @@ interface VmBazaarDeploy {
     function toString(uint256) external pure returns (string memory);
     function toString(address) external pure returns (string memory);
     function toString(bytes32) external pure returns (string memory);
+    function computeCreateAddress(address, uint256) external pure returns (address);
 }
 
 /// @title DeployKilimBazaar
@@ -34,15 +36,31 @@ interface VmBazaarDeploy {
 ///         creation, and the deployer gets no role.
 ///
 ///         The config is the JSON file named by $KILIM_DEPLOY_CONFIG (the same files as DeployKilim), read
-///         from its top-level `chainId` and `pageStore` and a `bazaar` block:
+///         from its top-level `chainId`, `deployer`, `deployerNonce` and `pageStore`, the token texts
+///         (`collection`, `oneOfOne`), `expected.texts`, and a `bazaar` block:
 ///           "bazaar": {"auction": "0x…", "royaltyReceiver": "0x…", "pageTailHash": "0x…",
 ///                      "description": "…", "externalUrl": "…", "imageBase": "…",
 ///                      "pageRanks": {"names": ["Apprentice", …, "The Master"], "costs": [10, 30, 100, 300, 1000]},
-///                      "motifs": "0x…", "oneOfOne": "0x…"}          (motifs and oneOfOne optional)
+///                      "motifs": "0x…", "oneOfOne": "0x…"}          (auction, motifs and oneOfOne optional)
 ///         $KILIM_BAZAAR_AUCTION may name the auction instead; when both do, they must agree.
 ///
-///         It refuses: the wrong chain; an auction without code; an auction, motif collection and 1/1 that do
-///         not belong together, or that differ from the config's; a pageTailHash other than the chain's 1/1's
+///         On Ethereum mainnet the three addresses are not typed in: they follow from orkhanart.eth and the
+///         config's `deployerNonce`, the number DeployKilim deployed at (Motif Bazaar at n, The Unwoven Kilim
+///         at n + 1, the auction at n + 2). Only orkhanart.eth can create a contract at those addresses, so a
+///         look-alike auction, motif collection and 1/1 deployed by anyone else over the public page chunks
+///         can never stand in for them (audit TK-1). An address the config or $KILIM_BAZAAR_AUCTION names on
+///         mainnet must be the derived one. Elsewhere the auction comes from the config or the environment,
+///         and motifs and oneOfOne are compared when named.
+///
+///         `expected.texts` (KilimTexts: the token texts and the Bazaar's three) is required on mainnet and
+///         compared whenever the config carries it (audit TK-2); the token texts it covers must then also be
+///         what the chain's motif collection and 1/1 hold.
+///
+///         It refuses: the wrong chain; on mainnet a deployer other than orkhanart.eth, no deployerNonce, or an
+///         auction, motifs or oneOfOne other than orkhanart.eth's creations at deployerNonce + 2, + 0 and + 1;
+///         no auction; an auction without code; an auction, motif collection and 1/1 that do not belong
+///         together, or that differ from the config's; texts that differ from `expected.texts`, or token texts
+///         that differ from the chain's; a pageTailHash other than the chain's 1/1's
 ///         or the page store manifest's; a text the token's data: URL cannot carry, or one with the words the
 ///         project dropped (make, woven, in any case; "unwoven" passes); an imageBase or externalUrl that is
 ///         not a URL base (https://, ipfs:// or ar://, no space, ending in "/" or "=": the token id is
@@ -77,9 +95,15 @@ contract DeployKilimBazaar {
     /// @notice Policy ceiling for every transaction, as DeployKilim.MAX_TX_GAS.
     uint256 public constant MAX_TX_GAS = 8_000_000;
     uint256 public constant MAX_RUNTIME = 24_576;
+    /// @notice A config without `deployerNonce` (or with DeployKilim's NO_NONCE_CHECK). Refused on mainnet.
+    uint256 public constant NO_NONCE = type(uint256).max;
 
     struct Config {
         uint256 chainId;
+        /// @dev The config's top-level `deployer` and `deployerNonce`, the ones DeployKilim deployed the three
+        ///      contracts from. On mainnet the three addresses follow from them (`launchAddresses`).
+        address deployer;
+        uint256 deployerNonce;
         address auction;
         /// @dev Expected addresses, compared with the auction's when nonzero.
         address motifs;
@@ -94,6 +118,14 @@ contract DeployKilimBazaar {
         string imageBase;
         string[] rankNames;
         uint256[] rankCosts;
+        /// @dev The token texts as the config names them (`collection`, `oneOfOne`), for `expected.texts`.
+        string collectionDescription;
+        string collectionExternalUrl;
+        string oneOfOneName;
+        string oneOfOneDescription;
+        string oneOfOneExternalUrl;
+        /// @dev `expected.texts`; zero when the config has none.
+        bytes32 expectedTexts;
     }
 
     error Refused(string reason);
@@ -102,7 +134,8 @@ contract DeployKilimBazaar {
 
     function run() external returns (KilimBazaar) {
         Config memory c = loadConfig(vm.envString("KILIM_DEPLOY_CONFIG"));
-        c.auction = auctionFrom(c.auction, vm.envOr("KILIM_BAZAAR_AUCTION", address(0)));
+        address fromEnv = vm.envOr("KILIM_BAZAAR_AUCTION", address(0));
+        if (fromEnv != address(0)) c.auction = auctionFrom(c.auction, fromEnv);
         return deploy(c, msg.sender);
     }
 
@@ -112,6 +145,9 @@ contract DeployKilimBazaar {
 
     function parseConfig(string memory j) public view returns (Config memory c) {
         c.chainId = vm.parseJsonUint(j, ".chainId");
+        if (vm.keyExistsJson(j, ".deployer")) c.deployer = vm.parseJsonAddress(j, ".deployer");
+        c.deployerNonce =
+            vm.keyExistsJson(j, ".deployerNonce") ? vm.parseJsonUint(j, ".deployerNonce") : NO_NONCE;
         if (vm.keyExistsJson(j, ".bazaar.auction")) c.auction = vm.parseJsonAddress(j, ".bazaar.auction");
         if (vm.keyExistsJson(j, ".bazaar.motifs")) c.motifs = vm.parseJsonAddress(j, ".bazaar.motifs");
         if (vm.keyExistsJson(j, ".bazaar.oneOfOne")) c.oneOfOne = vm.parseJsonAddress(j, ".bazaar.oneOfOne");
@@ -129,6 +165,47 @@ contract DeployKilimBazaar {
             c.rankNames = vm.parseJsonStringArray(j, ".bazaar.pageRanks.names");
             c.rankCosts = vm.parseJsonUintArray(j, ".bazaar.pageRanks.costs");
         }
+        if (vm.keyExistsJson(j, ".collection")) {
+            c.collectionDescription = vm.parseJsonString(j, ".collection.description");
+            c.collectionExternalUrl = vm.parseJsonString(j, ".collection.externalUrl");
+        }
+        if (vm.keyExistsJson(j, ".oneOfOne")) {
+            c.oneOfOneName = vm.parseJsonString(j, ".oneOfOne.name");
+            c.oneOfOneDescription = vm.parseJsonString(j, ".oneOfOne.description");
+            c.oneOfOneExternalUrl = vm.parseJsonString(j, ".oneOfOne.externalUrl");
+        }
+        if (vm.keyExistsJson(j, ".expected.texts")) {
+            c.expectedTexts = vm.parseJsonBytes32(j, ".expected.texts");
+        }
+    }
+
+    /// @notice Where DeployKilim puts the three contracts on mainnet, from orkhanart.eth at `deployerNonce`:
+    ///         Motif Bazaar at n, The Unwoven Kilim at n + 1 and the auction at n + 2 (DeployKilim's order;
+    ///         runAuction completes a lost third creation at the same n + 2).
+    function launchAddresses(uint256 deployerNonce)
+        public
+        pure
+        returns (address motifs, address oneOfOne, address auction)
+    {
+        motifs = vm.computeCreateAddress(LAUNCH_ARTIST, deployerNonce);
+        oneOfOne = vm.computeCreateAddress(LAUNCH_ARTIST, deployerNonce + 1);
+        auction = vm.computeCreateAddress(LAUNCH_ARTIST, deployerNonce + 2);
+    }
+
+    /// @notice `expected.texts` for this config: KilimTexts.hash of the eight texts, as DeployKilim computes it.
+    function textsHash(Config memory c) public pure returns (bytes32) {
+        return KilimTexts.hash(
+            [
+                c.collectionDescription,
+                c.collectionExternalUrl,
+                c.oneOfOneName,
+                c.oneOfOneDescription,
+                c.oneOfOneExternalUrl,
+                c.description,
+                c.externalUrl,
+                c.imageBase
+            ]
+        );
     }
 
     /// @notice The auction to deploy against: the config's, the environment's, or both when they agree.
@@ -142,8 +219,10 @@ contract DeployKilimBazaar {
         return fromConfig != address(0) ? fromConfig : fromEnv;
     }
 
-    /// @notice Check everything, dry-run the creation as `sender` inside a snapshot, then broadcast it.
+    /// @notice Check everything, dry-run the creation as `sender` inside a snapshot, then broadcast it. On mainnet
+    ///         the auction, motifs and oneOfOne the config leaves out are filled in from `deployerNonce` first.
     function deploy(Config memory c, address sender) public returns (KilimBazaar bazaar) {
+        c = withLaunchAddresses(c);
         check(c, sender);
         _printSettings(c, sender);
 
@@ -167,9 +246,25 @@ contract DeployKilimBazaar {
         _log(string.concat("KilimBazaar    ", vm.toString(address(bazaar))));
     }
 
+    /// @notice On mainnet, the three addresses the config leaves out, derived from orkhanart.eth and
+    ///         `deployerNonce`. Addresses the config names are kept, and `check` refuses them unless they are the
+    ///         derived ones. Elsewhere, or without the deployer and nonce, the config is returned as it is.
+    function withLaunchAddresses(Config memory c) public view returns (Config memory) {
+        if (block.chainid != MAINNET_CHAIN_ID || c.deployer != LAUNCH_ARTIST || c.deployerNonce == NO_NONCE) {
+            return c;
+        }
+        (address motifs, address oneOfOne, address auction) = launchAddresses(c.deployerNonce);
+        if (c.auction == address(0)) c.auction = auction;
+        if (c.motifs == address(0)) c.motifs = motifs;
+        if (c.oneOfOne == address(0)) c.oneOfOne = oneOfOne;
+        return c;
+    }
+
     /// @notice Every refusal that can be decided before the creation.
     function check(Config memory c, address sender) public view {
         if (block.chainid != c.chainId) revert Refused("wrong chain");
+        if (block.chainid == MAINNET_CHAIN_ID) _requireLaunchAddresses(c);
+        if (c.auction == address(0)) revert Refused("no auction: set bazaar.auction");
         if (c.auction.code.length == 0) revert Refused("the auction has no code");
         if (c.royaltyReceiver == address(0)) revert Refused("zero royalty receiver");
         KilimAuction auction = KilimAuction(c.auction);
@@ -214,9 +309,40 @@ contract DeployKilimBazaar {
             if (bytes(c.imageBase).length == 0) revert Refused("mainnet launch value: imageBase is empty");
             if (bytes(c.pageStore).length == 0) revert Refused("mainnet needs the page store");
         }
+        // Last, so that a text refused for its own reason above says so (audit TK-2).
+        if (block.chainid == MAINNET_CHAIN_ID || c.expectedTexts != bytes32(0)) {
+            if (c.expectedTexts == bytes32(0) || c.expectedTexts != textsHash(c)) {
+                revert Refused("expected texts");
+            }
+            // The hash covers the token texts as the config names them; they must be the ones on the chain.
+            if (
+                !_same(motifs.description(), c.collectionDescription)
+                    || !_same(motifs.externalUrl(), c.collectionExternalUrl)
+                    || !_same(oneOfOne.name(), c.oneOfOneName)
+                    || !_same(oneOfOne.description(), c.oneOfOneDescription)
+                    || !_same(oneOfOne.externalUrl(), c.oneOfOneExternalUrl)
+            ) revert Refused("the token texts differ from the chain's");
+        }
     }
 
     // ------------------------------------------------------------ internals
+
+    /// @dev Mainnet (audit TK-1): the auction, motifs and 1/1 must be the contracts orkhanart.eth created at
+    ///      deployerNonce + 2, + 0 and + 1. Nobody else can put code at those addresses.
+    function _requireLaunchAddresses(Config memory c) internal pure {
+        if (c.deployer != LAUNCH_ARTIST) revert Refused("mainnet launch value: deployer");
+        if (c.deployerNonce == NO_NONCE) revert Refused("mainnet needs the published deployerNonce");
+        (address motifs, address oneOfOne, address auction) = launchAddresses(c.deployerNonce);
+        if (c.auction != auction) {
+            revert Refused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        }
+        if (c.motifs != motifs) {
+            revert Refused("mainnet: motifs are not orkhanart.eth's creation at deployerNonce");
+        }
+        if (c.oneOfOne != oneOfOne) {
+            revert Refused("mainnet: oneOfOne is not orkhanart.eth's creation at deployerNonce + 1");
+        }
+    }
 
     function _create(Config memory c) internal returns (KilimBazaar) {
         return new KilimBazaar(
@@ -349,6 +475,15 @@ contract DeployKilimBazaar {
         KilimAuction auction = KilimAuction(c.auction);
         _log(string.concat("Kilim Bazaar for chain ", vm.toString(block.chainid)));
         _log(string.concat("  sender            ", vm.toString(sender)));
+        if (block.chainid == MAINNET_CHAIN_ID) {
+            _log(
+                string.concat(
+                    "  addresses from    orkhanart.eth at deployerNonce ",
+                    vm.toString(c.deployerNonce),
+                    " (motifs n, 1/1 n + 1, auction n + 2)"
+                )
+            );
+        }
         _log(string.concat("  auction           ", vm.toString(c.auction)));
         _log(string.concat("  motifs            ", vm.toString(address(auction.motifs()))));
         _log(string.concat("  oneOfOne          ", vm.toString(address(auction.oneOfOne()))));
@@ -383,6 +518,13 @@ contract DeployKilimBazaar {
                 c.rankNames.length == 0
                     ? "(not named: not compared)"
                     : "compared with the contract after the dry run"
+            )
+        );
+        _log(
+            string.concat(
+                "  texts             ",
+                vm.toString(textsHash(c)),
+                c.expectedTexts == bytes32(0) ? " (no expected.texts: not compared)" : " (expected.texts)"
             )
         );
     }

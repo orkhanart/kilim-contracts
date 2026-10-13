@@ -21,6 +21,8 @@ interface VmDeployTest {
     function chainId(uint256) external;
     function setEnv(string calldata, string calldata) external;
     function warp(uint256) external;
+    function store(address, bytes32, bytes32) external;
+    function load(address, bytes32) external view returns (bytes32);
 }
 
 /// @dev The script with the one call that needs a live node replaced: the deployer's pending nonce is
@@ -34,6 +36,12 @@ contract DeployKilimHarness is DeployKilim {
 
     function _pendingNonce(address who) internal view override returns (uint256) {
         return vm.getNonce(who) + pendingAhead;
+    }
+
+    /// @dev The `expected` comparison alone, against a store as loaded: a config edited after the store was
+    ///      re-packed with the same edit passes every other check (audit TK-2).
+    function requireExpected(Config memory c, Store memory s) external view {
+        _requireExpected(c, s);
     }
 }
 
@@ -114,6 +122,7 @@ contract DeployKilimTest is TestBase {
         c.expected.artwork = vmd.parseJsonBytes32(pg, ".artwork.sha256");
         c.expected.still = vmd.parseJsonBytes32(pg, ".still.sha256");
         c.expected.loader = vmd.parseJsonBytes32(pg, ".loaderTemplate.sha256");
+        c.expected.texts = script.textsHash(c);
         return c;
     }
 
@@ -270,22 +279,23 @@ contract DeployKilimTest is TestBase {
         script.deployStore(c, SENDER);
         script.deployContracts(c);
 
-        for (uint256 field; field < 11; ++field) {
+        for (uint256 field; field < 12; ++field) {
             c = _withExpected(_config(PAGE_FIXTURE));
             string memory name = _spoil(c, field, bytes32(uint256(1)));
             _expectRefused(string.concat("expected ", name));
             script.deployStore(c, SENDER);
             _expectRefused(string.concat("expected ", name));
             script.deployContracts(c);
-            // a zero is a value nobody filled in
+            // a zero is a value nobody filled in; `texts` aside, which off mainnet may be left out (the
+            // Sepolia record predates it)
             c = _withExpected(_config(PAGE_FIXTURE));
             _spoil(c, field, bytes32(0));
-            _expectRefused(string.concat("expected ", name));
+            if (field < 11) _expectRefused(string.concat("expected ", name));
             script.deployStore(c, SENDER);
         }
     }
 
-    /// @dev Replaces one of the eleven expected values and returns its name.
+    /// @dev Replaces one of the twelve expected values and returns its name.
     function _spoil(DeployKilim.Config memory c, uint256 field, bytes32 value)
         internal
         pure
@@ -302,8 +312,9 @@ contract DeployKilimTest is TestBase {
         else if (field == 7) e.motifSource = value;
         else if (field == 8) e.artwork = value;
         else if (field == 9) e.still = value;
-        else e.loader = value;
-        string[11] memory names = [
+        else if (field == 10) e.loader = value;
+        else e.texts = value;
+        string[12] memory names = [
             "gridsHash",
             "namesHash",
             "prefixHash",
@@ -314,7 +325,8 @@ contract DeployKilimTest is TestBase {
             "motifSource",
             "artwork",
             "still",
-            "loader"
+            "loader",
+            "texts"
         ];
         return names[field];
     }
@@ -600,7 +612,7 @@ contract DeployKilimTest is TestBase {
         script.deployStore(c, SENDER);
         _expectRefused("mainnet needs the expected hashes");
         script.deployContracts(c);
-        for (uint256 field; field < 11; ++field) {
+        for (uint256 field; field < 12; ++field) {
             c = _mainnetConfig();
             string memory name = _spoil(c, field, keccak256("another pack"));
             _expectRefused(string.concat("expected ", name));
@@ -827,6 +839,107 @@ contract DeployKilimTest is TestBase {
         assertTrue(!auction.oneOfOne().minted());
     }
 
+    // ------------------------------------------------------------ the signed-off texts (audit TK-2)
+
+    /// @dev The collection's link is in no golden, and the store packed with another link changes nothing but
+    ///      that manifest field: the hashes, the goldens, the source and every chunk stay (the audit re-packed it
+    ///      to show this). So a config edited after sign-off, with its store re-packed to match, passed every
+    ///      check. `expected.texts` covers every text the contracts store, the Bazaar's included, and is now the
+    ///      check that refuses it: here, against the real store as loaded, with each text edited in turn.
+    function testMainnetRefusesATextEditedAfterSignOff() public {
+        vmd.chainId(1);
+        DeployKilim.Config memory c = _mainnetConfig(PAGE_STORE);
+        c.bazaarDescription = "Kilims made from burned motifs.";
+        c.bazaarExternalUrl = "https://orkhan.art/kilim/bazaar/";
+        c.bazaarImageBase = "https://orkhan.art/kilim/bazaar/image/";
+        c.expected.texts = script.textsHash(c);
+        DeployKilim.Store memory s = script.loadStore(c);
+        script.requireExpected(c, s);
+        for (uint256 i; i < 8; ++i) {
+            DeployKilim.Config memory e = _mainnetConfig(PAGE_STORE);
+            e.bazaarDescription = c.bazaarDescription;
+            e.bazaarExternalUrl = c.bazaarExternalUrl;
+            e.bazaarImageBase = c.bazaarImageBase;
+            e.expected.texts = c.expected.texts;
+            if (i == 0) e.collectionDescription = "Another description.";
+            else if (i == 1) e.collectionExternalUrl = "https://attacker.example/kilim";
+            else if (i == 2) e.oneOfOneName = "Another name";
+            else if (i == 3) e.oneOfOneDescription = "Another description.";
+            else if (i == 4) e.oneOfOneExternalUrl = "https://attacker.example/";
+            else if (i == 5) e.bazaarDescription = "Another description.";
+            else if (i == 6) e.bazaarExternalUrl = "https://attacker.example/bazaar/";
+            else e.bazaarImageBase = "https://attacker.example/image/";
+            _expectRefused("expected texts");
+            script.requireExpected(e, s);
+        }
+        // Through both phases: a Bazaar text is compared with nothing else, so the texts value alone refuses it.
+        script.deployStore(_mainnetConfig(), SENDER);
+        c = _mainnetConfig();
+        c.bazaarImageBase = "https://attacker.example/image/";
+        _expectRefused("expected texts");
+        script.deployStore(c, SENDER);
+        _expectRefused("expected texts");
+        script.deployContracts(c);
+    }
+
+    /// @dev deploy/mainnet.json loads (no TODO text is left), its texts hash to its `expected.texts`, and with
+    ///      the real stores the store phase runs with the placeholder startsAt 0, which the contracts phase
+    ///      refuses. With minLeadSeconds 600 the contracts phase takes a startsAt 600 seconds out and refuses
+    ///      599; the procedure's now + 1200 deploys at the addresses deployerNonce names.
+    function testMainnetJsonRunsTheStoreAndRefusesTheContractsUntilStartsAtIsSet() public {
+        vmd.chainId(1);
+        DeployKilim.Config memory c = script.loadConfig("deploy/mainnet.json");
+        assertEq(c.expected.texts, script.textsHash(c));
+        assertEq(c.minLeadSeconds, 600);
+        assertEq(c.auction.startsAt, 0);
+        assertEq(c.deployer, ARTIST);
+        script.deployStore(c, SENDER);
+        vmd.setNonce(ARTIST, uint64(c.deployerNonce));
+        _expectRefused("startsAt outside the inspection window");
+        script.deployContracts(c);
+        c.auction.startsAt = uint64(block.timestamp + 599);
+        _expectRefused("startsAt outside the inspection window");
+        script.deployContracts(c);
+        c.auction.startsAt = uint64(block.timestamp + 1200);
+        DeployKilim.Deployed memory d = script.deployContracts(c);
+        assertEq(address(d.motifs), vmd.computeCreateAddress(ARTIST, c.deployerNonce));
+        assertEq(address(d.oneOfOne), vmd.computeCreateAddress(ARTIST, c.deployerNonce + 1));
+        assertEq(address(d.auction), vmd.computeCreateAddress(ARTIST, c.deployerNonce + 2));
+    }
+
+    // ------------------------------------------------------------ reading the 1/1 before the mint (audit TK-5)
+
+    /// The 1/1's `_owners[1]`: OpenZeppelin ERC721 keeps `_owners` at slot 2 (KilimOneOfOne inherits nothing
+    /// before it), so the entry for token 1 is keccak256(abi.encode(1, 2)). checklists/2-deploy.md overrides
+    /// it in an eth_call to read the deployed, unminted 1/1's tokenURI(1).
+    bytes32 internal constant OWNER_OF_ONE_SLOT =
+        0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0;
+
+    /// @dev The read-back in checklist 2: one storage override makes the unminted 1/1 answer tokenURI(1), and
+    ///      it is the golden. The real mint writes exactly that slot.
+    function testTheUnmintedOneOfOneReadsItsGoldenWithAStateOverride() public {
+        assertEq(OWNER_OF_ONE_SLOT, keccak256(abi.encode(uint256(1), uint256(2))));
+        DeployKilim.Config memory c = _config();
+        DeployKilim.Store memory s = script.deployStore(c, SENDER);
+        c.deployerNonce = vmd.getNonce(DEPLOYER);
+        DeployKilim.Deployed memory d = script.deployContracts(c);
+        assertTrue(!d.oneOfOne.minted());
+        vm.expectRevert();
+        d.oneOfOne.tokenURI(1);
+
+        uint256 snap = vm.snapshotState();
+        vmd.store(address(d.oneOfOne), OWNER_OF_ONE_SLOT, bytes32(uint256(0xdead)));
+        assertEq(
+            sha256(bytes(d.oneOfOne.tokenURI(1))),
+            vmd.parseJsonBytes32(s.pageManifest, ".golden.tokenURI.sha256")
+        );
+        vm.revertToState(snap);
+
+        vm.prank(address(d.auction));
+        d.oneOfOne.mint(ALICE);
+        assertEq(vmd.load(address(d.oneOfOne), OWNER_OF_ONE_SLOT), bytes32(uint256(uint160(ALICE))));
+    }
+
     function _checkTemplate(string memory path, uint256 chain) internal {
         string memory j = vmd.readFile(path);
         assertEq(vmd.parseJsonUint(j, ".chainId"), chain);
@@ -839,7 +952,7 @@ contract DeployKilimTest is TestBase {
         assertEq(vmd.parseJsonUint(j, ".auction.maxMotifsPerBid"), script.LAUNCH_MAX_MOTIFS_PER_BID());
         assertEq(vmd.parseJsonString(j, ".oneOfOne.name"), script.LAUNCH_ONE_OF_ONE_NAME());
         // The content block is there with every key, each still zero: refused until it is filled in.
-        string[11] memory keys = [
+        string[12] memory keys = [
             "gridsHash",
             "namesHash",
             "prefixHash",
@@ -850,7 +963,8 @@ contract DeployKilimTest is TestBase {
             "motifSource",
             "artwork",
             "still",
-            "loader"
+            "loader",
+            "texts"
         ];
         for (uint256 i; i < keys.length; ++i) {
             assertEq(vmd.parseJsonBytes32(j, string.concat(".expected.", keys[i])), bytes32(0));

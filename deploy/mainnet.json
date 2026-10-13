@@ -1,14 +1,14 @@
 {
-  "_comment": "The Ethereum mainnet deployment, filled 11 October 2026 except the two values only the artist decides (checklists/0-launch-steps.md, then 1-pre-deploy.md and 2-deploy.md). The auction values are the decided launch settings; on chain 1 script/DeployKilim.s.sol refuses any other, any deployer but orkhanart.eth, a skipped nonce check, a zero minLeadSeconds, a missing or different expected block, and a deployer with code. The texts equal the packed manifests; the expected block is pnpm -s expected for the stores packed from the final artwork (mint/artwork.html SHA-256 bbc7b408..., with the 30-motif rank named Spinner). minLeadSeconds is 86400, the recommended 24-hour inspection window. Both TODO fields must be whole numbers without quotes before either command runs (the script cannot read the config while they are text).",
+  "_comment": "The Ethereum mainnet deployment (checklists/0-launch-steps.md, then 1-pre-deploy.md and 2-deploy.md), filled 11 October 2026 and revised 12 October. The auction values are the decided launch settings; on chain 1 script/DeployKilim.s.sol refuses any other, any deployer but orkhanart.eth, a skipped nonce check, a zero minLeadSeconds, a missing or different expected block, and a deployer with code. Two values are set on the day, not in advance. deployerNonce: 1568 was read on 11 October, and orkhanart.eth's nonce has moved since (1,569 on 12 October at 15:28 UTC, a WETH unwrap; 1,570 when read at 23:51 UTC), so re-read it and set it on the wallet-freeze day (checklist 0, step 1). auction.startsAt: the placeholder 0, which runStore parses but never checks and runContracts refuses ('startsAt outside the inspection window'); right before runContracts set it to python3 -c 'import time; print(int(time.time()) + 1200)': it must be at least minLeadSeconds after the latest block when forge simulates, and the third creation must be mined before it. minLeadSeconds is 600 (10 minutes), the artist's decision of 12 October: before 100 registrations nobody can bid, so no ETH is at risk and the registration phase is the inspection window. The texts equal the packed manifests. The expected block is pnpm -s expected --config deploy/mainnet.json for the stores packed from the final artwork (mint/artwork.html SHA-256 bbc7b408..., with the 30-motif rank named Spinner); its texts value is the hash of the collection, 1/1 and bazaar texts, and both scripts refuse a text edited after it was signed off. The bazaar block names no address: on chain 1 script/DeployKilimBazaar.s.sol takes the motif collection, the 1/1 and the auction from deployer and deployerNonce (n, n + 1, n + 2), the contracts only orkhanart.eth can have created there.",
   "chainId": 1,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
   "deployerNonce": 1568,
-  "minLeadSeconds": 86400,
+  "minLeadSeconds": 600,
   "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "startsAt": "TODO: the launch date, when registration opens, in unix seconds (not milliseconds). It must be at least 86400 seconds (minLeadSeconds) after the block runContracts lands in, and less than 365 days after it. Example: python3 -c 'import calendar,time; print(calendar.timegm(time.strptime(\"2026-11-20 18:00\", \"%Y-%m-%d %H:%M\")))' for 20 November 2026, 18:00 UTC.",
+    "startsAt": 0,
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,
@@ -26,7 +26,6 @@
     "externalUrl": ""
   },
   "bazaar": {
-    "auction": "TODO: the mainnet auction address, after runContracts",
     "royaltyReceiver": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
     "pageTailHash": "0xc8e4866cf88a4d6d9cb69d8e10437a2cc7dcdef0601d9eef316e222d945b2eed",
     "description": "Kilims made from burned motifs by the engine of The Unwoven Kilim. Each is fixed by its seed and drawn only in the motifs that went into it.",
@@ -61,6 +60,7 @@
     "motifSource": "0xbbc7b408e457bca75a44a014bd1c7e64739a6421d6a0e82af16c6b6cbc3fd54b",
     "artwork": "0xbbc7b408e457bca75a44a014bd1c7e64739a6421d6a0e82af16c6b6cbc3fd54b",
     "still": "0xfed32204a81588656725915761f4f0f906250bdabaa5d1a3c14bcbb64ad8b277",
-    "loader": "0x4b611d0641dc74b87eba33f0b72f378a0805ebc543df258378d996e619a17f72"
+    "loader": "0x4b611d0641dc74b87eba33f0b72f378a0805ebc543df258378d996e619a17f72",
+    "texts": "0xc7d05cc0a935654d87f491ba378cf5565dfa010b401d8e98dcb84e885f86b699"
   }
 }

@@ -1,16 +1,45 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.37;
 
+import {DeployKilim} from "../script/DeployKilim.s.sol";
 import {DeployKilimBazaar} from "../script/DeployKilimBazaar.s.sol";
 import {KilimAuction} from "../src/KilimAuction.sol";
+import {KilimMotifs} from "../src/KilimMotifs.sol";
+import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
 import {KilimBazaar} from "../src/KilimBazaar.sol";
 import {BazaarBase, FakeAuction} from "./bazaar/BazaarBase.sol";
+
+interface VmBazaarDeployTest {
+    function setNonce(address, uint64) external;
+    function readFile(string calldata) external view returns (string memory);
+    function parseJsonAddress(string calldata, string calldata) external pure returns (address);
+    function parseJsonUint(string calldata, string calldata) external pure returns (uint256);
+    function parseJsonString(string calldata, string calldata) external pure returns (string memory);
+    function parseJsonBytes32(string calldata, string calldata) external pure returns (bytes32);
+}
+
+/// @dev DeployKilim with the one call that needs a live node (the pending nonce) answered from the chain.
+contract DeployKilimOffline is DeployKilim {
+    function _pendingNonce(address who) internal view override returns (uint256) {
+        return vm.getNonce(who);
+    }
+}
 
 /// @notice script/DeployKilimBazaar.s.sol against the local chain: a deployment read back, every refusal it
 ///         promises, the launch values it pins when the chain is switched to Ethereum mainnet, and its config.
 contract KilimBazaarDeployTest is BazaarBase {
+    VmBazaarDeployTest internal constant vmx =
+        VmBazaarDeployTest(address(uint160(uint256(keccak256("hevm cheat code")))));
     address internal constant SENDER = address(0x5E4D);
     string internal constant FRAMES = "https://orkhan.art/kilim/bazaar/frames/";
+    string internal constant MAINNET_JSON = "deploy/mainnet.json";
+    /// orkhanart.eth's nonce when the mainnet addresses were first published (checklists/0-launch-steps.md),
+    /// and the three contracts DeployKilim puts there: Motif Bazaar at n, The Unwoven Kilim at n + 1, the
+    /// auction at n + 2.
+    uint256 internal constant PUBLISHED_NONCE = 1568;
+    address internal constant PUBLISHED_MOTIFS = 0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF;
+    address internal constant PUBLISHED_ONE_OF_ONE = 0xeD82CE5F5E943ef80F3D32a907281936186742eC;
+    address internal constant PUBLISHED_AUCTION = 0xb4817D07a14503dCEf49Bd25B17557e7CBb23423;
 
     DeployKilimBazaar internal script;
     /// The contract's rank names and fixed costs, read from a Bazaar made here (the names are written once,
@@ -369,11 +398,85 @@ contract KilimBazaarDeployTest is BazaarBase {
 
     // ------------------------------------------------------------ mainnet
 
+    /// @dev Chain 1 as the Bazaar meets it: the auction and its two tokens created by orkhanart.eth at nonces
+    ///      n, n + 1 and n + 2, as DeployKilim sends them, and a config that names the deployer, n and the
+    ///      signed-off texts but no address (the script derives all three).
     function _mainnet() internal returns (DeployKilimBazaar.Config memory c) {
         vmb.chainId(1);
         vmb.etch(HISTORY, HISTORY_CODE);
+        if (PUBLISHED_AUCTION.code.length == 0) {
+            _deployTrioFromArtist(PUBLISHED_NONCE, FIXTURE_PAGE);
+        } else {
+            auction = KilimAuction(PUBLISHED_AUCTION);
+            motifs = auction.motifs();
+            oneOfOne = auction.oneOfOne();
+        }
         c = _config();
+        c.deployer = ARTIST;
+        c.deployerNonce = PUBLISHED_NONCE;
+        c.auction = address(0);
+        c.motifs = address(0);
+        c.oneOfOne = address(0);
         c.imageBase = FRAMES;
+        c = _signTexts(c);
+    }
+
+    /// @dev The token texts BazaarBase deploys with, and `expected.texts` over them and the Bazaar's three.
+    function _signTexts(DeployKilimBazaar.Config memory c)
+        internal
+        view
+        returns (DeployKilimBazaar.Config memory)
+    {
+        c.collectionDescription = DESCRIPTION;
+        c.collectionExternalUrl = EXTERNAL_URL;
+        c.oneOfOneName = ONE_OF_ONE_NAME;
+        c.oneOfOneDescription = DESCRIPTION;
+        c.oneOfOneExternalUrl = EXTERNAL_URL;
+        c.expectedTexts = script.textsHash(c);
+        return c;
+    }
+
+    /// @dev The store chunks from this contract (any wallet may send them), then the three creations from
+    ///      orkhanart.eth at nonce n, in DeployKilim's order, the auction's address predicted as both minters.
+    function _deployTrioFromArtist(uint256 n, string memory dir) internal {
+        vmx.setNonce(ARTIST, uint64(n));
+        pageDir = dir;
+        pageHead = _pageFile("head.bin");
+        KilimOneOfOne.Page memory page = pageFrom(_pageFile("prefix.bin"), pageHead, _pageFile("tail.bin"));
+        bytes memory grids = standInGrids();
+        bytes memory names = standInNames();
+        address[] memory gridChunks = chunked(grids, 767 * 32);
+        address namesChunk = sstore2(names);
+        address minter = vm.computeCreateAddress(ARTIST, n + 2);
+        vm.startPrank(ARTIST);
+        motifs = new KilimMotifs(
+            minter,
+            ARTIST,
+            BIG_CAP,
+            gridChunks,
+            keccak256(grids),
+            namesChunk,
+            keccak256(names),
+            DESCRIPTION,
+            EXTERNAL_URL
+        );
+        oneOfOne = new KilimOneOfOne(minter, ARTIST, motifs, page, ONE_OF_ONE_NAME, DESCRIPTION, EXTERNAL_URL);
+        auction = new KilimAuction(
+            KilimAuction.Config({
+                treasury: ARTIST,
+                motifs: address(motifs),
+                oneOfOne: address(oneOfOne),
+                startsAt: uint64(block.timestamp + 1 hours),
+                duration: 24 hours,
+                extensionWindow: 10 minutes,
+                incrementBps: 1000,
+                reservePrice: RESERVE,
+                maxMotifsPerBid: BIG_CAP
+            })
+        );
+        vm.stopPrank();
+        motifChain = motifs.deploymentChainId();
+        require(address(auction) == minter, "auction address");
     }
 
     function testMainnetDeploysFromTheArtistWithTheLaunchValues() public {
@@ -430,6 +533,283 @@ contract KilimBazaarDeployTest is BazaarBase {
         script.deploy(c, SENDER);
         vmb.etch(HISTORY, HISTORY_CODE);
         assertEq(script.deploy(c, SENDER).seedWindow(), 8191);
+    }
+
+    // ------------------------------------------------------------ mainnet: the three addresses (audit TK-1)
+
+    /// @dev The offsets are DeployKilim's: at the nonce first published, the derived addresses are the ones
+    ///      published for it.
+    function testTheLaunchAddressesFollowDeployKilimsOrder() public view {
+        (address m, address o, address a) = script.launchAddresses(PUBLISHED_NONCE);
+        assertEq(m, PUBLISHED_MOTIFS);
+        assertEq(o, PUBLISHED_ONE_OF_ONE);
+        assertEq(a, PUBLISHED_AUCTION);
+        // and at 1,570, the nonce read on 12 October at 23:51 UTC (checklists/0-launch-steps.md, step 9)
+        (m, o, a) = script.launchAddresses(1570);
+        assertEq(m, 0xb4817D07a14503dCEf49Bd25B17557e7CBb23423);
+        assertEq(o, 0xf2bf089aa3b9E7D8664147e2Db42e84499717c7e);
+        assertEq(a, 0x89c531b660DA287BB16f971023cCDddf302D80A2);
+    }
+
+    /// @dev No address is typed in on mainnet: the script takes orkhanart.eth's creations at deployerNonce,
+    ///      + 1 and + 2. Naming them as well is allowed when they are those.
+    function testMainnetDerivesTheAuctionFromTheDeployerNonce() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        assertEq(c.auction, address(0));
+        KilimBazaar b = script.deploy(c, ARTIST);
+        assertEq(address(b.auction()), PUBLISHED_AUCTION);
+        assertEq(address(b.motifs()), PUBLISHED_MOTIFS);
+        assertEq(address(b.oneOfOne()), PUBLISHED_ONE_OF_ONE);
+        c = _mainnetNamed();
+        assertEq(address(script.deploy(c, ARTIST).auction()), PUBLISHED_AUCTION);
+    }
+
+    /// @dev Audit TK-1, the PoC turned round: a look-alike trio that anyone can deploy over the public page
+    ///      (an auction, a motif collection and a 1/1 naming each other, the real TAIL, so pageTailHash and the
+    ///      page store agree) passed every check while `bazaar.auction` was typed in. On mainnet the auction,
+    ///      and the motifs and 1/1, must now be orkhanart.eth's creations at the config's nonce.
+    function testMainnetRefusesALookAlikeAuction() public {
+        DeployKilimBazaar.Config memory c = _mainnetNamed();
+        // Someone else's trio over the same page store (here this test contract's).
+        _deployAuction(BIG_CAP, FIXTURE_PAGE);
+        address lookAuction = address(auction);
+        address lookMotifs = address(motifs);
+        address lookOneOfOne = address(oneOfOne);
+        assertTrue(lookAuction != c.auction);
+        assertEq(oneOfOne.tailHash(), c.pageTailHash);
+        DeployKilimBazaar.Config memory fake = c;
+        fake.auction = lookAuction;
+        fake.motifs = lookMotifs;
+        fake.oneOfOne = lookOneOfOne;
+        _expectRefused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        script.deploy(fake, ARTIST);
+        // only the auction typed in wrong: the derived motifs and 1/1 do not save it
+        fake = _mainnet();
+        fake.auction = lookAuction;
+        _expectRefused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        script.deploy(fake, ARTIST);
+        fake = _mainnet();
+        fake.motifs = lookMotifs;
+        _expectRefused("mainnet: motifs are not orkhanart.eth's creation at deployerNonce");
+        script.deploy(fake, ARTIST);
+        fake = _mainnet();
+        fake.oneOfOne = lookOneOfOne;
+        _expectRefused("mainnet: oneOfOne is not orkhanart.eth's creation at deployerNonce + 1");
+        script.deploy(fake, ARTIST);
+        // run() hands $KILIM_BAZAAR_AUCTION to the same check: auctionFrom only makes the two agree
+        fake = _mainnet();
+        fake.auction = script.auctionFrom(fake.auction, lookAuction);
+        _expectRefused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        script.deploy(fake, ARTIST);
+        // and the real trio, unnamed, still deploys
+        assertEq(address(script.deploy(_mainnet(), ARTIST).auction()), PUBLISHED_AUCTION);
+    }
+
+    /// @dev The derivation needs orkhanart.eth and a nonce; a wrong nonce derives addresses without code, or
+    ///      other contracts, and is refused either way.
+    function testMainnetRefusesAnotherDeployerOrNonce() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        c.deployer = SENDER;
+        _expectRefused("mainnet launch value: deployer");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.deployerNonce = script.NO_NONCE();
+        _expectRefused("mainnet needs the published deployerNonce");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.deployerNonce = PUBLISHED_NONCE + 1; // nothing at n + 3 yet
+        _expectRefused("the auction has no code");
+        script.deploy(c, ARTIST);
+        c = _mainnetNamed();
+        c.deployerNonce = PUBLISHED_NONCE + 1; // the real addresses, named, no longer match
+        _expectRefused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        script.deploy(c, ARTIST);
+    }
+
+    /// @dev Off mainnet nothing is derived: the deployer and nonce are not read, and the auction is the
+    ///      config's (the Sepolia rehearsal's Bazaar was deployed so).
+    function testOtherChainsTakeTheAuctionFromTheConfig() public {
+        DeployKilimBazaar.Config memory c = _config();
+        c.deployer = SENDER;
+        c.deployerNonce = 7;
+        script.deploy(c, SENDER);
+        c.auction = address(0);
+        _expectRefused("no auction: set bazaar.auction");
+        script.deploy(c, SENDER);
+    }
+
+    function _mainnetNamed() internal returns (DeployKilimBazaar.Config memory c) {
+        c = _mainnet();
+        (c.motifs, c.oneOfOne, c.auction) = script.launchAddresses(PUBLISHED_NONCE);
+    }
+
+    // ------------------------------------------------------------ the signed-off texts (audit TK-2)
+
+    /// @dev Every text the Bazaar stores, and the token texts, are pinned on mainnet by `expected.texts`: an
+    ///      edit after sign-off is refused even when it passes every other check.
+    function testMainnetRefusesTextsOtherThanTheSignedOffOnes() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        c.description = "Kilims made from burned motifs.";
+        _expectRefused("expected texts");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.externalUrl = "https://orkhan.art/kilim/elsewhere/";
+        _expectRefused("expected texts");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.imageBase = "https://attacker.example/frames/";
+        _expectRefused("expected texts");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.collectionExternalUrl = "https://attacker.example/kilim";
+        _expectRefused("expected texts");
+        script.deploy(c, ARTIST);
+        // a config without the value (zero) is refused on mainnet
+        c = _mainnet();
+        c.expectedTexts = bytes32(0);
+        _expectRefused("expected texts");
+        script.deploy(c, ARTIST);
+    }
+
+    /// @dev Re-signing a changed token text does not help: the hash covers the token texts as the config
+    ///      names them, and those must be what the chain's motif collection and 1/1 hold.
+    function testTheTokenTextsTheHashCoversMustBeTheChains() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        c.collectionExternalUrl = "https://attacker.example/kilim";
+        c.expectedTexts = script.textsHash(c);
+        _expectRefused("the token texts differ from the chain's");
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.oneOfOneDescription = "Another description";
+        c.expectedTexts = script.textsHash(c);
+        _expectRefused("the token texts differ from the chain's");
+        script.deploy(c, ARTIST);
+    }
+
+    /// @dev Off mainnet `expected.texts` is optional (the Sepolia record predates it); a config that carries it
+    ///      is held to it.
+    function testOtherChainsCompareTheTextsWhenNamed() public {
+        DeployKilimBazaar.Config memory c = _signTexts(_config());
+        script.deploy(c, SENDER);
+        c.imageBase = FRAMES;
+        _expectRefused("expected texts");
+        script.deploy(c, SENDER);
+        c.expectedTexts = bytes32(0);
+        script.deploy(c, SENDER);
+    }
+
+    /// @dev Each text moves the hash, and the length prefix keeps texts from sliding into each other.
+    function testTheTextsHashCoversEachTextUnambiguously() public view {
+        DeployKilimBazaar.Config memory c = _signTexts(_config());
+        bytes32 base = c.expectedTexts;
+        for (uint256 i; i < 8; ++i) {
+            DeployKilimBazaar.Config memory e = _signTexts(_config());
+            if (i == 0) e.collectionDescription = "x";
+            else if (i == 1) e.collectionExternalUrl = "x";
+            else if (i == 2) e.oneOfOneName = "x";
+            else if (i == 3) e.oneOfOneDescription = "x";
+            else if (i == 4) e.oneOfOneExternalUrl = "x";
+            else if (i == 5) e.description = "x";
+            else if (i == 6) e.externalUrl = "x";
+            else e.imageBase = "x";
+            assertTrue(script.textsHash(e) != base);
+        }
+        // "ab" + "" and "a" + "b" differ
+        DeployKilimBazaar.Config memory p = _signTexts(_config());
+        DeployKilimBazaar.Config memory q = _signTexts(_config());
+        p.externalUrl = "https://a/";
+        p.imageBase = "";
+        q.externalUrl = "";
+        q.imageBase = "https://a/";
+        assertTrue(script.textsHash(p) != script.textsHash(q));
+    }
+
+    // ------------------------------------------------------------ deploy/mainnet.json end to end
+
+    /// @dev deploy/mainnet.json as it stands, through both scripts on a chain switched to 1 with the real
+    ///      stores: DeployKilim deploys the three contracts from orkhanart.eth at `deployerNonce` (only the
+    ///      `startsAt` TODO filled in), then DeployKilimBazaar, with no address in the config, finds them from
+    ///      the same nonce. Both scripts hash the config's texts to its `expected.texts`. Before the contracts
+    ///      exist the Bazaar is refused, and a look-alike trio over the real page is refused throughout.
+    function testMainnetJsonDeploysTheBazaarAgainstTheContractsItsNonceNames() public {
+        string memory j = vmx.readFile(MAINNET_JSON);
+        DeployKilim.Config memory dc = _deployKilimConfig(j);
+        DeployKilimBazaar.Config memory bc = script.loadConfig(MAINNET_JSON);
+        DeployKilimOffline dk = new DeployKilimOffline();
+        assertEq(dk.textsHash(dc), vmx.parseJsonBytes32(j, ".expected.texts"));
+        assertEq(script.textsHash(bc), vmx.parseJsonBytes32(j, ".expected.texts"));
+        assertEq(bc.expectedTexts, vmx.parseJsonBytes32(j, ".expected.texts"));
+        assertEq(bc.auction, address(0)); // nothing typed in
+        assertEq(bc.deployer, ARTIST);
+
+        vmb.chainId(1);
+        vmb.etch(HISTORY, HISTORY_CODE);
+        // A look-alike trio over the real page, by someone else.
+        _deployAuction(BIG_CAP, REAL_PAGE);
+        address lookAlike = address(auction);
+        dk.deployStore(dc, address(0x5704E)); // any wallet but the deployer
+        // Before runContracts there is nothing at the derived addresses.
+        _expectRefused("the auction has no code");
+        script.deploy(bc, ARTIST);
+
+        vmx.setNonce(ARTIST, uint64(dc.deployerNonce));
+        DeployKilim.Deployed memory d = dk.deployContracts(dc);
+        (address m, address o, address a) = script.launchAddresses(dc.deployerNonce);
+        assertEq(address(d.motifs), m);
+        assertEq(address(d.oneOfOne), o);
+        assertEq(address(d.auction), a);
+
+        DeployKilimBazaar.Config memory wrong = script.loadConfig(MAINNET_JSON);
+        wrong.auction = lookAlike;
+        _expectRefused("mainnet: the auction is not orkhanart.eth's creation at deployerNonce + 2");
+        script.deploy(wrong, ARTIST);
+
+        KilimBazaar b = script.deploy(bc, ARTIST);
+        assertEq(address(b.auction()), address(d.auction));
+        assertEq(address(b.motifs()), address(d.motifs));
+        assertEq(address(b.oneOfOne()), address(d.oneOfOne));
+        assertEq(b.imageBase(), bc.imageBase);
+        assertEq(b.seedWindow(), 8191);
+    }
+
+    /// @dev DeployKilim's config from mainnet.json, by hand: DeployKilim.loadConfig refuses the file while
+    ///      `auction.startsAt` is its TODO text, so that one value is set here.
+    function _deployKilimConfig(string memory j) internal view returns (DeployKilim.Config memory c) {
+        c.chainId = vmx.parseJsonUint(j, ".chainId");
+        c.deployer = vmx.parseJsonAddress(j, ".deployer");
+        c.deployerNonce = vmx.parseJsonUint(j, ".deployerNonce");
+        c.minLeadSeconds = vmx.parseJsonUint(j, ".minLeadSeconds");
+        c.motifStore = vmx.parseJsonString(j, ".motifStore");
+        c.pageStore = vmx.parseJsonString(j, ".pageStore");
+        c.auction.treasury = vmx.parseJsonAddress(j, ".auction.treasury");
+        c.auction.startsAt = uint64(block.timestamp + 2 days);
+        c.auction.duration = uint64(vmx.parseJsonUint(j, ".auction.duration"));
+        c.auction.extensionWindow = uint64(vmx.parseJsonUint(j, ".auction.extensionWindow"));
+        c.auction.incrementBps = uint16(vmx.parseJsonUint(j, ".auction.incrementBps"));
+        c.auction.reservePrice = vmx.parseJsonUint(j, ".auction.reservePrice");
+        c.auction.maxMotifsPerBid = vmx.parseJsonUint(j, ".auction.maxMotifsPerBid");
+        c.motifCap = vmx.parseJsonUint(j, ".collection.motifCap");
+        c.collectionDescription = vmx.parseJsonString(j, ".collection.description");
+        c.collectionExternalUrl = vmx.parseJsonString(j, ".collection.externalUrl");
+        c.oneOfOneName = vmx.parseJsonString(j, ".oneOfOne.name");
+        c.oneOfOneDescription = vmx.parseJsonString(j, ".oneOfOne.description");
+        c.oneOfOneExternalUrl = vmx.parseJsonString(j, ".oneOfOne.externalUrl");
+        c.bazaarDescription = vmx.parseJsonString(j, ".bazaar.description");
+        c.bazaarExternalUrl = vmx.parseJsonString(j, ".bazaar.externalUrl");
+        c.bazaarImageBase = vmx.parseJsonString(j, ".bazaar.imageBase");
+        c.hasExpected = true;
+        c.expected.gridsHash = vmx.parseJsonBytes32(j, ".expected.gridsHash");
+        c.expected.namesHash = vmx.parseJsonBytes32(j, ".expected.namesHash");
+        c.expected.prefixHash = vmx.parseJsonBytes32(j, ".expected.prefixHash");
+        c.expected.headHash = vmx.parseJsonBytes32(j, ".expected.headHash");
+        c.expected.tailHash = vmx.parseJsonBytes32(j, ".expected.tailHash");
+        c.expected.motifGolden = vmx.parseJsonBytes32(j, ".expected.motifGolden");
+        c.expected.oneOfOneGolden = vmx.parseJsonBytes32(j, ".expected.oneOfOneGolden");
+        c.expected.motifSource = vmx.parseJsonBytes32(j, ".expected.motifSource");
+        c.expected.artwork = vmx.parseJsonBytes32(j, ".expected.artwork");
+        c.expected.still = vmx.parseJsonBytes32(j, ".expected.still");
+        c.expected.loader = vmx.parseJsonBytes32(j, ".expected.loader");
+        c.expected.texts = vmx.parseJsonBytes32(j, ".expected.texts");
     }
 
     // ------------------------------------------------------------ the config

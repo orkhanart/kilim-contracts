@@ -1,5 +1,8 @@
 # AI audit, 12 October 2026: token contracts, on-chain rendering, mainnet deploy path
 
+> **Status, 12 October 2026 (later):** TK-1 and TK-2 are fixed in the deploy scripts (see AUDIT.md). The three PoC tests in `security/ai-audit/tokens/DeployPath.t.sol` that demonstrated them (`testMainnetBazaarScriptAcceptsAnAuctionTheArtistNeverDeployed`, `testMainnetJsonDeploysAtThePublishedAddresses`, `testMainnetConfigFailsClosedOnItsTodos`) now fail, as intended.
+
+
 One of five independent AI reviewers (Claude, Opus 5.5). Lens: `src/KilimMotifs.sol`, `src/KilimOneOfOne.sol`, `script/DeployKilim.s.sol`, `script/DeployKilimBazaar.s.sol`, `deploy/mainnet.json`, the CREATE2 store, `checklists/0-2`, `scripts/`. Read against `AUDIT.md`; items it already records are listed as known, not as new findings. This is not the independent human audit (K-08).
 
 **Result: no Medium or higher.** Two Low and six Info items. The token contracts have no admin, owner, pause or setter. Only the immutable minter (the auction) can mint, and only an owner can burn. Both tokens pass `slither-check-erc` ERC-721 with no failures. All 1,024 motif tokenURIs match the Python reference renderer byte for byte. The 1/1 over the real page equals its golden. Run on chain id 1, `deploy/mainnet.json` deploys at the three published addresses.

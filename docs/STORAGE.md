@@ -50,6 +50,7 @@ Every value is computed off-chain from the files, checked by the constructors ag
 | `source.sha256`, `artwork.sha256`, `still.sha256`, `loaderTemplate.sha256` | the two packers | the artist's page, its release copy, the still and the loader | recorded in the manifests; `--check` rebuilds and compares; the deploy script compares them with the config's `expected` block (required on chain 1) |
 | `gridsHash`, `namesHash` | `pack_motifs.py` | `grids.bin`, `names.bin` (keccak256) | `KilimMotifs`'s constructor, which copies every chunk and hashes it; the deploy script, from the chunk files |
 | `expected` (the five section hashes, the two goldens, the four files above) | `pnpm -s expected`, from the manifests | the packed stores | the deploy script, in both phases, against the manifests; on chain 1 a config without it is refused. This is what ties a deployment to the content that was signed off: without it any self-consistent store would pass |
+| `expected.texts` | `pnpm -s expected --config <deploy json>` (`script/KilimTexts.sol`) | the eight texts the contracts store, as the config names them: the collection's description and link, the 1/1's name, description and link, Kilim Bazaar's description, link base and image base; sha256 over each one's 32-byte length and bytes | both deploy scripts, recomputed from the config (DeployKilim in both phases); required on chain 1, compared elsewhere when present. The Bazaar script also requires the token texts to be the deployed contracts'. Before it (audit TK-2) the collection's link and the Bazaar's texts were in no published value |
 | chunk keccak, initcode keccak, CREATE2 address | `pack_motifs.py`, `pack_page.py` | each chunk file | the deploy script: file size and keccak against the manifest, the address against its own prediction, no foreign code at the address; `_requireStored` before the contracts |
 | `prefixHash`, `headHash`, `tailHash` | `pack_page.py` | the three sections (keccak256) | `KilimOneOfOne`'s constructor; the deploy script |
 | the constructor arguments | the deploy script | the manifests and the config | read back from every immutable after each deployment (`_checkContracts`) |
@@ -75,12 +76,13 @@ The answer is built in one buffer in assembly (`KilimOneOfOne.tokenURI`):
 
 The call ends in that `return`, so nothing re-encodes the answer and **`tokenURI` must never be called internally**. A byte-at-a-time version of the two encoders costs about nine million gas here; the word-at-a-time version well under one. Memory expansion is the other cost, and it grows faster than linearly with the answer.
 
-Measured on 11 October 2026 (`pnpm -s deploy:dry`, the store packed from that day's artwork and the WebP still, forge's `staticcall` without copying the answer):
+Measured on 12 October 2026 (`pnpm -s deploy:dry`, the store packed from the artwork of 11 October with the 30-motif rank named Spinner and the WebP still, forge's `staticcall` without copying the answer):
 
 | Read (`eth_call`) | Gas | Answer |
 | --- | --- | --- |
-| `KilimOneOfOne.tokenURI(1)` | **4,519,744** | 1,068,635 bytes |
-| `KilimMotifs.tokenURI(id)` (a token showing motif 1) | 287,312 | 2,053 bytes |
+| `KilimOneOfOne.tokenURI(1)` | **4,519,744** | 1,068,627 bytes |
+| `KilimMotifs.tokenURI(id)` (a token showing motif 1, the dry run's sample) | 287,324 | 2,053 bytes |
+| `KilimMotifs.tokenURI(id)` for motif 504, the costliest of the 1,024 (94 runs; the audit of 12 October measured all of them, TK-3) | 1,347,521 | 7,477 bytes |
 
 The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` in the script: half of the 16,777,216 per-transaction cap of EIP-7825, which some nodes also apply to `eth_call`). The dry run refuses a store whose 1/1 reads above it. `test/KilimOneOfOne.t.sol` measures a page of launch size (a 70 KB prefix and a 600 KB tail across 25 chunks) at 3,378,414 gas for a 757,791-byte answer and asserts the ceiling. `scripts/probe-rpc.mjs` measures how much gas each RPC endpoint allows an `eth_call`, without deploying anything.
 
@@ -94,9 +96,9 @@ The policy ceiling is **8,000,000** per read and per transaction (`MAX_TX_GAS` i
 | the names chunk | 3,261,375 |
 | the 7 prefix chunks (the still, WebP, 11 October) and the head chunk | 35,025,979 and 96,731 |
 | each full chunk (24,575 bytes) | at most 5,975,459; the 34 tail chunks 200,074,516 in all |
-| `KilimMotifs` | 3,210,755 |
-| `KilimOneOfOne` | 6,601,234 |
-| `KilimAuction` | 3,313,228 |
+| `KilimMotifs` | 3,213,215 (12 October) |
+| `KilimOneOfOne` | 6,601,458 (12 October) |
+| `KilimAuction` | 3,313,445 (12 October) |
 | the whole store, 45 chunks | 245,993,644, about 246.0M |
 | everything | about 259.1M |
 
@@ -114,11 +116,11 @@ forge simulates the whole script before sending anything, so a refusal means not
 - a chunk address already holds code other than `0x00` followed by that chunk's bytes;
 - the collection description or external URL, or the 1/1's name, description or external URL in the config differ from the texts the manifests were packed with;
 - the token JSON (PREFIX) holds a `#` or a `%`, which would cut or change the data: URL;
-- the config carries an `expected` block and any of its eleven values is zero or differs from the manifests;
+- the config carries an `expected` block and any of its eleven content values is zero or differs from the manifests, or its `texts` (required on chain 1, compared elsewhere when present) is not the hash of the config's eight texts;
 - the store phase would be sent by the config's deployer while a nonce is published for it and a chunk is missing;
 - a chunk's dry-run deployment needs more than 8M gas or lands at another address;
 - in the contracts phase: the store is not fully deployed yet, the reserve price is not 0.01 ETH, `startsAt` is inside the inspection window or more than a year out, the treasury is the zero address, the deployer's nonce is not the published one, a transaction from the deployer is pending (its pending nonce differs from the latest), the dry-run auction's address differs from the prediction, any read-back immutable differs, either tokenURI differs from its golden, or a deployment or a tokenURI read needs more than 8M gas;
-- on chain 1: the deployer is not orkhanart.eth, the 1/1's name is not "The Unwoven Kilim", any auction setting differs from the decided launch value, the nonce check is skipped, `minLeadSeconds` is zero, the config has no `expected` block, or the page manifest does not say the artwork reads `KILIM_GRIDS`;
+- on chain 1: the deployer is not orkhanart.eth, the 1/1's name is not "The Unwoven Kilim", any auction setting differs from the decided launch value, the nonce check is skipped, `minLeadSeconds` is zero (it is 600 since 12 October: the registration phase is the inspection window), the config has no `expected` block or no `expected.texts`, or the page manifest does not say the artwork reads `KILIM_GRIDS`;
 - in the contracts phase and in `runAuction()`: the deployer has code, an EIP-7702 delegation or a contract wallet (`deployer has code`, FA-17);
 - in `runAuction()`: the deployer is not at the published nonce plus two, a token contract is missing at n or n + 1, the auction already exists, or either token reads back differently from what this config deploys.
 

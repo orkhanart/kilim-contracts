@@ -288,6 +288,7 @@ event KilimSealed(uint256 indexed tokenId, bytes32 blockHash, uint256 seed);
    - The first `deposit` carries at least 10 ids. Then deposit as often as needed, and close with `weaveLoom(ids, to)`, where ids may be empty.
    - One loom per wallet. Nobody else can add to it, close it or block it.
    - `weave` never touches the loom, so a holder can weave Apprentices while slowly filling a Master.
+   - A loom has no exit and no split (tool audit BZ-5, 12 October 2026). Motifs burn at `deposit`, and only the same address can close the loom, into one kilim, with `makeFromLoom` (this spec's `weaveLoom`). **For integrators:** a contract that can call `deposit` but not `makeFromLoom` (a vault, a module-restricted multisig, a helper contract) strands its burned motifs for good, and so does a wallet whose key is lost. The depositing address must be able to make the closing call.
 4. **Seal.** `seal([...])` from block B+2 onward, by the weaver's page, the site's sealer or anyone.
 
 **Custody and burn.** `burn` is owner-only and ignores approvals (KilimMotifs.sol:127-134), so the Bazaar takes custody first. All transfers come before all burns. Moving and burning one id at a time would take the Bazaar's balance slot 0→1→0 for every motif. That costs a fresh new-slot charge each time, with capped refunds: measured 46,108 against 26,361 per motif on mainnet rules, and 55,171 against 44,345 execution on Sepolia.
@@ -299,9 +300,10 @@ event KilimSealed(uint256 indexed tokenId, bytes32 blockHash, uint256 seed);
 
 **Batch limits:**
 - No gas cap is coded. `MAX_BATCH` (65,535) only keeps the memory counts carry-free.
-- **Site rule: 300 ids per call always fit both chains.** On mainnet that holds even with every id in an untouched 256-id `_burned` bucket (13.66M measured, design round). On Sepolia execution is about 13.5–14.4M, under the 16,777,216 execution cap.
+- **Site rule (since the 12 October 2026 tool audit, BZ-1): each call is sized by its gas, not by a fixed count.** The site sends at most 150 ids per `make` or `deposit`, estimates each call with `eth_estimateGas` before the wallet prompt, splits it again in proportion while the estimate is over 13M, and sends it with the estimate plus a fifth as its gas limit, which stays under 16,777,216. A kilim above one call goes into the loom, then `makeFromLoom` closes it; the page says how many confirmations that takes before the first one.
+- Why not 300: 300 ids that each open a fresh `_burned` bucket take 13.29M today (`deposit` 13.82M), but about 43M (`deposit` about 46M) under Glamsterdam, where every new slot costs 97,920 state gas. That is 72–77% of a 60M block's state budget, and a transaction is only included while `tx.gas` fits what is left of it. 150 such ids are about 6.9M today and about 22M under Glamsterdam, so the 13M ceiling splits them in two there; 150 consecutive or started-bucket ids stay one call.
 - On mainnet before Glamsterdam, up to 600 ids whose buckets are already started (15.48M), or 760 consecutive ids (15.6M).
-- On Glamsterdam the state gas rides above the cap, so the site sets the gas limit itself (about 20M for a 300-id loom opening, up to about 50M if every bucket is fresh). Wallets that cap estimates at 2^24 would fail.
+- On Glamsterdam the state gas rides above the cap, so a 300-id call would need a gas limit above 2^24 (about 20M for a loom opening, up to about 50M if every bucket is fresh), which wallets that cap estimates at 2^24 refuse. The site's calls never ask for more than 16,777,216.
 - Ids sorted ascending share `_burned` buckets and cost less.
 
 **Per motif.** Measured in the design round by the "scale" prototype, which has the same custody, local motif and memory fold as this spec:
@@ -341,16 +343,16 @@ The mainnet refunds are 4,800 per motif (the owner slot is cleared) plus 19,900 
 | `setApprovalForAll`, once per wallet | ≈46k | ≈130k |
 | Deploy (≈22 KB runtime) | ≈5.0M (under the 8M policy) | ≈35M (1,530/byte code deposit + 183,600 account + strings) |
 
-**Gas table to publish beside the ladder.** Minimum per kilim, motifs already claimed (claiming is separate: 64 per claim, KilimMotifs.sol:19). Dyer and Master use 300-id batches.
+**Gas table to publish beside the ladder.** Minimum per kilim, motifs already claimed (claiming is separate: 64 per claim, KilimMotifs.sol:19). The site sends at most 150 ids a transaction (BZ-1), so the counts below are today's; under Glamsterdam a call whose ids open fresh buckets is split again by its estimate. The gas figures were derived for 300-id batches; 150-id batches add about 0.1M of fixed cost per extra transaction.
 
 | Rank | Transactions | Mainnet (net, today's pricing) | Sepolia / Glamsterdam |
 |---|---:|---:|---:|
 | Apprentice, 10 | 1 | ≈0.35M | ≈1.1M |
 | Journeyman, 30 | 1 | ≈0.83M | ≈2.2M |
 | Weaver, 100 | 1 | ≈2.5M | ≈6.2M |
-| Artisan, 300 | 1 | ≈7.3M | ≈17.4M |
-| Dyer, 1,000 | 4 | ≈24M | ≈53M |
-| Master at 10 ETH, 10,000 | 34 (mainnet: 17 at 600) | ≈0.19–0.23 G | ≈0.36–0.46 G |
+| Artisan, 300 | 2 | ≈7.3M | ≈17.4M |
+| Dyer, 1,000 | 7 | ≈24M | ≈53M |
+| Master at 10 ETH, 10,000 | 67 | ≈0.19–0.23 G | ≈0.36–0.46 G |
 
 Plus a seal of about 0.03M and one approval per wallet. The Master's figure is the same however the motifs were gathered; nearly all of it is the burns.
 
@@ -380,7 +382,13 @@ Plus a seal of about 0.03M and one approval per wallet. The Master's figure is t
 - After a re-arm the next seal uses the new block's hash, which nobody knew when it was set. Nothing ever falls back to a known value.
 - Without the history contract (a bare local chain) the window is 256.
 
-**Who seals.** Anyone, with the same result at any moment in the window. The site runs a sealer with no privileges: one batched `seal` per block for every pending `KilimWoven`, about 15.5k gas per kilim on Sepolia. The weaver's page offers "Seal now".
+**Who seals.** Anyone, with the same result at any moment in the window. The site runs a sealer with no privileges, `kilim-sealer/` (built 12 October 2026 for audit finding SL-1):
+- From its own wallet, it follows `KilimMade` and `SeedRearmed` and sends one batched `seal` as soon as the head reaches a kilim's seal block, so the kilim is sealed in B+2.
+- It counts a kilim as sealed only from `KilimSealed`.
+- Gas on anvil, at today's mainnet prices: 32,593 for a kilim sealed alone, about 10,150 for each further kilim in a batch, 31,022 for a re-arm.
+- Gas on Sepolia: about 15.5k per kilim in a batch.
+
+The weaver's page offers "Seal now".
 
 **Before sealing:**
 - tokenURI has no `animation_url`, the trait Seed reads "Sealing", and the image is the on-chain title-motif drawing.
@@ -414,6 +422,7 @@ Plus a seal of about 0.03M and one approval per wallet. The Master's figure is t
 - Set when `won != 0 && minId >= first && maxId − first < won`, so every burned id lies in `[first, first+won)`.
 - It is judged at weave against the final range, using the min and max id the loom kept across its deposits.
 - It applies at any rank, as rule 6 is written ("a kilim woven only from them carries that tag"). A tagged Master needs `won == top` and all of those ids.
+- It follows the ids, not the winner (tool audit CR-2 and BZ-3, 12 October 2026): the winner can claim them to any address, and whoever holds them can make the tagged kilim. Each id burns once, so at most one tagged Master can exist. Claims mint a bidder's oldest range first, so a winner with earlier bids claims those before any id of the winning bid.
 - `won == 0` never tags.
 - Sepolia: ids 50–66 woven together make "Master 1", tagged.
 
@@ -534,6 +543,7 @@ All are under the project's 8M ceiling (enforced by test) and the 16,777,216 eth
      - `_take` pulls only `from = msg.sender`, and OZ reverts `ERC721IncorrectOwner` when the Bazaar already owns the id.
      - No function moves it, and nothing counts it.
      - `strayMotifs()` shows it. The site never sends plain transfers.
+   - **The Unwoven Kilim is lost the same way** (tool audit BZ-2, 12 October 2026). The 1/1's `_update` refuses only itself, the auction and Motif Bazaar; it was deployed first and cannot know the Bazaar. So its owner's plain `transferFrom(owner, bazaar, 1)` succeeds, and no function moves it out. A `safeTransferFrom` bounces with `StrayTransfer`. There is no rescue role, so the only guard is in words: the rules, the weave page and the claim page say never to send anything to the Bazaar by hand, and the site refuses the Bazaar as a recipient of any claim, prize or refund.
    - Kilims sent to the Bazaar, motifs, auction or 1/1 revert in `_update`.
    - No payable function and no receive, so ETH sent to it reverts.
 2. **Reentrancy through `onERC721Received`.**
@@ -807,7 +817,7 @@ Recorded 11 October 2026 when the contract was built (`src/KilimBazaar.sol`, run
     Also outside these files: `contracts/package.json` has no `test:kilim-page` script and its `test` and `test:ci` do not run `kilim-page.test.mjs` (sections 8 and 9.1 name `pnpm -s test:kilim-page`); `launch/KILIM-BAZAAR-RULES.md` still says "Woven from the winning bid" (rule 6, line 43; the trait is "Made from the winning bid", and the site bundle shows the old words), about 200 ids per transaction (line 78), a 256-block window (line 81; it is 8,191) and a `<script>KILIM_PIECE=…</script>` before the artwork's script (line 86; it is `;window.KILIM_PIECE={…}` inside the loader, which relies on `document.open()` keeping the Window). On the artwork side (the mainnet page is packed later; the Sepolia page is pinned by `tailHash`): a click on a kilim drawn with the camera study "Dye vat" (studies/wool.js `vat`, in the Dyer and Master pools) starts the camera, because app.js:246 does not check piece mode, and the study then follows the room, so the kilim is no longer fixed by its seed and answers the viewer (rules 7 and 8); and the Echo pattern morphs the title into the outline of a partner motif chosen from all 1,024 (echo.js:29), burned or not, which is the artist's call.
 
 **From the review round (11 October):**
-17. **Withholding the seal is a re-roll once nobody seals for 8,191 blocks.** Section 4 accepts withholding because the site's sealer seals every kilim within a block or two. The contract is permanent and has no admin; the sealer is not. If nobody seals a kilim within 8,191 blocks of its seal block, the next `seal` re-arms it to a fresh block, and its owner, who could compute the first seed from block B+2 on and run the page offline, has in effect drawn again: about 27 hours and one seal per draw, as many times as they like. The same owner can also sell an unsealed kilim whose look they know while marketplaces show "Sealing" (anyone, a buyer included, can compute that seed or call `seal` first). This cannot be closed on-chain: once a block hash is older than 8,191 blocks nothing on-chain can read it, so after a lapse any seed is either a fresh draw or a value known in advance. Two on-chain mitigations were weighed and not built. Sealing in `_update` on every transfer seals only after the sale is agreed, so it protects no buyer and stops no re-roll. A cursor that every `weave`, `deposit` and `weaveLoom` advances to seal older kilims costs each of them about 9,000 gas more for good (an Apprentice is 486,268 against the 0.5M ceiling), and an owner defeats it by making a burst of kilims just before theirs when activity is low, which is exactly when a sealer is likely to be gone. What holds rule 7 is the sealer: it must run for as long as kilims can be made, and the rules and the site should say plainly that a kilim nobody seals within about 27 hours re-arms. If the artist would rather pay the gas for the partial on-chain guard, the cursor fits in the runtime headroom (1,160 bytes).
+17. **Withholding the seal is a re-roll once nobody seals for 8,191 blocks.** Section 4 accepts withholding because the site's sealer seals every kilim within a block or two. That sealer is `kilim-sealer/`, added on 12 October 2026 after audit finding SL-1 showed there was none. The contract is permanent and has no admin; the sealer is not. If nobody seals a kilim within 8,191 blocks of its seal block, the next `seal` re-arms it to a fresh block, and its owner, who could compute the first seed from block B+2 on and run the page offline, has in effect drawn again: about 27 hours and one seal per draw, as many times as they like. The same owner can also sell an unsealed kilim whose look they know while marketplaces show "Sealing" (anyone, a buyer included, can compute that seed or call `seal` first). This cannot be closed on-chain: once a block hash is older than 8,191 blocks nothing on-chain can read it, so after a lapse any seed is either a fresh draw or a value known in advance. Two on-chain mitigations were weighed and not built. Sealing in `_update` on every transfer seals only after the sale is agreed, so it protects no buyer and stops no re-roll. A cursor that every `weave`, `deposit` and `weaveLoom` advances to seal older kilims costs each of them about 9,000 gas more for good (an Apprentice is 486,268 against the 0.5M ceiling), and an owner defeats it by making a burst of kilims just before theirs when activity is low, which is exactly when a sealer is likely to be gone. What holds rule 7 is the sealer: it must run for as long as kilims can be made (`checklists/0-launch-steps.md` step 12 and `2-deploy.md` start it before making opens, fund it and watch it), and the rules and the site should say plainly that a kilim nobody seals within about 27 hours re-arms. If the artist would rather pay the gas for the partial on-chain guard, the cursor fits in the runtime headroom (1,160 bytes).
 18. **The two URL bases are permanent.** `imageBase` and `externalUrl` get the token id appended as they are (`<base><tokenId>`), and nothing can change them. The deploy script refuses a non-empty one that does not start with `https://`, `ipfs://` or `ar://`, carries a space, or does not end in `/` or `=` (so `…/frames` without its slash cannot make every image `…/frames12`), and prints kilim 1's image and link to open before broadcasting. Decision 1 (a) also makes the domain part of every sealed kilim's marketplace picture for as long as the contract exists: if orkhan.art lapsed and someone else registered it, they could serve any picture as every kilim's `image` (the on-chain `animation_url` is unaffected). Keeping the domain renewed, or pinning the frames on IPFS or Arweave and deploying with that base, is part of the launch's upkeep.
 19. **Uint32 casts.** Only `_fold`'s running count uses SafeCast. The other casts are plain because each value is bounded where it is made: `uint32(ids.length)` in `weave` (at most MAX_BATCH, checked by `_take` before the cast); `uint32(b.minId)` and `uint32(b.maxId)` in `weave` and `_fold` (ids that just passed `transferFrom`, so at most `motifCap`, which KilimMotifs.sol:69 keeps within uint32); `uint32(_newHandKey())` and `uint32(number)` (read through a `0xffffffff` mask from the tally, whose lanes cannot carry: every hand key and every kilim takes at least 10 burned motifs, so there are at most motifCap / 10 of each); and the seed's `uint32(…)`, which is the intended low 32 bits (section 4). A SafeCast on a masked value could never fire; the tally bound is what keeps the lanes exact.
 

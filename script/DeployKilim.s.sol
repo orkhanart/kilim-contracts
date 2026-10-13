@@ -4,6 +4,7 @@ pragma solidity 0.8.37;
 import {KilimAuction} from "../src/KilimAuction.sol";
 import {KilimMotifs} from "../src/KilimMotifs.sol";
 import {KilimOneOfOne} from "../src/KilimOneOfOne.sol";
+import {KilimTexts} from "./KilimTexts.sol";
 
 interface VmDeploy {
     function readFile(string calldata) external view returns (string memory);
@@ -50,7 +51,8 @@ interface VmDeploy {
 ///         file named by $KILIM_DEPLOY_CONFIG; see deploy/mainnet.example.json,
 ///         deploy/sepolia.example.json and docs/STORAGE.md. On Ethereum mainnet (chain 1) the deployer
 ///         must be the artist's wallet, the auction settings must be the decided launch values, the
-///         config must name the content by hash (`expected`), the artwork must read KILIM_GRIDS, the
+///         config must name the content by hash (`expected`, its `texts` included: every text the four
+///         contracts store, the Bazaar's too, see KilimTexts), the artwork must read KILIM_GRIDS, the
 ///         published nonce is always checked and the inspection window must be nonzero. Other chains
 ///         accept any valid settings and print each one next to the launch value. On every chain the
 ///         deployer must be a plain account: no code, so no EIP-7702 delegation and no contract wallet.
@@ -121,6 +123,11 @@ contract DeployKilim {
         string oneOfOneName;
         string oneOfOneDescription;
         string oneOfOneExternalUrl;
+        /// @dev The `bazaar` block's three texts ("" without one). This script deploys no Bazaar; they are
+        ///      read only for `expected.texts`, which covers every text the four contracts store.
+        string bazaarDescription;
+        string bazaarExternalUrl;
+        string bazaarImageBase;
         /// @dev The content this config was signed off for, by hash. Required on chain 1; elsewhere it
         ///      is compared whenever the config carries it.
         bool hasExpected;
@@ -128,8 +135,11 @@ contract DeployKilim {
     }
 
     /// @dev `.expected` in the config. The first five are the keccak hashes the constructors check, the
-    ///      two goldens are the sha256 of the tokenURIs, and the last four are the sha256 of the files the
-    ///      packers read: the artist's page (for the motifs), the artwork page, the still and the loader.
+    ///      two goldens are the sha256 of the tokenURIs, the next four are the sha256 of the files the
+    ///      packers read: the artist's page (for the motifs), the artwork page, the still and the loader;
+    ///      `texts` is KilimTexts.hash of the eight texts (audit TK-2: the collection link and the Bazaar's
+    ///      texts are in no golden). `texts` is required on chain 1; elsewhere a config may leave it out
+    ///      (the Sepolia record predates it), and it is compared whenever it is there.
     struct Expected {
         bytes32 gridsHash;
         bytes32 namesHash;
@@ -142,6 +152,7 @@ contract DeployKilim {
         bytes32 artwork;
         bytes32 still;
         bytes32 loader;
+        bytes32 texts;
     }
 
     /// @dev One stored section: its published hash, the chunk files' bytes and their CREATE2 addresses.
@@ -217,11 +228,17 @@ contract DeployKilim {
         c.oneOfOneName = vm.parseJsonString(j, ".oneOfOne.name");
         c.oneOfOneDescription = vm.parseJsonString(j, ".oneOfOne.description");
         c.oneOfOneExternalUrl = vm.parseJsonString(j, ".oneOfOne.externalUrl");
+        if (vm.keyExistsJson(j, ".bazaar")) {
+            c.bazaarDescription = vm.parseJsonString(j, ".bazaar.description");
+            c.bazaarExternalUrl = vm.parseJsonString(j, ".bazaar.externalUrl");
+            c.bazaarImageBase = vm.parseJsonString(j, ".bazaar.imageBase");
+        }
         c.hasExpected = vm.keyExistsJson(j, ".expected");
         if (c.hasExpected) c.expected = _loadExpected(j);
     }
 
-    /// @dev Every key must be there: a config that names some of the content names all of it.
+    /// @dev Every key must be there, `texts` aside: a config that names some of the content names all of it.
+    ///      `texts` is new since 12 October (TK-2); chain 1 refuses a config without it (`_requireExpected`).
     function _loadExpected(string memory j) internal pure returns (Expected memory e) {
         e.gridsHash = vm.parseJsonBytes32(j, ".expected.gridsHash");
         e.namesHash = vm.parseJsonBytes32(j, ".expected.namesHash");
@@ -234,6 +251,23 @@ contract DeployKilim {
         e.artwork = vm.parseJsonBytes32(j, ".expected.artwork");
         e.still = vm.parseJsonBytes32(j, ".expected.still");
         e.loader = vm.parseJsonBytes32(j, ".expected.loader");
+        if (vm.keyExistsJson(j, ".expected.texts")) e.texts = vm.parseJsonBytes32(j, ".expected.texts");
+    }
+
+    /// @notice `expected.texts` for this config: KilimTexts.hash of the eight texts the contracts store.
+    function textsHash(Config memory c) public pure returns (bytes32) {
+        return KilimTexts.hash(
+            [
+                c.collectionDescription,
+                c.collectionExternalUrl,
+                c.oneOfOneName,
+                c.oneOfOneDescription,
+                c.oneOfOneExternalUrl,
+                c.bazaarDescription,
+                c.bazaarExternalUrl,
+                c.bazaarImageBase
+            ]
+        );
     }
 
     // ------------------------------------------------------------ phase 1: the chunks
@@ -341,7 +375,8 @@ contract DeployKilim {
     }
 
     /// @dev The store must be the content the config names: the five section hashes, both goldens and the
-    ///      four files the packers read. Chain 1 refuses a config without them.
+    ///      four files the packers read; and the config's texts must be the ones signed off (`texts`). Chain
+    ///      1 refuses a config without them; elsewhere a missing `texts` (zero) is not compared.
     function _requireExpected(Config memory c, Store memory s) internal view {
         if (!c.hasExpected) {
             if (block.chainid == MAINNET_CHAIN_ID) revert Refused("mainnet needs the expected hashes");
@@ -361,6 +396,9 @@ contract DeployKilim {
         _expect(e.artwork, vm.parseJsonBytes32(s.pageManifest, ".artwork.sha256"), "artwork");
         _expect(e.still, vm.parseJsonBytes32(s.pageManifest, ".still.sha256"), "still");
         _expect(e.loader, vm.parseJsonBytes32(s.pageManifest, ".loaderTemplate.sha256"), "loader");
+        if (block.chainid == MAINNET_CHAIN_ID || e.texts != bytes32(0)) {
+            _expect(e.texts, textsHash(c), "texts");
+        }
     }
 
     function _expect(bytes32 want, bytes32 have, string memory what) internal pure {
@@ -861,6 +899,13 @@ contract DeployKilim {
         _log(string.concat("  collection        ", c.collectionDescription, " | ", c.collectionExternalUrl));
         _show("1/1 name          ", c.oneOfOneName, LAUNCH_ONE_OF_ONE_NAME);
         _log(string.concat("  1/1 externalUrl   ", c.oneOfOneExternalUrl));
+        _log(
+            string.concat(
+                "  texts             ",
+                vm.toString(textsHash(c)),
+                c.expected.texts == bytes32(0) ? " (no expected.texts: not compared)" : " (expected.texts)"
+            )
+        );
     }
 
     function _show(string memory name, uint256 value, uint256 launch) internal view {

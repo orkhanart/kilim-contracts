@@ -16,21 +16,21 @@ A nonce comes back in hex: `0x61e` is 1,566, `0x61f` is 1,567 and `0x620` is 1,5
 
 **Done 11 October 2026.** Checked on two nodes: `eth_getCode` answers `0x`, the nonce is 1,568 (`0x620`, latest and pending), and `deploy/mainnet.json` carries `"deployerNonce": 1568`. A rehearsal on a fork of mainnet in this state deployed the three contracts at Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. **Send nothing from orkhanart.eth on mainnet until step 10**, and never accept a smart-account upgrade.
 
+**The nonce has moved since (12 October).** orkhanart.eth sent a WETH unwrap at 15:28 UTC, so its mainnet nonce became 1,569, and at 23:51 UTC two nodes read 1,570 (`0x622`, latest and pending; `eth_getCode` still `0x`). The 1,568 addresses above are no longer the ones it will deploy at. `deploy/mainnet.json` still says 1568 on purpose: on the **wallet-freeze day** (the day from which orkhanart.eth sends nothing until step 10), read the nonce again on two nodes, write it into `"deployerNonce"`, and publish the addresses for that number (step 9). Every transaction from the wallet before that day is fine; any after it voids the published addresses.
+
 Today the wallet is a MetaMask smart account on mainnet: `eth_getCode` answers `0xef0100…63c0c19a…` and the deploy script refuses it.
 - In MetaMask, on Ethereum mainnet, open the account's details, find **Smart account** and choose **Switch back** to a standard account. Menu names differ between MetaMask versions. Confirm the one transaction.
 - **You should see:** `eth_getCode` now answers `"result":"0x"`, and the nonce reads the same for `"latest"` and `"pending"`. MetaMask sends the switch-back from the wallet itself as an EIP-7702 transaction, which uses **two** nonces (one for the transaction, one for the authorization inside it), so expect `0x620` (1,568); a relayed switch-back would leave `0x61f` (1,567). It also shows the key works today; checklist 2 asks again on deploy day.
 - Write the number you read into `deploy/mainnet.json` as `"deployerNonce"`, a whole number with no quotes. Never assume it: the three contract addresses follow from it.
 - From now on, reject any MetaMask offer to "upgrade" or "switch to a smart account", on any network. Accepting would add the code back and spend a nonce.
 
-## 2. Decide the launch date
+## 2. Decide the launch day
 
-The date and time when registration opens. Bidding opens at the 100th registration, and the 24 hours start with the first bid. Convert it to Unix seconds and write it into `deploy/mainnet.json` as `"startsAt"`, with no quotes:
+Registration opens about 20 minutes after the contracts are sent, so the launch moment is the deployment (step 10): choose the day and the hour you will send it, and announce that. Bidding opens at the 100th registration, and the 24 hours start with the first bid.
 
-```sh
-python3 -c 'import calendar,time; print(calendar.timegm(time.strptime("2026-11-20 18:00", "%Y-%m-%d %H:%M")))'   # 20 November 2026, 18:00 UTC
-```
+There is no 24-hour inspection window any more (the artist, 12 October 2026): `minLeadSeconds` is 600, ten minutes. Before 100 registrations nobody can bid, so no ETH is at risk, and the registration phase is the inspection window. The script still refuses 0 on mainnet, and the auction contract needs `startsAt` in the future.
 
-It must be at least 24 hours after the contracts land (`minLeadSeconds` is 86400, the inspection window) and less than a year after.
+`"startsAt"` in `deploy/mainnet.json` stays `0` until step 10. The store command (step 8) reads the number but never checks it; the contracts command refuses 0 (`startsAt outside the inspection window`), so it cannot be forgotten. Step 10 says what to write.
 
 ## 3. Fund the wallets
 
@@ -114,22 +114,49 @@ KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/Dep
 
 ## 9. Publish the addresses
 
-- Run the contracts command **without** `--broadcast` and without `<SIGN>`. It only simulates and prints the three addresses: `KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilim.s.sol --sig 'runContracts()' --rpc-url "$RPC" --sender 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`.
-- At nonce 1,568 (the likely one) they are Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`; at 1,567 they would be `0xA9D5d1dac003538D13cd28Ca3bDfF75914928AFA`, `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF` and `0xeD82CE5F5E943ef80F3D32a907281936186742eC`. Publish what the simulation prints.
-- Publish on the site and at least one other channel: these three, the nonce, the 45 chunk addresses and the `expected` block from `deploy/mainnet.json`. The list is in [1-pre-deploy.md](1-pre-deploy.md), "Publish before deploy day".
+- Set `"deployerNonce"` to the nonce read on the wallet-freeze day (step 1).
+- Run the contracts command **without** `--broadcast` and without `<SIGN>`. It only simulates and prints the three addresses. It refuses the placeholder `startsAt` 0, so for this simulation set `"startsAt"` to `python3 -c 'import time; print(int(time.time()) + 1200)'` (step 10 sets it again): `KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilim.s.sol --sig 'runContracts()' --rpc-url "$RPC" --sender 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`.
+- The addresses follow from the nonce n: Motif Bazaar at n, The Unwoven Kilim at n + 1, the auction at n + 2. At 1,568 they were `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`; at 1,570 (the nonce on 12 October at 23:51 UTC) they would be `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`, `0xf2bf089aa3b9E7D8664147e2Db42e84499717c7e` and `0x89c531b660DA287BB16f971023cCDddf302D80A2`. Publish what the simulation prints.
+- Publish on the site and at least one other channel: these three, the nonce, the 45 chunk addresses and the `expected` block from `deploy/mainnet.json` (its `texts` value with the eight texts it covers, which `pnpm -s expected --config deploy/mainnet.json` prints). The list is in [1-pre-deploy.md](1-pre-deploy.md), "Publish before deploy day".
 - After publishing, send nothing from orkhanart.eth.
 
 ## 10. The mainnet contracts
 
-Right before it, do two things:
+Right before it:
 - Repeat the header check of step 7. If mainnet forked to Glamsterdam after the store went up, KilimMotifs runs out of gas storing its code, and the published addresses are void.
 - Run from a clean checkout of the frozen tag, not a working tree other sessions share. The script compiles what `src/` holds.
+- Bring the stores into that checkout. `onchain/build-motifs/` and `onchain/build-page/` are git-ignored, so a clean checkout has neither, and the script stops at the first manifest read. Copy both folders from the working tree whose `pnpm -s check:stores --config deploy/mainnet.json` passed, for example from the checkout's root: `cp -R <working tree>/onchain/build-motifs <working tree>/onchain/build-page onchain/`. Then, in `contracts/`, run `pnpm install`, `pnpm -s check:stores --config deploy/mainnet.json` and `pnpm -s expected --config deploy/mainnet.json`, which must print the published block. Do not re-pack the stores there unless `python3 -c 'import zlib; print(zlib.ZLIB_VERSION)'` prints `1.2.12`, the zlib recorded in `build-page/manifest.json` (`blob.zlibVersion`). Another zlib compresses the artwork differently, TAIL changes, and the script refuses (`expected tailHash`). Nothing is sent, but copy the stores instead.
+- Set `"deployerNonce"` to the published nonce (step 9) if the checkout does not carry it, and check the wallet is still at it.
+- Set `"startsAt"`, last, to `python3 -c 'import time; print(int(time.time()) + 1200)'`, twenty minutes from now. The script needs it at least 600 seconds (`minLeadSeconds`) after the latest block when it simulates. The other ten minutes cover the compile, your three confirmations and their inclusion. The auction's creation (the third) must be mined before `startsAt`: if it is mined later, its constructor reverts and both token contracts are void ([2-deploy.md](2-deploy.md), "Send"). Confirm each transaction as soon as it appears. Use the wallet's normal or fast fee, and Speed up anything pending. If more than five minutes pass before you send, set it again. Use a later time if the network is busy.
 
-Then run the command from step 9 with `--broadcast --slow --timeout 600 <SIGN>` added. If `startsAt` is now less than 24 hours away, move it later first and announce the new date.
+Then run the command from step 9 with `--broadcast --slow --timeout 600 <SIGN>` added.
 - **You should see:** the settings with no flag, three transactions, and the three published addresses.
 - If anything goes wrong mid-way, do not improvise. [2-deploy.md](2-deploy.md), "Send", covers each case.
 
 ## 11. After deployment
 
 - Verify the source and read back every value: [2-deploy.md](2-deploy.md), "Verify source" and "Read back".
-- Publish, point the site at the deployment, test the off switch and turn on monitoring, all before `startsAt`: [3-post-deploy.md](3-post-deploy.md). The site command takes the auction's creation transaction from `broadcast/DeployKilim.s.sol/1/runContracts-latest.json`.
+- Publish, point the site at the deployment, test the off switch and turn on monitoring: [3-post-deploy.md](3-post-deploy.md). The site command takes the auction's creation transaction from `broadcast/DeployKilim.s.sol/1/runContracts-latest.json`. With `startsAt` twenty minutes after the deployment, most of this happens while registration is open. Before 100 registrations nobody can bid. But one actor can register 100 wallets in one transaction the moment `startsAt` passes and bid in the same transaction (F-03), so the only window that is certain is the one before `startsAt`. Do the read back of [2-deploy.md](2-deploy.md) first, inside it.
+- Kilim Bazaar, whenever it is to go up (it opens at settlement): `KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilimBazaar.s.sol --rpc-url "$RPC" --broadcast --slow --timeout 600 <SIGN> --sender 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`. No address is typed in: on mainnet the script takes the motif collection, the 1/1 and the auction from `deployer` and `deployerNonce` (n, n + 1, n + 2), the only contracts orkhanart.eth can have created there, and refuses any other (audit TK-1). So `deployerNonce` stays the number the contracts were deployed at; do not move it to the wallet's later nonce. It refuses a text that differs from `expected.texts`. Open the two kilim-1 URLs it prints before you confirm.
+
+## 12. Kilim Bazaar: the sealer runs before anyone can make a kilim
+
+The sealer seals every kilim from its own wallet, in the first block it can (see [kilim-sealer/README.md](../../kilim-sealer/README.md)). Without it, an owner who dislikes a kilim's look can leave it unsealed for about 27 hours and draw again, as often as they like (audit SL-1). It runs from the moment kilims can be made, for as long as they can be made.
+
+1. **Before the Bazaar goes up:**
+   - Make a new wallet for the sealer only. A new MetaMask account will do. Never use orkhanart.eth, the treasury or the store wallet.
+   - Send it 0.1 ETH. Any wallet will do, and orkhanart.eth too once its three contracts are out.
+   - Choose the host: one container with a persistent volume, as in the README's Hosting.
+2. **The order.** Best: deploy the Bazaar while the auction is still running (making opens at settlement), start the sealer at once, then let the auction settle. If the Bazaar goes up after settlement, it is open from its own block. Then start the sealer within the hour, and before the site links to the Bazaar.
+3. **Start it** with these values:
+   - `KILIM_BAZAAR`: the address the script printed;
+   - `KILIM_START_BLOCK`: its creation block;
+   - `KILIM_RUNTIME_HASH`: read on two nodes, as in [2-deploy.md](2-deploy.md), "Kilim Bazaar's sealer";
+   - `KILIM_SEALER_KEY`: in the host's secret store;
+   - `KILIM_BUDGET_ETH=0.1`.
+4. **You should see:** a first line `Sealer 0x… watching Kilim Bazaar 0x… on chain 1 … window 8191 …`, and `/health` answering 200. After the first kilim you should see `NEW kilim 1 …`, then `SEND …`, then `MINED … sealed [1]`, two blocks after the kilim was made.
+5. **Watch it:**
+   - Have the `ALERT` lines reach your phone or email, and point an uptime check at `/health`.
+   - At "Sealer budget low", compare the journal with the wallet on Etherscan. Then raise `KILIM_BUDGET_ETH`, top up the wallet and restart.
+   - The audit also advises a second sealer on another host, with `KILIM_DELAY_BLOCKS=100`.
+6. **Never stop it** while kilims can be made. A restart is fine: it scans again from the start block. A day without it is not.

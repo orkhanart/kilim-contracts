@@ -1,14 +1,14 @@
 {
-  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_motifs.py and onchain/pack_page.py once the motifs and the page are final. The `expected` block names the content by hash (five section hashes, the two tokenURI goldens, and the sha256 of the artist's page, the artwork, the still and the loader): print it with `pnpm -s expected` from the packed stores, compare it with the published values, and paste it in. On chain 1 the script refuses a config without it, a zero in it, a store that differs from it, and an artwork that never reads KILIM_GRIDS.",
+  "_comment": "Template for the Ethereum mainnet deployment. The auction values are the decided launch settings (checklists/1-pre-deploy.md); on chain 1 script/DeployKilim.s.sol refuses any other value, any deployer but the artist's wallet, a skipped nonce check and a zero minLeadSeconds. Copy it, fill every TODO, get it signed off, then follow checklists/2-deploy.md and docs/STORAGE.md. The stores come from onchain/pack_motifs.py and onchain/pack_page.py once the motifs and the page are final. The `expected` block names the content by hash (five section hashes, the two tokenURI goldens, and the sha256 of the artist's page, the artwork, the still and the loader) and the texts (`texts`: the hash of the collection, 1/1 and bazaar texts, script/KilimTexts.sol): print it with `pnpm -s expected --config <this file>` from the packed stores, compare it with the published values, and paste it in. On chain 1 the script refuses a config without it, a zero in it, a store or a text that differs from it, and an artwork that never reads KILIM_GRIDS. deploy/mainnet.json adds the bazaar block, whose texts `texts` covers too.",
   "chainId": 1,
   "deployer": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
   "deployerNonce": "TODO: the published nonce for the motif collection, the first of the three contract transactions",
-  "minLeadSeconds": "TODO: the inspection window in seconds, nonzero (for example 86400)",
+  "minLeadSeconds": "TODO: the inspection window in seconds, nonzero (600, decided 12 October 2026: the registration phase is the window)",
   "motifStore": "../onchain/build-motifs",
   "pageStore": "../onchain/build-page",
   "auction": {
     "treasury": "0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac",
-    "startsAt": "TODO: unix seconds, at least minLeadSeconds after deployment",
+    "startsAt": "TODO: unix seconds; 0 until the day (runStore ignores it, runContracts refuses it), then right before runContracts the time now + 1200",
     "duration": 86400,
     "extensionWindow": 600,
     "incrementBps": 1000,
@@ -36,6 +36,7 @@
     "motifSource": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "artwork": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "still": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "loader": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    "loader": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "texts": "0x0000000000000000000000000000000000000000000000000000000000000000"
   }
 }
