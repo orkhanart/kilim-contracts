@@ -70,7 +70,8 @@ Registration opens at `startsAt`. Bidding is closed until exactly 100 wallets ha
   - outbid ETH comes back automatically; only a refund that could not be sent waits for `withdrawRefund`;
   - motifs are **claimed**: the bidder calls `claimMotifs`, up to 64 per transaction, and pays the gas. Credits never expire, so claiming can wait for cheap gas;
   - any bid in the last 10 minutes extends the close, with no limit;
-  - send bids with a generous gas limit (the site sends 1,500,000); a bid with too little gas reverts with `InsufficientGas` and costs only gas.
+  - send bids with a generous gas limit (the site sends 1,500,000); a bid with too little gas reverts with `InsufficientGas` and costs only gas;
+  - **anyone bidding without the site** (another frontend, a script, a wallet that keeps the node's estimate): a gas estimate taken before the last 10 minutes is too low for the same bid once it lands inside them, because a late bid also moves the close. It reverts with `InsufficientGas` and changes nothing (seen in both dress rehearsals: an outbid estimated at about 538,800 reverted after about 89,500 gas). Send outbids with 1,500,000, as the site does.
 - [ ] If the motif pool runs out (`motifsAllocated == motifCap`), announce that bids still count for the 1/1 but earn no motifs.
 - [ ] Do not present bid counts or motif counts as numbers of collectors. One wallet can outbid itself and keep the motifs (F-04).
 - [ ] As the first claims land, check a claimed token on the marketplace and in a wallet: the SVG, the name "<Name> (motif <n>)" and the two attributes.
@@ -81,7 +82,7 @@ Registration opens at `startsAt`. Bidding is closed until exactly 100 wallets ha
 - [ ] Check what settlement did with the 1/1:
   - `PrizeClaimed(winner, winner)`, `oneOfOne.minted() == true` and `oneOfOne.ownerOf(1) == winner`: delivered, nothing more to do;
   - `PrizeDeliveryFailed(winner)`: the winner's wallet rejected it or needed more than 1,000,000 gas. Help the winner call `claimPrize(to)`: to its own address with a higher gas limit if it only needed more gas, or to another address that accepts it. Only the winner can.
-- [ ] Read `oneOfOne.tokenURI(1)` with an explicit gas value (about 4.5M is needed; send 8M) and confirm its sha256 is the page manifest's golden. Check the token on the marketplace: the still, then the page.
+- [ ] Read `oneOfOne.tokenURI(1)` with an explicit gas value (about 4.75M is needed: `eth_estimateGas` read 4,751,312 in the final dress rehearsal; send 8M) and confirm its sha256 is the page manifest's golden. Check the token on the marketplace: the still, then the page.
 - [ ] The treasury calls `withdrawProceeds(to)` to the pre-chosen address. Confirm the ETH arrives and `proceedsDue` reads 0.
 - [ ] Give the winner what the terms promise: The Unwoven Kilim's page is served from the chain, and the way to open it full-window is the `animation_url` of `tokenURI(1)` saved as an `.html` file. (With no bids the auction never ends, so there is nothing to settle.)
 - [ ] Publish the result: winning bid, winner address, motifs allocated and claimed, and the settlement transaction.
@@ -91,6 +92,6 @@ Registration opens at `startsAt`. Bidding is closed until exactly 100 wallets ha
 - [ ] Claims stay open for good. Tell bidders how many motifs are still unclaimed (`motifsAllocated − motifsClaimed`) and how to claim. Nobody can claim for them.
 - [ ] Contact every bidder with a deferred refund until `refundLiability` reads 0. Refunds do not expire.
 - [ ] Keep the balance alert on until `liabilities()` is 0.
-- [ ] Switch the site to its post-auction state, keeping the claim and refund flows working. Kilim Bazaar (burning motifs to weave a kilim) is a later contract and its own launch; until then `burn` is the only thing a holder can do with a motif besides holding or trading it.
+- [ ] Switch the site to its post-auction state, keeping the claim and refund flows working. Making opens at settlement in the Kilim Bazaar (burn motifs, make a kilim), deployed while the auction ran or after it ([0-launch-steps.md](0-launch-steps.md), steps 11 and 12); its sealer must be running from that moment. Until the Bazaar is up, `burn` is the only thing a holder can do with a motif besides holding or trading it.
 - [ ] If sponsored registration was used, stop the service and move what is left out of the sponsor wallet.
 - [ ] Archive the evidence: final `audit/` outputs, the deployment record, the manifests and chunk files, the audit report, and the published content files.

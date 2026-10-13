@@ -606,7 +606,7 @@ contract KilimBazaarDeployTest is BazaarBase {
     }
 
     /// @dev The derivation needs orkhanart.eth and a nonce; a wrong nonce derives addresses without code, or
-    ///      other contracts, and is refused either way.
+    ///      other contracts, and is refused either way, in words that name deployerNonce (final rehearsal F5).
     function testMainnetRefusesAnotherDeployerOrNonce() public {
         DeployKilimBazaar.Config memory c = _mainnet();
         c.deployer = SENDER;
@@ -617,8 +617,8 @@ contract KilimBazaarDeployTest is BazaarBase {
         _expectRefused("mainnet needs the published deployerNonce");
         script.deploy(c, ARTIST);
         c = _mainnet();
-        c.deployerNonce = PUBLISHED_NONCE + 1; // nothing at n + 3 yet
-        _expectRefused("the auction has no code");
+        c.deployerNonce = PUBLISHED_NONCE + 1; // the 1/1 and the auction at n + 1 and n + 2, nothing at n + 3
+        _expectRefused(_notTheNonce(PUBLISHED_NONCE + 1));
         script.deploy(c, ARTIST);
         c = _mainnetNamed();
         c.deployerNonce = PUBLISHED_NONCE + 1; // the real addresses, named, no longer match
@@ -636,6 +636,71 @@ contract KilimBazaarDeployTest is BazaarBase {
         c.auction = address(0);
         _expectRefused("no auction: set bazaar.auction");
         script.deploy(c, SENDER);
+    }
+
+    /// @dev Final rehearsal F5, B4: deployerNonce moved to the wallet's nonce after the three creations. Nothing
+    ///      is there, and the refusal says what deployerNonce must be, not only "the auction has no code".
+    function testMainnetRefusesTheWalletsNonceNowAsDeployerNonce() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        uint256 now_ = vmb.getNonce(ARTIST);
+        assertEq(now_, PUBLISHED_NONCE + 3);
+        c.deployerNonce = now_;
+        _expectRefused(_noContracts(now_));
+        script.deploy(c, ARTIST);
+    }
+
+    /// @dev Final rehearsal F5, B5: a deployerNonce below the real one derives an "auction" that is the trio's
+    ///      1/1 or Motif Bazaar. motifs() answers there and oneOfOne() reverts, which came out as an undecoded
+    ///      revert; now it is a refusal that names deployerNonce. Nothing is sent either way.
+    function testMainnetRefusesAnEarlierDeployerNonceByName() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        c.deployerNonce = PUBLISHED_NONCE - 1; // "auction" = the real 1/1, "1/1" = the real Motif Bazaar
+        _expectRefused(_notTheNonce(PUBLISHED_NONCE - 1));
+        script.deploy(c, ARTIST);
+        c = _mainnet();
+        c.deployerNonce = PUBLISHED_NONCE - 2; // "auction" = the real Motif Bazaar, nothing at n - 2
+        _expectRefused(_notTheNonce(PUBLISHED_NONCE - 2));
+        script.deploy(c, ARTIST);
+        // the published nonce still deploys
+        assertEq(address(script.deploy(_mainnet(), ARTIST).auction()), PUBLISHED_AUCTION);
+    }
+
+    /// @dev The two token contracts are out and name n + 2 as their minter, but the auction is not (lost, as in
+    ///      checklist 2's "If the third was dropped"): the refusal points to runAuction.
+    function testMainnetRefusesBeforeTheAuctionIsOutAndNamesRunAuction() public {
+        DeployKilimBazaar.Config memory c = _mainnet();
+        vmb.etch(PUBLISHED_AUCTION, "");
+        _expectRefused(
+            string.concat(
+                "mainnet: the auction at deployerNonce ",
+                vmb.toString(PUBLISHED_NONCE),
+                " + 2 has no code (orkhanart.eth's nonce is ",
+                vmb.toString(uint256(vmb.getNonce(ARTIST))),
+                "): finish the contracts with DeployKilim's runAuction first"
+            )
+        );
+        script.deploy(c, ARTIST);
+    }
+
+    /// @dev The three deployerNonce refusals' words, with orkhanart.eth's nonce now.
+    function _noContracts(uint256 n) internal view returns (string memory) {
+        return string.concat(
+            "mainnet: no contracts at deployerNonce ",
+            vmb.toString(n),
+            ", + 1 and + 2 (orkhanart.eth's nonce is ",
+            vmb.toString(uint256(vmb.getNonce(ARTIST))),
+            "): deployerNonce is the nonce the three contracts were deployed at, not the wallet's nonce now; if they are not deployed yet, run DeployKilim first"
+        );
+    }
+
+    function _notTheNonce(uint256 n) internal view returns (string memory) {
+        return string.concat(
+            "mainnet: deployerNonce ",
+            vmb.toString(n),
+            " is not the nonce the three contracts were deployed at: orkhanart.eth's creations there are not Motif Bazaar, The Unwoven Kilim and their auction (its nonce is ",
+            vmb.toString(uint256(vmb.getNonce(ARTIST))),
+            ")"
+        );
     }
 
     function _mainnetNamed() internal returns (DeployKilimBazaar.Config memory c) {
@@ -748,8 +813,8 @@ contract KilimBazaarDeployTest is BazaarBase {
         _deployAuction(BIG_CAP, REAL_PAGE);
         address lookAlike = address(auction);
         dk.deployStore(dc, address(0x5704E)); // any wallet but the deployer
-        // Before runContracts there is nothing at the derived addresses.
-        _expectRefused("the auction has no code");
+        // Before runContracts there is nothing at the derived addresses, and the refusal says so by deployerNonce.
+        _expectRefused(_noContracts(dc.deployerNonce));
         script.deploy(bc, ARTIST);
 
         vmx.setNonce(ARTIST, uint64(dc.deployerNonce));

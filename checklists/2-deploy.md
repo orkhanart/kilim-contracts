@@ -65,8 +65,22 @@ With `--skip-simulation` forge takes each gas limit from the node's `eth_estimat
 - [ ] **(script)** On chain 1: `deployer` and `treasury` are `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac` (orkhanart.eth); `incrementBps` 1000 (+10%); `duration` 86400 (24 hours from the first bid); `extensionWindow` 600 (10 minutes, no limit on extensions); `motifCap` and `maxMotifsPerBid` 1,000,000; `oneOfOne.name` "The Unwoven Kilim". **By hand:** fresh proof that the key still works ([1-pre-deploy.md](1-pre-deploy.md)). Switching the treasury to a Safe would mean changing `LAUNCH_TREASURY` in the script, its tests and the signed-off config, then re-tagging.
 - [ ] **(script)** `startsAt` is in Unix **seconds** (not milliseconds), at least `minLeadSeconds` (the inspection window) ahead of the latest block when the script simulates, and at most a year out. On chain 1, `minLeadSeconds` must be nonzero; it is 600 (the artist, 12 October 2026: the registration phase is the inspection window). `runStore()` reads `startsAt` but never checks it, so the config keeps the placeholder 0 until the contracts. **By hand:** right before `runContracts()`, `startsAt` is set to now + 1,200 seconds ([0-launch-steps.md](0-launch-steps.md), step 10), and the three creations are sent at once: the auction's must be mined before `startsAt`, or its constructor reverts and both token contracts are void.
 - [ ] **(script)** The dry run of the three contracts: the auction's address equals the prediction (nonce + 2), every immutable reads back as deployed, a motif's `tokenURI` and the 1/1's `tokenURI(1)` hash to the manifests' goldens, and each deployment and each read stays under 8M gas.
-- [ ] **(script)** forge simulates the whole script before sending anything. **By hand:** the commands carry `--slow` and `--timeout`; each broadcast gas limit is forge's own Cancun simulation of that transaction times 130%, not the node's estimate (on Sepolia: the flags above); and the keys hold enough ETH (on a mainnet before Glamsterdam, the store about 246.0M gas in all with the page of 11 October and the WebP still, the three contracts about 13.1M).
-- [ ] The git tag is checked out, and `pnpm -s artifacts` matches the frozen `audit/build-manifest.json`.
+- [ ] **(script)** forge simulates the whole script before sending anything. **By hand:** the commands carry `--slow` and `--timeout`; each broadcast gas limit is forge's own Cancun simulation of that transaction times 130%, not the node's estimate (on Sepolia: the flags above); and the wallets hold enough ETH ([0-launch-steps.md](0-launch-steps.md), step 3). The final dress rehearsal's receipts on a fork of mainnet (12 October): the store 225.0M gas, from the store wallet; from orkhanart.eth the three contracts 11.5M and Kilim Bazaar 5.7M, 17.2M in all; and 0.1 ETH in the sealer's own wallet. A wallet must also hold its next transaction's gas limit times its max fee when it sends: 7.87M for a chunk, 7.61M for `KilimOneOfOne`, 7.37M for the Bazaar.
+- [ ] **The build is the frozen one.** In a clean checkout of the git tag, in `contracts/` (after `pnpm install`):
+
+  ```sh
+  pnpm -s build && pnpm -s artifacts
+  git diff --exit-code -- abi/ audit/build-manifest.json
+  ```
+
+  `pnpm -s artifacts` has no compare mode: it rewrites `abi/` and `audit/build-manifest.json` from the build and from the files git tracks (never an untracked one), and `git diff` is the comparison. Run it before `deploy/mainnet.json` is edited for the day, and it must exit 0 with no output. If `deploy/mainnet.json` already carries the day's values, these two must print nothing instead: the manifest may differ only in `deploy/mainnet.json`'s own hash, and that file only in `deployerNonce` and `startsAt`.
+
+  ```sh
+  git diff --exit-code -- abi/ && git diff -U0 -- audit/build-manifest.json | grep '^[-+] ' | grep -v '"deploy/mainnet.json": '
+  git diff -U0 -- deploy/mainnet.json | grep '^[-+] ' | grep -v -E '"(deployerNonce|startsAt)": '
+  ```
+
+  Then `git checkout -- audit/build-manifest.json`, so the checkout carries the frozen file again.
 
 ## Send
 
@@ -135,7 +149,38 @@ A deployment cannot be abandoned. It opens registration at its own `startsAt`, t
 
 ## Kilim Bazaar's sealer
 
-Kilim Bazaar is its own launch, after this one (`script/DeployKilimBazaar.s.sol`). Its sealer (`kilim-sealer/`, see its README) must be running before the first kilim can be made. That moment is settlement if the Bazaar already exists, else the Bazaar's own creation block. Without the sealer, rule 7 does not hold (audit SL-1).
+Kilim Bazaar is its own launch, after this one (`script/DeployKilimBazaar.s.sol`, from orkhanart.eth; [0-launch-steps.md](0-launch-steps.md), step 11). Its sealer (`kilim-sealer/`, see its README) must be running before the first kilim can be made. That moment is settlement if the Bazaar already exists, else the Bazaar's own creation block. Without the sealer, rule 7 does not hold (audit SL-1).
+
+- [ ] **Before the Bazaar is deployed, its pages and image service are live:** `https://orkhan.art/kilim/bazaar/`, `https://orkhan.art/kilim/bazaar/<id>` and `https://orkhan.art/kilim/bazaar/image/<id>` are served by the live site, not 404 (all three were 404 on 12 October). The contract appends each kilim's id to `externalUrl` and `imageBase` for ever, and marketplaces take every kilim's picture from the image base. **The Bazaar deploy can wait until they are live: any time before the auction settles is as good as at once.** Before kilim 1 exists its two URLs cannot show it, but they must answer from the live pages.
+
+### Kilim Bazaar: read back
+
+Right after the creation, read the Bazaar on the chain itself (the script only read back its own deployment). With the sealer's node modules (`kilim-sealer/`, ethers 6.17.0; `npm ci` there first if they are missing), put a trusted RPC in `RPC` and the printed address in `BAZAAR`, and run it on two RPCs. Nothing is sent:
+
+```sh
+cd ../kilim-sealer && node --input-type=module -e '
+import { ethers } from "ethers";
+const p = new ethers.JsonRpcProvider(process.env.RPC), at = process.env.BAZAAR;
+const b = new ethers.Contract(at, ["function auction() view returns (address)", "function motifs() view returns (address)",
+  "function oneOfOne() view returns (address)", "function royaltyReceiver() view returns (address)", "function motifPrice() view returns (uint256)",
+  "function motifChainId() view returns (uint256)", "function seedWindow() view returns (uint256)", "function ROYALTY_BPS() view returns (uint256)",
+  "function totalSupply() view returns (uint256)", "function name() view returns (string)", "function symbol() view returns (string)",
+  "function description() view returns (string)", "function externalUrl() view returns (string)", "function imageBase() view returns (string)",
+  "function ladder() view returns (uint256[6], bool)", "function rankName(uint256) view returns (string)"], p);
+for (const f of ["auction", "motifs", "oneOfOne", "royaltyReceiver", "motifPrice", "motifChainId", "seedWindow", "ROYALTY_BPS", "totalSupply",
+  "name", "symbol", "description", "externalUrl", "imageBase"]) console.log(f.padEnd(16), String(await b[f]()));
+const [costs, open] = await b.ladder();
+console.log("ladder".padEnd(16), costs.join(", "), "open", open);
+for (let r = 1; r <= 6; r++) console.log(("rankName(" + r + ")").padEnd(16), await b.rankName(r));
+console.log("runtime keccak".padEnd(16), ethers.keccak256(await p.getCode(at)));
+'
+```
+
+- [ ] `auction`, `motifs` and `oneOfOne` are the three published addresses (orkhanart.eth's creations at `deployerNonce` + 2, + 0 and + 1).
+- [ ] `royaltyReceiver` orkhanart.eth `0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`, `motifPrice` 1000000000000000, `motifChainId` 1, `seedWindow` 8191, `ROYALTY_BPS` 750, `totalSupply` 0, `name` "Kilim Bazaar", `symbol` "KILIM".
+- [ ] `description`, `externalUrl` and `imageBase` are the `bazaar` block's texts in `deploy/mainnet.json`, as `pnpm -s expected --config deploy/mainnet.json` prints them under `texts`.
+- [ ] Before settlement: `ladder` 10, 30, 100, 300, 1000, 0, open false; `rankName(1)` to `(6)` Apprentice, Spinner, Weaver, Artisan, Dyer, The Master.
+- [ ] `runtime keccak` is the same on both RPCs; it is the sealer's `KILIM_RUNTIME_HASH` below.
 
 - [ ] **Before:**
   - A new sealer wallet that nothing else uses. The sealer refuses the auction's treasury and the Bazaar's royalty receiver.

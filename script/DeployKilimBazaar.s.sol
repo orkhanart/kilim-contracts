@@ -28,6 +28,7 @@ interface VmBazaarDeploy {
     function toString(address) external pure returns (string memory);
     function toString(bytes32) external pure returns (string memory);
     function computeCreateAddress(address, uint256) external pure returns (address);
+    function getNonce(address) external view returns (uint64);
 }
 
 /// @title DeployKilimBazaar
@@ -56,13 +57,17 @@ interface VmBazaarDeploy {
 ///         compared whenever the config carries it (audit TK-2); the token texts it covers must then also be
 ///         what the chain's motif collection and 1/1 hold.
 ///
-///         It refuses: the wrong chain; on mainnet a deployer other than orkhanart.eth, no deployerNonce, or an
-///         auction, motifs or oneOfOne other than orkhanart.eth's creations at deployerNonce + 2, + 0 and + 1;
-///         no auction; an auction without code; an auction, motif collection and 1/1 that do not belong
+///         It refuses: the wrong chain; on mainnet a deployer other than orkhanart.eth, no deployerNonce, an
+///         auction, motifs or oneOfOne other than orkhanart.eth's creations at deployerNonce + 2, + 0 and + 1,
+///         and a deployerNonce at which orkhanart.eth did not create the three (no contracts there, the
+///         auction at + 2 not yet sent, or other contracts there), each said in its own words that name
+///         deployerNonce (final rehearsal F5); no auction; an auction without code; an auction, motif
+///         collection and 1/1 that do not belong
 ///         together, or that differ from the config's; texts that differ from `expected.texts`, or token texts
 ///         that differ from the chain's; a pageTailHash other than the chain's 1/1's
 ///         or the page store manifest's; a text the token's data: URL cannot carry, or one with the words the
-///         project dropped (make, woven, in any case; "unwoven" passes); an imageBase or externalUrl that is
+///         project dropped ("weav" anywhere, as in weave or weaving, and "woven" but in "unwoven", in any
+///         case); an imageBase or externalUrl that is
 ///         not a URL base (https://, ipfs:// or ar://, no space, ending in "/" or "=": the token id is
 ///         appended to it for ever); a zero royalty receiver; a pageRanks block that is not six names and five
 ///         costs, and on mainnet and Sepolia a missing one. On Ethereum mainnet (chain 1) also: a sender other
@@ -263,7 +268,10 @@ contract DeployKilimBazaar {
     /// @notice Every refusal that can be decided before the creation.
     function check(Config memory c, address sender) public view {
         if (block.chainid != c.chainId) revert Refused("wrong chain");
-        if (block.chainid == MAINNET_CHAIN_ID) _requireLaunchAddresses(c);
+        if (block.chainid == MAINNET_CHAIN_ID) {
+            _requireLaunchAddresses(c);
+            _requireLaunchContracts(c);
+        }
         if (c.auction == address(0)) revert Refused("no auction: set bazaar.auction");
         if (c.auction.code.length == 0) revert Refused("the auction has no code");
         if (c.royaltyReceiver == address(0)) revert Refused("zero royalty receiver");
@@ -342,6 +350,59 @@ contract DeployKilimBazaar {
         if (c.oneOfOne != oneOfOne) {
             revert Refused("mainnet: oneOfOne is not orkhanart.eth's creation at deployerNonce + 1");
         }
+    }
+
+    /// @dev Mainnet (final rehearsal F5): the contracts at the derived addresses must be the three DeployKilim
+    ///      created at deployerNonce. A later nonce (the wallet's nonce now, say) derives addresses with no
+    ///      code, and an earlier one lands on the trio's other contracts, where reading the auction reverted
+    ///      undecoded. Each case is refused here in words that name deployerNonce, before any such read.
+    function _requireLaunchContracts(Config memory c) internal view {
+        string memory n = vm.toString(c.deployerNonce);
+        string memory w = vm.toString(uint256(vm.getNonce(LAUNCH_ARTIST)));
+        bool auctionHere = c.auction.code.length != 0;
+        if (!auctionHere && c.motifs.code.length == 0 && c.oneOfOne.code.length == 0) {
+            revert Refused(string.concat(
+                    "mainnet: no contracts at deployerNonce ",
+                    n,
+                    ", + 1 and + 2 (orkhanart.eth's nonce is ",
+                    w,
+                    "): deployerNonce is the nonce the three contracts were deployed at, not the wallet's nonce now; if they are not deployed yet, run DeployKilim first"
+                ));
+        }
+        if (
+            !auctionHere && _addressOf(c.motifs, "minter()") == c.auction
+                && _addressOf(c.oneOfOne, "minter()") == c.auction
+                && _addressOf(c.oneOfOne, "motifs()") == c.motifs
+        ) {
+            revert Refused(string.concat(
+                    "mainnet: the auction at deployerNonce ",
+                    n,
+                    " + 2 has no code (orkhanart.eth's nonce is ",
+                    w,
+                    "): finish the contracts with DeployKilim's runAuction first"
+                ));
+        }
+        if (
+            _addressOf(c.auction, "motifs()") != c.motifs || _addressOf(c.auction, "oneOfOne()") != c.oneOfOne
+        ) {
+            revert Refused(string.concat(
+                    "mainnet: deployerNonce ",
+                    n,
+                    " is not the nonce the three contracts were deployed at: orkhanart.eth's creations there are not Motif Bazaar, The Unwoven Kilim and their auction (its nonce is ",
+                    w,
+                    ")"
+                ));
+        }
+    }
+
+    /// @dev An address-valued getter with no arguments, read without reverting: zero when there is no code,
+    ///      the call reverts (no such function) or the answer is not an address.
+    function _addressOf(address target, string memory signature) internal view returns (address) {
+        if (target.code.length == 0) return address(0);
+        (bool ok, bytes memory r) = target.staticcall(abi.encodeWithSignature(signature));
+        if (!ok || r.length < 32) return address(0);
+        uint256 v = abi.decode(r, (uint256));
+        return v > type(uint160).max ? address(0) : address(uint160(v));
     }
 
     function _create(Config memory c) internal returns (KilimBazaar) {

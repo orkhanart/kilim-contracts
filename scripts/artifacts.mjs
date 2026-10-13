@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -46,16 +47,17 @@ for (const name of ['KilimMotifs', 'KilimOneOfOne', 'KilimAuction', 'KilimBazaar
     abiSha256: sha256(readFileSync(resolve(root, `abi/${name}.json`))),
   };
 }
+// The files git tracks, at their working-tree content, and only those: an untracked leftover (a scratch
+// config, a local helper) never enters the manifest, so a clean checkout of the tag regenerates it byte
+// for byte and `git diff` on it is a real comparison (final rehearsal F4, 12 October 2026).
 const inputs = ['foundry.toml', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'audit/requirements.txt'];
-function collectInputs(directory) {
-  for (const entry of readdirSync(resolve(root, directory), { withFileTypes: true })) {
-    const path = `${directory}/${entry.name}`;
-    if (entry.isDirectory()) collectInputs(path);
-    else if (entry.isFile()) inputs.push(path);
-  }
+const tracked = execFileSync('git', ['ls-files', '-z', '--', ...inputs, 'src', 'test', 'scripts', 'script', 'deploy', 'vendor'],
+  { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
+for (const path of inputs) {
+  if (!tracked.includes(path)) throw new Error(`${path} is not tracked by git.`);
 }
-for (const directory of ['src', 'test', 'scripts', 'script', 'deploy', 'vendor']) collectInputs(directory);
-for (const path of inputs.sort()) {
+for (const path of [...new Set(tracked)].sort()) {
+  if (!existsSync(resolve(root, path))) throw new Error(`${path} is tracked but missing from the working tree.`);
   manifest.sourceSha256[path] = sha256(readFileSync(resolve(root, path)));
 }
 writeFileSync(resolve(root, 'audit/build-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');

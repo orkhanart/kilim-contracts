@@ -2,7 +2,7 @@
 
 One page for the artist: what to click or run, and what you should see. The detailed checks are in [1-pre-deploy.md](1-pre-deploy.md), [2-deploy.md](2-deploy.md) and [3-post-deploy.md](3-post-deploy.md); where a step says "see", the detail is there. Every command runs in `contracts/`. Written 11 October 2026.
 
-Two wallets are involved. **orkhanart.eth** (`0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`) deploys the three contracts and receives the proceeds. A **store wallet** is a second account of yours (a new MetaMask account will do) that pays for the 45 storage transactions. Each transaction orkhanart.eth sends moves its **nonce** up by one, and the contract addresses are tied to that number. So orkhanart.eth sends nothing in these steps except the switch-back in step 1 and the contracts in steps 5 and 10. Receiving ETH does not move the nonce.
+Two wallets are involved. **orkhanart.eth** (`0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`) deploys the three contracts and Kilim Bazaar and receives the proceeds. The **store wallet** (`0xdA67F4A8EBF6c6eF1a403d6dE7141E700F436e00`, made on 12 October with `node scripts/new-store-wallet.mjs`; its encrypted key is `~/.kilim-store/store-keystore.json`) pays for the 45 storage transactions. Each transaction orkhanart.eth sends moves its **nonce** up by one, and the contract addresses are tied to that number. So from the **wallet-freeze day** (step 1) orkhanart.eth sends nothing on mainnet but the three contracts (step 10) and then Kilim Bazaar (step 11). Before that day it may send anything, the store wallet's ETH included: the nonce is read again on the freeze day. Receiving ETH never moves the nonce.
 
 To read a wallet's nonce or code, paste this, with `eth_getTransactionCount` or `eth_getCode` as the method (for Sepolia, use `https://ethereum-sepolia-rpc.publicnode.com` as the address at the end):
 
@@ -14,15 +14,14 @@ A nonce comes back in hex: `0x61e` is 1,566, `0x61f` is 1,567 and `0x620` is 1,5
 
 ## 1. Switch orkhanart.eth back to a standard account (mainnet)
 
-**Done 11 October 2026.** Checked on two nodes: `eth_getCode` answers `0x`, the nonce is 1,568 (`0x620`, latest and pending), and `deploy/mainnet.json` carries `"deployerNonce": 1568`. A rehearsal on a fork of mainnet in this state deployed the three contracts at Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. **Send nothing from orkhanart.eth on mainnet until step 10**, and never accept a smart-account upgrade.
+**Done 11 October 2026.** Checked on two nodes: `eth_getCode` answers `0x`, the nonce is 1,568 (`0x620`, latest and pending), and `deploy/mainnet.json` carries `"deployerNonce": 1568`. A rehearsal on a fork of mainnet in this state deployed the three contracts at Motif Bazaar `0x33E45DED985DEfc51b15e4af3e69927D31f4e6EF`, The Unwoven Kilim `0xeD82CE5F5E943ef80F3D32a907281936186742eC` and the auction `0xb4817D07a14503dCEf49Bd25B17557e7CBb23423`. **From the wallet-freeze day (below), send nothing from orkhanart.eth on mainnet until step 10**, and never accept a smart-account upgrade.
 
 **The nonce has moved since (12 October).** orkhanart.eth sent a WETH unwrap at 15:28 UTC, so its mainnet nonce became 1,569, and at 23:51 UTC two nodes read 1,570 (`0x622`, latest and pending; `eth_getCode` still `0x`). The 1,568 addresses above are no longer the ones it will deploy at. `deploy/mainnet.json` still says 1568 on purpose: on the **wallet-freeze day** (the day from which orkhanart.eth sends nothing until step 10), read the nonce again on two nodes, write it into `"deployerNonce"`, and publish the addresses for that number (step 9). Every transaction from the wallet before that day is fine; any after it voids the published addresses.
 
-Today the wallet is a MetaMask smart account on mainnet: `eth_getCode` answers `0xef0100…63c0c19a…` and the deploy script refuses it.
-- In MetaMask, on Ethereum mainnet, open the account's details, find **Smart account** and choose **Switch back** to a standard account. Menu names differ between MetaMask versions. Confirm the one transaction.
-- **You should see:** `eth_getCode` now answers `"result":"0x"`, and the nonce reads the same for `"latest"` and `"pending"`. MetaMask sends the switch-back from the wallet itself as an EIP-7702 transaction, which uses **two** nonces (one for the transaction, one for the authorization inside it), so expect `0x620` (1,568); a relayed switch-back would leave `0x61f` (1,567). It also shows the key works today; checklist 2 asks again on deploy day.
-- Write the number you read into `deploy/mainnet.json` as `"deployerNonce"`, a whole number with no quotes. Never assume it: the three contract addresses follow from it.
-- From now on, reject any MetaMask offer to "upgrade" or "switch to a smart account", on any network. Accepting would add the code back and spend a nonce.
+The EIP-7702 delegation is gone: the final dress rehearsal (12 October, [audit/rehearsal-2026-10-12-final.txt](../audit/rehearsal-2026-10-12-final.txt)) read `eth_getCode` `0x` on three nodes and the nonce 1,570 (`0x622`), latest and pending. Nothing more to do here until the freeze day.
+- On the wallet-freeze day, write the nonce you read on two nodes into `deploy/mainnet.json` as `"deployerNonce"`, a whole number with no quotes. Never assume it: the three contract addresses follow from it.
+- If `eth_getCode` ever answers `0xef0100…` again (a smart-account upgrade accepted by mistake), the deploy script refuses (`deployer has code`). Switch back in MetaMask (the account's details, **Smart account**, **Switch back**; the switch-back spends two nonces), then read the nonce again.
+- Reject any MetaMask offer to "upgrade" or "switch to a smart account", on any network. Accepting would add the code back and spend a nonce.
 
 ## 2. Decide the launch day
 
@@ -34,16 +33,20 @@ There is no 24-hour inspection window any more (the artist, 12 October 2026): `m
 
 ## 3. Fund the wallets
 
-Gas used is the same on any day; the price per unit (the **base fee**) changes. ETH needed ≈ gas × base fee. On 11 October the mainnet base fee was about 0.19 gwei.
+Gas used is the same on any day; the price per unit (the **base fee**) changes. ETH needed ≈ gas × base fee. On 12 October the mainnet base fee was about 0.18 gwei. The mainnet gas below is what the final dress rehearsal's receipts used on a fork of mainnet (12 October, [audit/rehearsal-2026-10-12-final.txt](../audit/rehearsal-2026-10-12-final.txt), section 15).
 
-| Network | What | Gas | Cost at 0.19 gwei | Cost at 1 gwei | Fund |
+| Network | What | Gas | Cost at 0.2 gwei | Cost at 1 gwei | Fund |
 | --- | --- | --- | --- | --- | --- |
 | Sepolia | the store | about 1.6G (Glamsterdam prices) | free test ETH | | store wallet: 0.1–0.5 Sepolia ETH from a faucet |
 | Sepolia | the contracts | about 62M | free test ETH | | orkhanart.eth: add 0.1 Sepolia ETH (it holds 0.0006) |
-| Mainnet | the store | about 246M (the dress rehearsal's receipts: 225M) | about 0.047 ETH | about 0.25 ETH | store wallet: twice the day's figure |
-| Mainnet | the contracts | about 13.1M | about 0.0025 ETH | about 0.013 ETH | orkhanart.eth holds 0.30 ETH, enough below about 10 gwei |
+| Mainnet | the store (45 chunks) | 225.0M | about 0.045 ETH | about 0.23 ETH | store wallet: about 0.07 ETH, enough up to about 0.3 gwei; send more if the day's base fee is higher |
+| Mainnet | the three contracts | 11.5M | about 0.0023 ETH | about 0.012 ETH | orkhanart.eth |
+| Mainnet | Kilim Bazaar | 5.7M | about 0.0011 ETH | about 0.0057 ETH | orkhanart.eth |
+| Mainnet | the sealer | its budget, not gas | 0.1 ETH | 0.1 ETH | the sealer's own wallet (step 12) |
 
-Send the store wallet's ETH **from an exchange or another wallet, never from orkhanart.eth**: that would move the nonce. Each transaction needs a margin above what it uses (forge sets its limit at 130%), but unused gas is not charged.
+- **The store wallet's ETH may come from orkhanart.eth, before the wallet-freeze day only.** That send moves orkhanart.eth's nonce, which is read again on the freeze day, so it is harmless before that day and voids the published addresses after it. An exchange or another wallet is fine at any time. After the store is up, send what is left back to orkhanart.eth (step 8).
+- **orkhanart.eth holds 0.143 ETH** (0.142993 on 12 October). At today's base fee that covers the store wallet's 0.07, the three contracts and Kilim Bazaar, with about 0.07 ETH left, or about 0.095 once the store wallet's leftover comes back. **It does not also cover the sealer's 0.1 ETH:** fund the sealer from an exchange or another wallet, or top up orkhanart.eth first. At 1 gwei the contracts and the Bazaar alone take about 0.017 ETH, and the store about 0.23.
+- A wallet must hold more than it spends while it sends: each transaction's gas limit times its max fee (forge sets the limit at 130% of its simulation; the largest are 7.87M for a chunk, 7.61M for KilimOneOfOne and 7.37M for the Bazaar). Unused gas is not charged.
 
 ## 4. Choose how you sign
 
@@ -55,7 +58,7 @@ forge never sees the key. Choose for each wallet, since the store wallet and ork
   - Connect within 5 minutes of starting the command.
   - If the next transaction does not appear, reload the page or open MetaMask from the toolbar.
   - Never press Cancel on a deploy transaction. Cancel is a replacement at the same nonce, and it voids the published addresses.
-- **`--keystore <file> --password-file <file>`** for the store wallet. 45 confirmations by hand are too many. Use a throwaway wallet whose encrypted keystore forge reads; its field must be the lowercase `crypto`, which ethers v6 writes as `Crypto`. Fund it with only what the store needs.
+- **`--keystore ~/.kilim-store/store-keystore.json`** for the store wallet (`0xdA67F4A8EBF6c6eF1a403d6dE7141E700F436e00`): 45 confirmations by hand are too many, so forge reads the encrypted key and asks for its password once. `scripts/new-store-wallet.mjs` wrote the file with the lowercase `crypto` field forge needs. Fund the wallet with only what the store needs (step 3).
 
 ## 5. Rehearse on Sepolia
 
@@ -107,10 +110,12 @@ curl -s -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id
 ```sh
 export RPC=https://ethereum-rpc.publicnode.com
 KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilim.s.sol --sig 'runStore()' \
-  --rpc-url "$RPC" --broadcast --slow --timeout 600 <SIGN> --sender <STORE WALLET>
+  --rpc-url "$RPC" --broadcast --slow --timeout 600 \
+  --keystore ~/.kilim-store/store-keystore.json --sender 0xdA67F4A8EBF6c6eF1a403d6dE7141E700F436e00
 ```
 
 - **You should see:** `chunks to send 45`, then 45 transactions, then the 45 chunk addresses, the same as on Sepolia. Rerun it if it stops. If the sender is orkhanart.eth the script refuses it, and that refusal is correct.
+- **Then send the store wallet's leftover back to orkhanart.eth**, at any time (MetaMask can open the key: Add account, Import account, JSON file, with the same password). It is an incoming transfer for orkhanart.eth, so it does not move its nonce.
 
 ## 9. Publish the addresses
 
@@ -137,7 +142,8 @@ Then run the command from step 9 with `--broadcast --slow --timeout 600 <SIGN>` 
 
 - Verify the source and read back every value: [2-deploy.md](2-deploy.md), "Verify source" and "Read back".
 - Publish, point the site at the deployment, test the off switch and turn on monitoring: [3-post-deploy.md](3-post-deploy.md). The site command takes the auction's creation transaction from `broadcast/DeployKilim.s.sol/1/runContracts-latest.json`. With `startsAt` twenty minutes after the deployment, most of this happens while registration is open. Before 100 registrations nobody can bid. But one actor can register 100 wallets in one transaction the moment `startsAt` passes and bid in the same transaction (F-03), so the only window that is certain is the one before `startsAt`. Do the read back of [2-deploy.md](2-deploy.md) first, inside it.
-- Kilim Bazaar, whenever it is to go up (it opens at settlement): `KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilimBazaar.s.sol --rpc-url "$RPC" --broadcast --slow --timeout 600 <SIGN> --sender 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`. No address is typed in: on mainnet the script takes the motif collection, the 1/1 and the auction from `deployer` and `deployerNonce` (n, n + 1, n + 2), the only contracts orkhanart.eth can have created there, and refuses any other (audit TK-1). So `deployerNonce` stays the number the contracts were deployed at; do not move it to the wallet's later nonce. It refuses a text that differs from `expected.texts`. Open the two kilim-1 URLs it prints before you confirm.
+- **Kilim Bazaar goes up only once its pages and its image service are live**: `https://orkhan.art/kilim/bazaar/`, `https://orkhan.art/kilim/bazaar/<id>` and `https://orkhan.art/kilim/bazaar/image/<id>`. The contract appends each kilim's id to those two bases for ever, and every marketplace takes each kilim's picture from the image base. On 12 October all three answered 404. **The Bazaar can wait until they are live: any time before the auction settles is as good as now** (making opens at settlement; if it goes up after settlement it is open from its own block, step 12). Before kilim 1 exists, `/kilim/bazaar/1` and `/kilim/bazaar/image/1` cannot show it yet, but they must be served by the live pages, not 404.
+- Then: `KILIM_DEPLOY_CONFIG=deploy/mainnet.json node scripts/forge.mjs script script/DeployKilimBazaar.s.sol --rpc-url "$RPC" --broadcast --slow --timeout 600 <SIGN> --sender 0xd6647Eeec0c8D810C546f2ab8e025D4664d833Ac`. No address is typed in: on mainnet the script takes the motif collection, the 1/1 and the auction from `deployer` and `deployerNonce` (n, n + 1, n + 2), the only contracts orkhanart.eth can have created there, and refuses any other (audit TK-1). So `deployerNonce` stays the number the contracts were deployed at; do not move it to the wallet's later nonce. A wrong one is refused by name: `mainnet: no contracts at deployerNonce …` or `mainnet: deployerNonce … is not the nonce the three contracts were deployed at …`. It refuses a text that differs from `expected.texts`. Open the two kilim-1 URLs it prints before you confirm, then read it back ([2-deploy.md](2-deploy.md), "Kilim Bazaar: read back").
 
 ## 12. Kilim Bazaar: the sealer runs before anyone can make a kilim
 
@@ -145,10 +151,11 @@ The sealer seals every kilim from its own wallet, in the first block it can (see
 
 1. **Before the Bazaar goes up:**
    - Make a new wallet for the sealer only. A new MetaMask account will do. Never use orkhanart.eth, the treasury or the store wallet.
-   - Send it 0.1 ETH. Any wallet will do, and orkhanart.eth too once its three contracts are out.
+   - Send it 0.1 ETH, from an exchange or another wallet. orkhanart.eth may send it once its three contracts are out, but it will not hold enough for this as well unless it is topped up first (step 3).
    - Choose the host: one container with a persistent volume, as in the README's Hosting.
 2. **The order.** Best: deploy the Bazaar while the auction is still running (making opens at settlement), start the sealer at once, then let the auction settle. If the Bazaar goes up after settlement, it is open from its own block. Then start the sealer within the hour, and before the site links to the Bazaar.
 3. **Start it** with these values:
+   - `KILIM_CHAIN_ID=1` (the default, but set it);
    - `KILIM_BAZAAR`: the address the script printed;
    - `KILIM_START_BLOCK`: its creation block;
    - `KILIM_RUNTIME_HASH`: read on two nodes, as in [2-deploy.md](2-deploy.md), "Kilim Bazaar's sealer";
